@@ -4,6 +4,8 @@ import DashboardPage from "./pages/Dashboard";
 import ReportsPage from "./pages/Reports";
 import ShortGoalsPage from "./pages/ShortGoals";
 import LongGoalsPage from "./pages/LongGoals";
+import AddGoalPage from "./pages/AddGoal";
+import ProfilePage from "./pages/Profile";
 import "./App.css";
 
 function App() {
@@ -31,6 +33,12 @@ function App() {
             اهداف بلندمدت
           </NavLink>
           <NavLink
+            to="/goals/new"
+            className={({ isActive }) => navClass(isActive)}
+          >
+            افزودن هدف
+          </NavLink>
+          <NavLink
             to="/dashboard"
             className={({ isActive }) => navClass(isActive)}
           >
@@ -43,6 +51,12 @@ function App() {
           >
             گزارش‌ها
           </NavLink>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) => navClass(isActive)}
+          >
+            پروفایل
+          </NavLink>
         </nav>
       </aside>
 
@@ -52,8 +66,10 @@ function App() {
           <Route path="/planner" element={<PlannerPage />} />
           <Route path="/short-goals" element={<ShortGoalsPage />} />
           <Route path="/long-goals" element={<LongGoalsPage />} />
+          <Route path="/goals/new" element={<AddGoalPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
     </div>
