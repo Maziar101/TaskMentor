@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FiCheck, FiTrash2 } from "react-icons/fi";
 
 type BaseTag = "focus" | "meeting" | "errand";
 
@@ -11,7 +12,12 @@ type Task = {
 type ScheduledTask = Task & {
   hour: number;
   day: string;
+  done?: boolean;
 };
+
+type UndoPayload =
+  | { type: "pool"; tasks: Task[] }
+  | { type: "scheduled"; tasks: ScheduledTask[]; day: string };
 
 type MergedBlock = {
   task: ScheduledTask;
@@ -140,6 +146,10 @@ export default function PlannerPage() {
   const [tagModalValue, setTagModalValue] = useState("");
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [tagModalError, setTagModalError] = useState("");
+  const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
+  const [undoTimer, setUndoTimer] = useState<number | null>(null);
+  const [toastKey, setToastKey] = useState(0);
+  const [poolHover, setPoolHover] = useState(false);
 
   useEffect(() => {
     const payload: StorageShape = { pool, schedule, notes, customTags };
@@ -150,6 +160,19 @@ export default function PlannerPage() {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!undoToast) return;
+      const isUndo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z";
+      if (isUndo) {
+        e.preventDefault();
+        handleUndo();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undoToast, schedule]);
 
   const activeDate = useMemo(
     () => new Date(`${activeDay}T00:00:00Z`),
@@ -166,11 +189,13 @@ export default function PlannerPage() {
     [schedule, activeDay]
   );
 
-  const occupancy = useMemo(() => {
-    const uniqueHours = new Set(daySchedule.map((t) => t.hour));
-    const filled = uniqueHours.size;
-    return Math.min(100, Math.round((filled / hours.length) * 100));
-  }, [daySchedule]);
+  const dayProgress = useMemo(() => {
+    if (dayPosition === "past") return 100;
+    if (dayPosition === "future") return 0;
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const ratio = minutes / (24 * 60);
+    return Math.max(0, Math.min(100, Math.round(ratio * 100)));
+  }, [dayPosition, now]);
 
   const jalaliActiveDate = useMemo(
     () => toJalaliParts(activeDate),
@@ -240,6 +265,31 @@ export default function PlannerPage() {
     setSchedule((prev) => ({ ...prev, [dayKey]: cleaned }));
   }
 
+  function showUndoToast(payload: UndoPayload) {
+    if (undoTimer) window.clearTimeout(undoTimer);
+    setUndoToast(payload);
+    setToastKey((k) => k + 1);
+    const timer = window.setTimeout(() => setUndoToast(null), 5000);
+    setUndoTimer(timer);
+  }
+
+  function handleUndo() {
+    if (!undoToast) return;
+    if (undoTimer) window.clearTimeout(undoTimer);
+    setUndoTimer(null);
+    const payload = undoToast;
+    setUndoToast(null);
+    if (payload.type === "pool") {
+      setPool((prev) => [...payload.tasks, ...prev]);
+    } else {
+      const existing = schedule[payload.day] ?? [];
+      persistSchedule(
+        payload.day,
+        sortByHour([...existing, ...payload.tasks])
+      );
+    }
+  }
+
   function copyLatestDayIntoActive() {
     const source = previousDays[0];
     if (!source) return;
@@ -248,6 +298,7 @@ export default function PlannerPage() {
       ...t,
       id: generateId(),
       day: activeDay,
+      done: false,
     }));
     persistSchedule(activeDay, sortByHour(cloned));
   }
@@ -292,7 +343,12 @@ export default function PlannerPage() {
         const task = prev.find((t) => t.id === parsed?.id);
         if (!task) return prev;
         const updated = prev.filter((t) => t.id !== task.id);
-        const newScheduled: ScheduledTask = { ...task, hour, day: activeDay };
+        const newScheduled: ScheduledTask = {
+          ...task,
+          hour,
+          day: activeDay,
+          done: false,
+        };
         const list = schedule[activeDay] ?? [];
         const withoutExisting = list.filter((t) => t.id !== task.id);
         persistSchedule(
@@ -319,19 +375,30 @@ export default function PlannerPage() {
     }
   }
 
-  function handleReturnBlock(block: MergedBlock) {
-    const fromDay = block.task.day;
-    const fromList = schedule[fromDay] ?? [];
-    const remaining = fromList.filter((t) => {
-      const sameTitle =
-        t.title.trim().toLowerCase() === block.task.title.trim().toLowerCase();
-      const sameTag = t.tag === block.task.tag;
-      const inRange = t.hour >= block.start && t.hour < block.end;
-      return !(sameTitle && sameTag && inRange);
-    });
+  function handleDropToPool(data: string) {
+    let parsed:
+      | {
+          type: "pool" | "scheduled";
+          id: string;
+          day?: string;
+        }
+      | null = null;
+    try {
+      parsed = JSON.parse(data);
+    } catch {
+      return;
+    }
+    if (!parsed || parsed.type !== "scheduled") return;
+
+    const fromDay = parsed.day ?? activeDay;
+    const existing = schedule[fromDay] ?? [];
+    const task = existing.find((t) => t.id === parsed.id);
+    if (!task) return;
+
+    const remaining = existing.filter((t) => t.id !== task.id);
     persistSchedule(fromDay, sortByHour(remaining));
     setPool((prev) => [
-      { id: generateId(), title: block.task.title, tag: block.task.tag },
+      { id: generateId(), title: task.title, tag: task.tag },
       ...prev,
     ]);
   }
@@ -339,24 +406,61 @@ export default function PlannerPage() {
   function handleDeleteBlock(block: MergedBlock) {
     const fromDay = block.task.day;
     const fromList = schedule[fromDay] ?? [];
-    const remaining = fromList.filter((t) => {
+    const removed = fromList.filter((t) => {
       const sameTitle =
         t.title.trim().toLowerCase() === block.task.title.trim().toLowerCase();
       const sameTag = t.tag === block.task.tag;
       const inRange = t.hour >= block.start && t.hour < block.end;
-      return !(sameTitle && sameTag && inRange);
+      return sameTitle && sameTag && inRange;
     });
+    const remaining = fromList.filter((t) => !removed.includes(t));
+    if (removed.length > 0) {
+      showUndoToast({ type: "scheduled", tasks: removed, day: fromDay });
+    }
     persistSchedule(fromDay, sortByHour(remaining));
   }
 
   function handleDeleteScheduled(taskId: string, day: string) {
     const fromList = schedule[day] ?? [];
+    const removed = fromList.find((t) => t.id === taskId);
     const remaining = fromList.filter((t) => t.id !== taskId);
+    if (removed) {
+      showUndoToast({ type: "scheduled", tasks: [removed], day });
+    }
     persistSchedule(day, sortByHour(remaining));
   }
 
+  function toggleDoneForTask(taskId: string, day: string) {
+    const fromList = schedule[day] ?? [];
+    const updated = fromList.map((t) =>
+      t.id === taskId ? { ...t, done: !t.done } : t
+    );
+    persistSchedule(day, sortByHour(updated));
+  }
+
+  function toggleDoneForBlock(block: MergedBlock) {
+    const fromDay = block.task.day;
+    const fromList = schedule[fromDay] ?? [];
+    const updated = fromList.map((t) => {
+      const sameTitle =
+        t.title.trim().toLowerCase() === block.task.title.trim().toLowerCase();
+      const sameTag = t.tag === block.task.tag;
+      const inRange = t.hour >= block.start && t.hour < block.end;
+      if (sameTitle && sameTag && inRange) {
+        return { ...t, done: !block.task.done };
+      }
+      return t;
+    });
+    persistSchedule(fromDay, sortByHour(updated));
+  }
+
   function handleDeletePoolTask(taskId: string) {
-    setPool((prev) => prev.filter((t) => t.id !== taskId));
+    setPool((prev) => {
+      const task = prev.find((t) => t.id === taskId);
+      if (!task) return prev;
+      showUndoToast({ type: "pool", tasks: [task] });
+      return prev.filter((t) => t.id !== taskId);
+    });
   }
 
   function handleDeleteAllPool() {
@@ -640,7 +744,21 @@ export default function PlannerPage() {
                 </div>
               )}
             </div>
-            <div className="pool" aria-label="Backlog">
+            <div
+              className={["pool", poolHover && "pool--hover"].filter(Boolean).join(" ")}
+              aria-label="Backlog"
+              onDragOver={(e) => {
+                e.preventDefault();
+                setPoolHover(true);
+              }}
+              onDragLeave={() => setPoolHover(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("application/json");
+                handleDropToPool(data);
+                setPoolHover(false);
+              }}
+            >
               {filteredPool.length === 0 && (
                 <p className="empty">چیزی پیدا نشد</p>
               )}
@@ -679,9 +797,9 @@ export default function PlannerPage() {
           <div className="panel compact" style={{height:"140px"}}>
             <p className="eyebrow">پیشروی امروز</p>
             <div className="meter">
-              <span style={{ width: `${occupancy}%` }} />
+              <span style={{ width: `${dayProgress}%` }} />
             </div>
-            <p className="light">{occupancy}% از ۲۴ ساعت پر شده</p>
+            <p className="light">{dayProgress}% از ۲۴ ساعت سپری شده</p>
           </div>
           <div className="panel compact">
             <p className="eyebrow">توزیع برچسب</p>
@@ -821,17 +939,38 @@ export default function PlannerPage() {
                     {hasOverlap && (
                       <div className="stacked-tasks">
                         {hourTasks.map((task) => (
-                          <div key={task.id} className="stacked-task">
+                          <div
+                            key={task.id}
+                            className={[
+                              "stacked-task",
+                              task.done && "task--done",
+                              !task.done && isPastHour && "task--stale",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            title={task.title}
+                          >
                             <span className="stacked-task__title">
                               {task.title}
                             </span>
-                            <button
-                              className="danger tiny"
+                            <div className="task__meta-actions">
+                              <button
+                              className="icon-btn"
                               type="button"
-                              onClick={() => handleDeleteScheduled(task.id, task.day)}
+                              aria-label="علامت انجام شده"
+                              onClick={() => toggleDoneForTask(task.id, task.day)}
                             >
-                              حذف
-                            </button>
+                                <FiCheck aria-hidden />
+                              </button>
+                              <button
+                                className="icon-btn icon-btn--danger"
+                                type="button"
+                                aria-label="حذف"
+                                onClick={() => handleDeleteScheduled(task.id, task.day)}
+                              >
+                                <FiTrash2 aria-hidden />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -841,7 +980,16 @@ export default function PlannerPage() {
                     )}
                     {!hasOverlap && blockStart && (
                       <article
-                        className="task task--scheduled task--merged"
+                        className={[
+                          "task",
+                          "task--scheduled",
+                          "task--merged",
+                          blockStart.task.done && "task--done",
+                          !blockStart.task.done && isPastHour && "task--stale",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        title={blockStart.task.title}
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData(
@@ -859,11 +1007,6 @@ export default function PlannerPage() {
                           {blockStart.task.title}
                         </div>
                         <div className="task__meta">
-                          <span className="light small">
-                            {formatHour(blockStart.start)} تا{" "}
-                            {formatHour(blockStart.end % 24)}
-                            {` · ${blockStart.end - blockStart.start} ساعت`}
-                          </span>
                           {blockStart.task.tag && (
                             <span
                               className={["pill", getTagClass(blockStart.task.tag)]
@@ -875,18 +1018,20 @@ export default function PlannerPage() {
                           )}
                           <div className="task__meta-actions">
                             <button
-                              className="ghost tiny"
+                              className="icon-btn"
                               type="button"
-                              onClick={() => handleReturnBlock(blockStart)}
+                              aria-label="علامت انجام شده"
+                              onClick={() => toggleDoneForBlock(blockStart)}
                             >
-                              برگردان به لیست
+                              <FiCheck aria-hidden />
                             </button>
                             <button
-                              className="danger tiny"
+                              className="icon-btn icon-btn--danger"
                               type="button"
+                              aria-label="حذف"
                               onClick={() => handleDeleteBlock(blockStart)}
                             >
-                              حذف
+                              <FiTrash2 aria-hidden />
                             </button>
                           </div>
                         </div>
@@ -936,6 +1081,24 @@ export default function PlannerPage() {
           </div>
         </div>
       )}
+      {undoToast && (
+        <div key={toastKey} className="toast" role="status" aria-live="polite">
+          <div className="toast__content">
+            <span>
+              {undoToast.type === "pool"
+                ? "تسک از لیست حذف شد"
+                : "تسک برنامه حذف شد"}
+              . با Ctrl+Z یا دکمه زیر می‌توانی برگردانی.
+            </span>
+            <button className="ghost tiny" type="button" onClick={handleUndo}>
+              برگردان
+            </button>
+            <div className="toast__bar">
+              <span key={toastKey} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -948,13 +1111,20 @@ function sortByHour(list: ScheduledTask[]) {
 
 function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
   if (list.length === 0) return [];
-  const sorted = sortByHour(dedupe(list));
+  const sorted = sortByHour(dedupe(list)).map((t) => ({
+    ...t,
+    done: Boolean(t.done),
+  }));
   const merged: MergedBlock[] = [];
   let current: MergedBlock | null = null;
 
   for (const item of sorted) {
     if (!current) {
-      current = { task: item, start: item.hour, end: item.hour + 1 };
+      current = {
+        task: { ...item, done: Boolean(item.done) },
+        start: item.hour,
+        end: item.hour + 1,
+      };
       continue;
     }
 
@@ -965,10 +1135,19 @@ function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
       item.tag === current.task.tag;
 
     if (isConsecutive && isSameTask) {
-      current.end = item.hour + 1;
+      const mergedDone = Boolean(current.task.done && item.done);
+      current = {
+        ...current,
+        task: { ...current.task, done: mergedDone },
+        end: item.hour + 1,
+      };
     } else {
       merged.push(current);
-      current = { task: item, start: item.hour, end: item.hour + 1 };
+      current = {
+        task: { ...item, done: Boolean(item.done) },
+        start: item.hour,
+        end: item.hour + 1,
+      };
     }
   }
 
