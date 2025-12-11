@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiCheck, FiTrash2 } from "react-icons/fi";
+import {
+  FiCheck,
+  FiTrash2,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCalendar,
+  FiX,
+} from "react-icons/fi";
 
 type BaseTag = "focus" | "meeting" | "errand";
 
@@ -49,6 +56,20 @@ type StorageShape = {
 const STORAGE_KEY = "taskmentor-data";
 const PERSIAN_NUMBER = new Intl.NumberFormat("fa-IR");
 const FALLBACK_HEX = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+const JALALI_MONTHS = [
+  "فروردین",
+  "اردیبهشت",
+  "خرداد",
+  "تیر",
+  "مرداد",
+  "شهریور",
+  "مهر",
+  "آبان",
+  "آذر",
+  "دی",
+  "بهمن",
+  "اسفند",
+];
 
 function generateId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -150,6 +171,9 @@ export default function PlannerPage() {
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [poolHover, setPoolHover] = useState(false);
+  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
+    null
+  );
 
   useEffect(() => {
     const payload: StorageShape = { pool, schedule, notes, customTags };
@@ -189,6 +213,15 @@ export default function PlannerPage() {
     [schedule, activeDay]
   );
 
+  const dayDoneCount = useMemo(
+    () => daySchedule.filter((t) => t.done).length,
+    [daySchedule]
+  );
+  const dayPendingCount = useMemo(
+    () => Math.max(0, daySchedule.length - dayDoneCount),
+    [daySchedule.length, dayDoneCount]
+  );
+
   const dayProgress = useMemo(() => {
     if (dayPosition === "past") return 100;
     if (dayPosition === "future") return 0;
@@ -202,8 +235,8 @@ export default function PlannerPage() {
     [activeDate]
   );
   const jalaliToday = useMemo(() => toJalaliParts(now), [now]);
-  const jalaliMonthLabel = useMemo(
-    () => formatJalaliMonthLabel(jalaliMonthView),
+  const jalaliMonthName = useMemo(
+    () => formatJalaliMonthName(jalaliMonthView),
     [jalaliMonthView]
   );
   const jalaliMonthDays = useMemo<JalaliMonthDays>(() => {
@@ -572,10 +605,19 @@ export default function PlannerPage() {
   return (
     <div className="planner" dir="rtl">
       <div className="planner__header">
-        <div>
+        <div className="planner__title">
           <p className="eyebrow">نمای ۲۴ ساعته</p>
           <h1>{dayLabel}</h1>
           <p className="light">تسک‌ها را بکش و روی ساعت مناسب رها کن</p>
+        </div>
+        <div className="planner__progress">
+          <div className="planner__progress-head">
+            <span className="eyebrow">پیشروی امروز</span>
+          </div>
+          <div className="meter meter--header">
+            <span style={{ width: `${dayProgress}%` }} />
+          </div>
+          <p className="light small">{dayProgress}% از ۲۴ ساعت سپری شده</p>
         </div>
         <div className="topbar__controls">
           <button
@@ -630,7 +672,8 @@ export default function PlannerPage() {
                 <h2>لیست در انتظار</h2>
               </div>
               <div className="counts">
-                <span>در انتظار: {pool.length}</span>
+                <span>در انتظار: {dayPendingCount}</span>
+                <span>انجام شده: {dayDoneCount}</span>
                 <span>امروز: {daySchedule.length}</span>
               </div>
             </header>
@@ -701,7 +744,7 @@ export default function PlannerPage() {
                     {getTagLabel(tag)}
                   </button>
                 ))}
-              </div>
+              </div>                                      
               <div className="filter-actions">
                 <button
                   className="ghost tiny"
@@ -794,55 +837,72 @@ export default function PlannerPage() {
               ))}
             </div>
           </div>
-          <div className="panel compact" style={{height:"140px"}}>
-            <p className="eyebrow">پیشروی امروز</p>
-            <div className="meter">
-              <span style={{ width: `${dayProgress}%` }} />
-            </div>
-            <p className="light">{dayProgress}% از ۲۴ ساعت سپری شده</p>
-          </div>
-          <div className="panel compact">
-            <p className="eyebrow">توزیع برچسب</p>
-            <div className="tag-stats">
-              <div className="tag-stats__row">
-                <span>تمرکز</span>
-                <span className="light">{tagStats.focus}</span>
-              </div>
-              <div className="tag-stats__row">
-                <span>جلسه</span>
-                <span className="light">{tagStats.meeting}</span>
-              </div>
-              <div className="tag-stats__row">
-                <span>کارهای ریز</span>
-                <span className="light">{tagStats.errand}</span>
-              </div>
-            </div>
-          </div>
         </section>
 
         <section className="planner__board">
           <div className="panel calendar-picker">
             <div className="calendar-picker__header">
-              <div>
-                <p className="eyebrow">تقویم ایرانی</p>
-                <p className="light small">روز دلخواه را از ماه انتخاب کن</p>
+              <div className="calendar-picker__title">
+                <span className="calendar-picker__icon" aria-hidden>
+                  <FiCalendar />
+                </span>
+                <div>
+                  <p className="eyebrow">انتخاب زمان</p>
+                  <p className="light small">ماه و سال را جابه‌جا کن</p>
+                </div>
               </div>
               <div className="calendar-picker__nav">
-                <button
-                  className="ghost tiny"
-                  type="button"
-                  onClick={() => handleJalaliMonthShift(-1)}
-                >
-                  ماه قبل
-                </button>
-                <div className="calendar-picker__label">{jalaliMonthLabel}</div>
-                <button
-                  className="ghost tiny"
-                  type="button"
-                  onClick={() => handleJalaliMonthShift(1)}
-                >
-                  ماه بعد
-                </button>
+                <div className="calendar-nav__group">
+                  <button
+                    className="calendar-nav__btn"
+                    type="button"
+                    aria-label="سال قبل"
+                    onClick={() => handleJalaliMonthShift(-12)}
+                  >
+                    <FiChevronRight />
+                  </button>
+                  <button
+                    className="calendar-nav__label-btn"
+                    type="button"
+                    onClick={() => setCalendarModal("year")}
+                  >
+                    {jalaliMonthView.jy}
+                  </button>
+                  <button
+                    className="calendar-nav__btn"
+                    type="button"
+                    aria-label="سال بعد"
+                    onClick={() => handleJalaliMonthShift(12)}
+                  >
+                    <FiChevronLeft />
+                  </button>
+                </div>
+                <div className="calendar-nav__divider" aria-hidden />
+                <div className="calendar-nav__group">
+                  <button
+                    className="calendar-nav__btn"
+                    type="button"
+                    aria-label="ماه قبل"
+                    onClick={() => handleJalaliMonthShift(-1)}
+                  >
+                    <FiChevronRight />
+                  </button>
+                  <button
+                    className="calendar-nav__label-btn"
+                    type="button"
+                    onClick={() => setCalendarModal("month")}
+                  >
+                    {jalaliMonthName}
+                  </button>
+                  <button
+                    className="calendar-nav__btn"
+                    type="button"
+                    aria-label="ماه بعد"
+                    onClick={() => handleJalaliMonthShift(1)}
+                  >
+                    <FiChevronLeft />
+                  </button>
+                </div>
               </div>
             </div>
             <div
@@ -899,6 +959,30 @@ export default function PlannerPage() {
                 dayPosition === "today" && hour === now.getHours();
               const hourTasks = daySchedule.filter((t) => t.hour === hour);
               const hasOverlap = hourTasks.length > 1;
+              const hasTasks = hourTasks.length > 0;
+              const allDone = hasTasks && hourTasks.every((t) => t.done);
+              let chipLabel: string | null = null;
+              let chipClassName = "slot__chip";
+
+              if (hasTasks) {
+                if (allDone) {
+                  chipLabel = "انجام شد";
+                  chipClassName += " slot__chip--done";
+                } else if (isCurrentHour) {
+                  chipLabel = "در حال انجام";
+                  chipClassName += " slot__chip--now";
+                } else if (isPastHour) {
+                  chipLabel = "تمام شده";
+                } else {
+                  chipLabel = "در حال انتظار";
+                  chipClassName += " slot__chip--pending";
+                }
+              } else if (isCurrentHour) {
+                chipLabel = "الان";
+                chipClassName += " slot__chip--now";
+              } else if (isPastHour) {
+                chipLabel = "تمام شده";
+              }
               return (
                 <div
                   key={hour}
@@ -928,11 +1012,8 @@ export default function PlannerPage() {
                 >
                   <div className="slot__label-row">
                     <div className="slot__label">{formatHour(hour)}</div>
-                    {isCurrentHour && (
-                      <span className="slot__chip slot__chip--now">الان</span>
-                    )}
-                    {!isCurrentHour && isPastHour && (
-                      <span className="slot__chip">تمام شده</span>
+                    {chipLabel && (
+                      <span className={chipClassName}>{chipLabel}</span>
                     )}
                   </div>
                   <div className="slot__content">
@@ -1099,6 +1180,102 @@ export default function PlannerPage() {
           </div>
         </div>
       )}
+      {calendarModal && (
+        <div className="modal">
+          <div
+            className="modal__backdrop"
+            onClick={() => setCalendarModal(null)}
+            aria-hidden
+          />
+          <div
+            className="modal__card calendar-modal__card"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="calendar-modal__header">
+              <div className="calendar-modal__title">
+                <span className="calendar-picker__icon" aria-hidden>
+                  <FiCalendar />
+                </span>
+                <div>
+                  <p className="eyebrow">انتخاب {calendarModal === "month" ? "ماه" : "سال"}</p>
+                  <p className="light small">
+                    {calendarModal === "month"
+                      ? "یکی از ماه‌ها را انتخاب کن"
+                      : "یک سال از لیست انتخاب کن"}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="calendar-modal__close"
+                type="button"
+                aria-label="بستن"
+                onClick={() => setCalendarModal(null)}
+              >
+                <FiX />
+              </button>
+            </div>
+            {calendarModal === "month" ? (
+              <div className="calendar-modal__body">
+                <div className="calendar-modal__section">
+                  <div className="calendar-modal__grid">
+                    {JALALI_MONTHS.map((name, idx) => {
+                      const month = idx + 1;
+                      const active = month === jalaliMonthView.jm;
+                      return (
+                        <button
+                          key={name}
+                          className={[
+                            "calendar-modal__option",
+                            active && "calendar-modal__option--active",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          type="button"
+                          onClick={() => {
+                            setJalaliMonthView((prev) => ({ ...prev, jm: month }));
+                            setCalendarModal(null);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="calendar-modal__body">
+                <div className="calendar-modal__section">
+                  <div className="calendar-modal__grid calendar-modal__grid--years">
+                    {buildYearOptions(jalaliMonthView.jy).map((year) => {
+                      const active = year === jalaliMonthView.jy;
+                      return (
+                        <button
+                          key={year}
+                          className={[
+                            "calendar-modal__option",
+                            active && "calendar-modal__option--active",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          type="button"
+                          onClick={() => {
+                            setJalaliMonthView((prev) => ({ ...prev, jy: year }));
+                            setCalendarModal(null);
+                          }}
+                        >
+                          {year}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1210,13 +1387,10 @@ function toJalaliParts(date: Date): JalaliDateParts {
   );
 }
 
-function formatJalaliMonthLabel(date: JalaliDateParts) {
+function formatJalaliMonthName(date: JalaliDateParts) {
   const { gy, gm, gd } = jalaliToGregorian(date.jy, date.jm, 1);
   const anchor = new Date(Date.UTC(gy, gm - 1, gd));
-  return anchor.toLocaleDateString("fa-IR-u-ca-persian", {
-    month: "long",
-    year: "numeric",
-  });
+  return anchor.toLocaleDateString("fa-IR-u-ca-persian", { month: "long" });
 }
 
 function buildJalaliMonthDays(jy: number, jm: number): JalaliMonthDays {
@@ -1249,6 +1423,11 @@ function jalaliMonthLength(jy: number, jm: number) {
   const nextDate = new Date(Date.UTC(next.gy, next.gm - 1, next.gd)).getTime();
   const diff = Math.round((nextDate - startDate) / (24 * 60 * 60 * 1000));
   return diff;
+}
+
+function buildYearOptions(current: number) {
+  const start = current - 6;
+  return Array.from({ length: 13 }, (_, i) => start + i);
 }
 
 const gDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
