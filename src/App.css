@@ -132,6 +132,10 @@
 }
 
 .calendar-picker {
+  min-width: 0;
+}
+
+.calendar-picker {
   gap: 10px;
 }
 
@@ -251,6 +255,12 @@
   width: 1px;
   height: 34px;
   background: rgba(255, 255, 255, 0.12);
+}
+
+
+/* جلوگیری از ایجاد اسکرول افقی کلی صفحه */
+body {
+  overflow-x: hidden;
 }
 
 .calendar-picker__day {
@@ -467,6 +477,17 @@
   background: linear-gradient(120deg, #f7d046, #f0a63c);
   color: #1a132f;
   border-color: transparent;
+}
+
+.tag-chip--add {
+  border-style: dashed;
+  color: #d8d0ff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tag-chip--add:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(172, 143, 255, 0.6);
 }
 
 .filters {

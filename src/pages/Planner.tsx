@@ -7,7 +7,6 @@ import {
   FiCalendar,
   FiX,
 } from "react-icons/fi";
-
 type BaseTag = "focus" | "meeting" | "errand";
 
 type Task = {
@@ -171,9 +170,7 @@ export default function PlannerPage() {
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [poolHover, setPoolHover] = useState(false);
-  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
-    null
-  );
+  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(null);
 
   useEffect(() => {
     const payload: StorageShape = { pool, schedule, notes, customTags };
@@ -271,18 +268,6 @@ export default function PlannerPage() {
     });
     return map;
   }, [mergedBlocks]);
-
-  const tagStats = useMemo(() => {
-    return daySchedule.reduce(
-      (acc, curr) => {
-        if (curr.tag && baseTags.includes(curr.tag as BaseTag)) {
-          acc[curr.tag as BaseTag] += 1;
-        }
-        return acc;
-      },
-      { focus: 0, meeting: 0, errand: 0 }
-    );
-  }, [daySchedule]);
 
   const previousDays = useMemo(() => {
     const keys = Object.keys(schedule);
@@ -668,8 +653,7 @@ export default function PlannerPage() {
           <div className="panel" style={{ gap: "30px" }}>
             <header className="panel__header">
               <div>
-                <p className="eyebrow">ورودی سریع</p>
-                <h2>لیست در انتظار</h2>
+                <h2>لیست تسک ها</h2>
               </div>
               <div className="counts">
                 <span>در انتظار: {dayPendingCount}</span>
@@ -679,7 +663,7 @@ export default function PlannerPage() {
             </header>
             <div className="add-form">
               <input
-                placeholder="چی تو ذهنت هست؟"
+                placeholder="می‌خوای چه کاری انجام بدی؟ بنویس…"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 onKeyDown={(e) => {
@@ -704,14 +688,14 @@ export default function PlannerPage() {
                     {getTagLabel(tag)}
                   </button>
                 ))}
+                <button
+                  className="tag-chip tag-chip--add"
+                  type="button"
+                  onClick={() => openTagModal()}
+                >
+                  + برچسب جدید
+                </button>
               </div>
-              <button
-                className="ghost tiny"
-                type="button"
-                onClick={() => openTagModal()}
-              >
-                + برچسب جدید
-              </button>
               <button className="primary" onClick={handleAddTask}>
                 اضافه کن
               </button>
@@ -1312,7 +1296,7 @@ function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
       item.tag === current.task.tag;
 
     if (isConsecutive && isSameTask) {
-      const mergedDone = Boolean(current.task.done && item.done);
+      const mergedDone: boolean = Boolean(current.task.done && item.done);
       current = {
         ...current,
         task: { ...current.task, done: mergedDone },
