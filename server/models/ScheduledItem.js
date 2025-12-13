@@ -1,0 +1,21 @@
+const { Schema, model } = require("mongoose");
+
+const scheduledItemSchema = new Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    tag: { type: String, trim: true },
+    day: {
+      type: String,
+      required: true,
+      validate: {
+        validator: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
+        message: "day must be in YYYY-MM-DD format",
+      },
+    },
+    hour: { type: Number, required: true, min: 0, max: 23 },
+    done: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+module.exports = model("ScheduledItem", scheduledItemSchema);

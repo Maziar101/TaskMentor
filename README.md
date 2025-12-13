@@ -1,73 +1,42 @@
-# React + TypeScript + Vite
+# TaskMentor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend is a React + TypeScript + Vite app. Backend lives in `server/` (Express + MongoDB).
 
-Currently, two official plugins are available:
+## Backend (Express + MongoDB)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1) Copy the example env and set your Mongo connection string:
+```bash
+cp server/.env.example server/.env
+```
+Update `MONGO_URI` if you are not using the default local MongoDB port.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2) Install backend dependencies:
+```bash
+cd server
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3) Run the API server (defaults to port 4000):
+```bash
+npm run dev   # with nodemon
+# or
+npm start
+```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Endpoints:
+- `GET /api/health` – health check
+- `GET /api/pool` – list backlog tasks
+- `POST /api/pool` – create backlog task `{ title, tag? }`
+- `DELETE /api/pool/:id` – delete backlog task
+- `GET /api/schedule/:day` – list scheduled items for a day (YYYY-MM-DD)
+- `POST /api/schedule` – create scheduled item `{ title, day, hour, tag?, done? }`
+- `PATCH /api/schedule/:id` – update scheduled item
+- `DELETE /api/schedule/:id` – delete scheduled item
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Frontend (React + Vite)
+
+Install and run:
+```bash
+npm install
+npm run dev
 ```
