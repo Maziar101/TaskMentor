@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
 
 async function connectDB(uri) {
+  const resolvedUri = uri || "mongodb://localhost:27017/taskmentor";
   if (!uri) {
-    throw new Error("MONGO_URI is missing in environment variables");
+    // eslint-disable-next-line no-console
+    console.warn(
+      `MONGO_URI not set. Falling back to local MongoDB at ${resolvedUri}`
+    );
   }
-  await mongoose.connect(uri);
+  await mongoose.connect(resolvedUri);
   return mongoose.connection;
 }
 

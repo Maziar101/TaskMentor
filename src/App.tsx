@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   FiBarChart2,
   FiUser,
   FiMenu,
+  FiLogOut,
 } from "react-icons/fi";
 import PlannerPage from "./pages/Planner";
 import DashboardPage from "./pages/Dashboard";
@@ -23,7 +24,7 @@ import "./App.css";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-   const [user, setUser] = useState<null | { userId: string; username: string }>(() => {
+  const [user, setUser] = useState<null | { userId: string; username: string }>(() => {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem("taskmentor-user");
     if (!raw) return null;
@@ -37,106 +38,131 @@ function App() {
   const requireAuth = (element: ReactElement) =>
     user ? element : <Navigate to="/login" replace />;
 
+  const handleLogout = () => {
+    localStorage.removeItem("taskmentor-user");
+    setUser(null);
+  };
+
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+
   return (
     <div
-      className={["shell", sidebarCollapsed && "shell--collapsed"]
+      className={[
+        "shell",
+        sidebarCollapsed && "shell--collapsed",
+        isLoginPage && "shell--login",
+      ]
         .filter(Boolean)
         .join(" ")}
     >
-      <aside
-        className={["sidebar", sidebarCollapsed && "sidebar--collapsed"]
-          .filter(Boolean)
-          .join(" ")}
-        dir="rtl"
-      >
-        <div className="sidebar__brand profile-card">
-          <div className="profile-card__avatar" aria-hidden>
-            <FiUser />
-          </div>
-          <div className="profile-card__meta">
-            <strong className="profile-card__name">مازیار</strong>
-            <span className="profile-card__role">کاربر</span>
-          </div>
-        </div>
-        <nav className="sidebar__nav">
-          <NavLink
-            to="/planner"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiCalendar />
-            </span>
-            <span className="nav-link__label">برنامه‌ریز</span>
-          </NavLink>
-          <NavLink
-            to="/short-goals"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiTarget />
-            </span>
-            <span className="nav-link__label">اهداف کوتاه‌مدت</span>
-          </NavLink>
-          <NavLink
-            to="/long-goals"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiFlag />
-            </span>
-            <span className="nav-link__label">اهداف بلندمدت</span>
-          </NavLink>
-          <NavLink
-            to="/goals/new"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiPlusCircle />
-            </span>
-            <span className="nav-link__label">افزودن هدف</span>
-          </NavLink>
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiGrid />
-            </span>
-            <span className="nav-link__label">داشبورد</span>
-          </NavLink>
-
-          <NavLink
-            to="/reports"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiBarChart2 />
-            </span>
-            <span className="nav-link__label">گزارش‌ها</span>
-          </NavLink>
-          <NavLink
-            to="/profile"
-            className={({ isActive }) => navClass(isActive)}
-          >
-            <span className="nav-link__icon" aria-hidden>
+      {!isLoginPage && (
+        <aside
+          className={["sidebar", sidebarCollapsed && "sidebar--collapsed"]
+            .filter(Boolean)
+            .join(" ")}
+          dir="rtl"
+        >
+          <div className="sidebar__brand profile-card">
+            <div className="profile-card__avatar" aria-hidden>
               <FiUser />
-            </span>
-            <span className="nav-link__label">پروفایل</span>
-          </NavLink>
-          <button
-            type="button"
-            className="nav-link nav-toggle"
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
-          >
-            <span className="nav-link__icon" aria-hidden>
-              <FiMenu />
-            </span>
-            <span className="nav-link__label">
-              {sidebarCollapsed ? "باز کردن منو" : "بستن منو"}
-            </span>
-          </button>
-        </nav>
-      </aside>
+            </div>
+            <div className="profile-card__meta">
+              <strong className="profile-card__name">مازیار</strong>
+              <span className="profile-card__role">کاربر</span>
+            </div>
+            {user && (
+              <button
+                className="profile-card__logout"
+                type="button"
+                aria-label="خروج"
+                onClick={handleLogout}
+                title="خروج"
+              >
+                <FiLogOut />
+              </button>
+            )}
+          </div>
+          <nav className="sidebar__nav">
+            <NavLink
+              to="/planner"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiCalendar />
+              </span>
+              <span className="nav-link__label">برنامه‌ریز</span>
+            </NavLink>
+            <NavLink
+              to="/short-goals"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiTarget />
+              </span>
+              <span className="nav-link__label">اهداف کوتاه‌مدت</span>
+            </NavLink>
+            <NavLink
+              to="/long-goals"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiFlag />
+              </span>
+              <span className="nav-link__label">اهداف بلندمدت</span>
+            </NavLink>
+            <NavLink
+              to="/goals/new"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiPlusCircle />
+              </span>
+              <span className="nav-link__label">افزودن هدف</span>
+            </NavLink>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiGrid />
+              </span>
+              <span className="nav-link__label">داشبورد</span>
+            </NavLink>
+
+            <NavLink
+              to="/reports"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiBarChart2 />
+              </span>
+              <span className="nav-link__label">گزارش‌ها</span>
+            </NavLink>
+            <NavLink
+              to="/profile"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiUser />
+              </span>
+              <span className="nav-link__label">پروفایل</span>
+            </NavLink>
+            <button
+              type="button"
+              className="nav-link nav-toggle"
+              onClick={() => setSidebarCollapsed((prev) => !prev)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiMenu />
+              </span>
+              <span className="nav-link__label">
+                {sidebarCollapsed ? "باز کردن منو" : "بستن منو"}
+              </span>
+            </button>
+          </nav>
+        </aside>
+      )}
 
       <main className="route-area">
         <Routes>

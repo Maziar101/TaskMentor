@@ -10,6 +10,10 @@
   --sidebar-width: 88px;
 }
 
+.shell--login {
+  grid-template-columns: 1fr;
+}
+
 .sidebar {
   background: linear-gradient(
     180deg,
@@ -36,7 +40,7 @@
 
 .profile-card {
   display: grid;
-  grid-template-columns: 46px 1fr;
+  grid-template-columns: 46px 1fr auto;
   gap: 10px;
   align-items: center;
   padding: 10px;
@@ -72,6 +76,25 @@
   font-size: 0.85rem;
 }
 
+.profile-card__logout {
+  margin-inline-start: auto;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #f4edff;
+  cursor: pointer;
+}
+
+.profile-card__logout:hover {
+  background: rgba(255, 96, 96, 0.18);
+  border-color: rgba(255, 96, 96, 0.4);
+  color: #ffdede;
+}
+
 .sidebar--collapsed .profile-card {
   grid-template-columns: 1fr;
   justify-items: center;
@@ -88,6 +111,11 @@
 .sidebar--collapsed .profile-card__name,
 .sidebar--collapsed .profile-card__role {
   display: none;
+}
+
+.sidebar--collapsed .profile-card__logout {
+  width: 32px;
+  height: 32px;
 }
 
 .sidebar__nav {
@@ -1217,8 +1245,8 @@ body {
   background: rgba(25, 18, 42, 0.92);
   border: 1px solid rgba(153, 126, 255, 0.35);
   border-radius: 16px;
-  padding: 20px;
-  max-width: 360px;
+  padding: 24px;
+  max-width: 420px;
   width: 100%;
   display: grid;
   gap: 10px;
@@ -1244,6 +1272,13 @@ body {
   text-align: right;
   color: #e9e1ff;
   font-weight: 600;
+}
+
+.auth-label__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .auth-label input {
