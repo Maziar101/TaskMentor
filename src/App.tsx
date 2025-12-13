@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useState } from "react";
+import type { ReactElement } from "react";
 import {
   FiCalendar,
   FiTarget,
@@ -17,10 +18,24 @@ import ShortGoalsPage from "./pages/ShortGoals";
 import LongGoalsPage from "./pages/LongGoals";
 import AddGoalPage from "./pages/AddGoal";
 import ProfilePage from "./pages/Profile";
+import LoginPage from "./pages/Login";
 import "./App.css";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+   const [user, setUser] = useState<null | { userId: string; username: string }>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("taskmentor-user");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  });
+
+  const requireAuth = (element: ReactElement) =>
+    user ? element : <Navigate to="/login" replace />;
 
   return (
     <div
@@ -125,14 +140,20 @@ function App() {
 
       <main className="route-area">
         <Routes>
-          <Route path="/" element={<Navigate to="/planner" replace />} />
-          <Route path="/planner" element={<PlannerPage />} />
-          <Route path="/short-goals" element={<ShortGoalsPage />} />
-          <Route path="/long-goals" element={<LongGoalsPage />} />
-          <Route path="/goals/new" element={<AddGoalPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/"
+            element={
+              user ? <Navigate to="/planner" replace /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route path="/login" element={<LoginPage setUser={setUser} />} />
+          <Route path="/planner" element={requireAuth(<PlannerPage />)} />
+          <Route path="/short-goals" element={requireAuth(<ShortGoalsPage />)} />
+          <Route path="/long-goals" element={requireAuth(<LongGoalsPage />)} />
+          <Route path="/goals/new" element={requireAuth(<AddGoalPage />)} />
+          <Route path="/dashboard" element={requireAuth(<DashboardPage />)} />
+          <Route path="/reports" element={requireAuth(<ReportsPage />)} />
+          <Route path="/profile" element={requireAuth(<ProfilePage />)} />
         </Routes>
       </main>
     </div>

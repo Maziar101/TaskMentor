@@ -1206,6 +1206,13 @@ body {
   padding: 16px;
 }
 
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
 .auth-card {
   background: rgba(25, 18, 42, 0.92);
   border: 1px solid rgba(153, 126, 255, 0.35);
