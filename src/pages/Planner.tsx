@@ -1125,8 +1125,18 @@ export default function PlannerPage() {
                       </article>
                     )}
                     {!hasOverlap && covered && !blockStart && (
-                      <div className="continuation continuation--card">
-                        <span className="hint">{`ادامه تسک ${covered.task.title}`}</span>
+                      <div
+                        className={[
+                          "continuation",
+                          "continuation--card",
+                          covered.task.done && "task--done",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        <span className="continuation__text hint">
+                          {`ادامه تسک ${covered.task.title}`}
+                        </span>
                         <div className="task__meta-actions">
                           <button
                             className="icon-btn"

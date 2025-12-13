@@ -1133,6 +1133,10 @@ body {
   font-weight: 700;
 }
 
+.task--done .continuation__text {
+  text-decoration: line-through;
+}
+
 .task--done {
   opacity: 0.6;
   filter: grayscale(0.3);
