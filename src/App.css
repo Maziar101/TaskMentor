@@ -1195,6 +1195,59 @@ body {
   color: #e6edff;
 }
 
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 4, 16, 0.8);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  z-index: 999;
+  padding: 16px;
+}
+
+.auth-card {
+  background: rgba(25, 18, 42, 0.92);
+  border: 1px solid rgba(153, 126, 255, 0.35);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 360px;
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  text-align: center;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.auth-card__icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #f7d046, #f0a63c);
+  color: #1a132f;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  margin: 0 auto;
+}
+
+.auth-label {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+  color: #e9e1ff;
+  font-weight: 600;
+}
+
+.auth-label input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f3ecff;
+}
+
 .modal {
   position: fixed;
   inset: 0;

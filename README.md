@@ -25,13 +25,19 @@ npm start
 
 Endpoints:
 - `GET /api/health` – health check
-- `GET /api/pool` – list backlog tasks
-- `POST /api/pool` – create backlog task `{ title, tag? }`
-- `DELETE /api/pool/:id` – delete backlog task
-- `GET /api/schedule/:day` – list scheduled items for a day (YYYY-MM-DD)
-- `POST /api/schedule` – create scheduled item `{ title, day, hour, tag?, done? }`
-- `PATCH /api/schedule/:id` – update scheduled item
-- `DELETE /api/schedule/:id` – delete scheduled item
+- `POST /api/auth/login` – login with `{ username, phone }` (returns `{ userId, username, subscription }`)
+- `GET /api/users` – list users
+- `POST /api/users` – create user `{ username, phone, age?, gender?, workField?, subscription? }`
+- `GET /api/users/:id` – get user
+- `PATCH /api/users/:id` – update user
+- `DELETE /api/users/:id` – delete user
+- `GET /api/pool?userId=...` – list backlog tasks for a user
+- `POST /api/pool` – create backlog task `{ title, tag?, userId }`
+- `DELETE /api/pool/:id?userId=...` – delete backlog task
+- `GET /api/schedule/:day?userId=...` – list scheduled items for a day (YYYY-MM-DD) for a user
+- `POST /api/schedule` – create scheduled item `{ title, day, hour, tag?, done?, userId }`
+- `PATCH /api/schedule/:id` – update scheduled item (include `userId`)
+- `DELETE /api/schedule/:id?userId=...` – delete scheduled item
 
 ## Frontend (React + Vite)
 

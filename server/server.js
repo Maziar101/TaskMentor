@@ -5,6 +5,8 @@ const morgan = require("morgan");
 const connectDB = require("./config/db");
 const tasksRouter = require("./routes/tasks");
 const scheduleRouter = require("./routes/schedule");
+const usersRouter = require("./routes/users");
+const authRouter = require("./routes/auth");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -18,6 +20,8 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
 app.use("/api/pool", tasksRouter);
 app.use("/api/schedule", scheduleRouter);
 

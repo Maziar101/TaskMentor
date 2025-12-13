@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FiCheck,
   FiTrash2,
@@ -6,6 +6,7 @@ import {
   FiChevronRight,
   FiCalendar,
   FiX,
+  FiUser,
 } from "react-icons/fi";
 type BaseTag = "focus" | "meeting" | "errand";
 
@@ -142,6 +143,20 @@ function readStorage(): StorageShape {
 }
 
 export default function PlannerPage() {
+  const [user, setUser] = useState<null | { userId: string; username: string }>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("taskmentor-user");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  });
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPhone, setLoginPhone] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [activeDay, setActiveDay] = useState<string>(todayKey());
   const [pool, setPool] = useState<Task[]>(() => readStorage().pool);
   const [schedule, setSchedule] = useState<Record<string, ScheduledTask[]>>(
@@ -597,6 +612,39 @@ export default function PlannerPage() {
       return matchesTag && matchesSearch;
     });
   }, [pool, filterTag, search]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginError("");
+    const username = loginUsername.trim();
+    const phone = loginPhone.trim();
+    if (!username || !phone) {
+      setLoginError("نام کاربری و تلفن را وارد کنید");
+      return;
+    }
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data?.message || "ورود ناموفق بود");
+      } else {
+        const payload = { userId: data.userId, username: data.username };
+        setUser(payload);
+        localStorage.setItem("taskmentor-user", JSON.stringify(payload));
+        setLoginUsername("");
+        setLoginPhone("");
+      }
+    } catch (err) {
+      setLoginError("خطا در برقراری ارتباط با سرور");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
 
   return (
     <div className="planner" dir="rtl">
@@ -1310,6 +1358,37 @@ export default function PlannerPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+      {!user && (
+        <div className="auth-overlay">
+          <form className="auth-card" onSubmit={handleLogin}>
+            <div className="auth-card__icon">
+              <FiUser />
+            </div>
+            <h2>ورود به تسک منیجر</h2>
+            <p className="light small">برای ادامه ابتدا وارد حساب شوید</p>
+            <label className="auth-label">
+              نام کاربری
+              <input
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                placeholder="مثلا: maziar"
+              />
+            </label>
+            <label className="auth-label">
+              شماره تلفن
+              <input
+                value={loginPhone}
+                onChange={(e) => setLoginPhone(e.target.value)}
+                placeholder="09xxxxxxxxx"
+              />
+            </label>
+            {loginError && <p className="error">{loginError}</p>}
+            <button className="primary" type="submit" disabled={loginLoading}>
+              {loginLoading ? "در حال ورود..." : "ورود"}
+            </button>
+          </form>
         </div>
       )}
     </div>
