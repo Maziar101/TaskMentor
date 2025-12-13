@@ -334,12 +334,15 @@ export default function PlannerPage() {
   function handleAddTask() {
     const trimmed = newTaskTitle.trim();
     if (!trimmed) return;
+    const tagToUse =
+      newTaskTag ?? (filterTag !== "all" ? (filterTag as Task["tag"]) : undefined);
     const task: Task = {
       id: generateId(),
       title: trimmed,
-      tag: newTaskTag,
+      tag: tagToUse,
     };
     setPool((prev) => [task, ...prev]);
+    if (tagToUse) setFilterTag(tagToUse as string);
     setNewTaskTitle("");
   }
 
@@ -569,12 +572,20 @@ export default function PlannerPage() {
   }
 
   const dayLabel = useMemo(() => {
-    return activeDate.toLocaleDateString("fa-IR-u-ca-persian", {
+    const formatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
       weekday: "long",
       day: "numeric",
       month: "long",
       year: "numeric",
     });
+    const parts = formatter.formatToParts(activeDate);
+    const lookup = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((p) => p.type === type)?.value ?? "";
+    const weekday = lookup("weekday");
+    const datePart = [lookup("day"), lookup("month"), lookup("year")]
+      .filter(Boolean)
+      .join(" ");
+    return [weekday, datePart].filter(Boolean).join("، ");
   }, [activeDate]);
 
   const filteredPool = useMemo(() => {
@@ -591,7 +602,6 @@ export default function PlannerPage() {
     <div className="planner" dir="rtl">
       <div className="planner__header">
         <div className="planner__title">
-          <p className="eyebrow">نمای ۲۴ ساعته</p>
           <h1>{dayLabel}</h1>
           <p className="light">تسک‌ها را بکش و روی ساعت مناسب رها کن</p>
         </div>
@@ -1014,6 +1024,18 @@ export default function PlannerPage() {
                               .filter(Boolean)
                               .join(" ")}
                             title={task.title}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData(
+                                "application/json",
+                                JSON.stringify({
+                                  type: "scheduled",
+                                  id: task.id,
+                                  day: task.day,
+                                })
+                              );
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
                           >
                             <span className="stacked-task__title">
                               {task.title}
@@ -1103,7 +1125,27 @@ export default function PlannerPage() {
                       </article>
                     )}
                     {!hasOverlap && covered && !blockStart && (
-                      <span className="hint">ادامه همین تسک</span>
+                      <div className="continuation continuation--card">
+                        <span className="hint">{`ادامه تسک ${covered.task.title}`}</span>
+                        <div className="task__meta-actions">
+                          <button
+                            className="icon-btn"
+                            type="button"
+                            aria-label="علامت انجام شده"
+                            onClick={() => toggleDoneForBlock(covered)}
+                          >
+                            <FiCheck aria-hidden />
+                          </button>
+                          <button
+                            className="icon-btn icon-btn--danger"
+                            type="button"
+                            aria-label="حذف"
+                            onClick={() => handleDeleteBlock(covered)}
+                          >
+                            <FiTrash2 aria-hidden />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
