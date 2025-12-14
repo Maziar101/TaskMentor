@@ -171,7 +171,7 @@ export default function PlannerPage() {
     if (!raw) return null;
     try {
       const parsed = (JSON.parse(raw) as { userId: string }).userId;
-      return /^[a-f\\d]{24}$/i.test(parsed) ? parsed : null;
+      return /^[a-f\d]{24}$/i.test(parsed) ? parsed : null;
     } catch {
       return null;
     }
