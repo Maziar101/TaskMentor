@@ -169,7 +169,8 @@ export default function PlannerPage() {
     const raw = localStorage.getItem("taskmentor-user");
     if (!raw) return null;
     try {
-      return (JSON.parse(raw) as { userId: string }).userId;
+      const parsed = (JSON.parse(raw) as { userId: string }).userId;
+      return /^[a-f\\d]{24}$/i.test(parsed) ? parsed : null;
     } catch {
       return null;
     }

@@ -5,7 +5,7 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import {
   FiCalendar,
@@ -50,6 +50,26 @@ function App() {
     localStorage.removeItem("taskmentor-user");
     setUser(null);
   };
+
+  useEffect(() => {
+    let ignore = false;
+    async function verifyUser() {
+      if (!user) return;
+      try {
+        const res = await fetch(`/api/users/${user.userId}`);
+        if (!res.ok) {
+          throw new Error("user not valid");
+        }
+      } catch {
+        localStorage.removeItem("taskmentor-user");
+        if (!ignore) setUser(null);
+      }
+    }
+    verifyUser();
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
 
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
