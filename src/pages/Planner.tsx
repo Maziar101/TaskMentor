@@ -71,10 +71,16 @@ const JALALI_MONTHS = [
 ];
 
 function generateId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
-  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -170,7 +176,9 @@ export default function PlannerPage() {
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [poolHover, setPoolHover] = useState(false);
-  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(null);
+  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
+    null
+  );
 
   useEffect(() => {
     const payload: StorageShape = { pool, schedule, notes, customTags };
@@ -301,10 +309,7 @@ export default function PlannerPage() {
       setPool((prev) => [...payload.tasks, ...prev]);
     } else {
       const existing = schedule[payload.day] ?? [];
-      persistSchedule(
-        payload.day,
-        sortByHour([...existing, ...payload.tasks])
-      );
+      persistSchedule(payload.day, sortByHour([...existing, ...payload.tasks]));
     }
   }
 
@@ -334,8 +339,7 @@ export default function PlannerPage() {
   function handleAddTask() {
     const trimmed = newTaskTitle.trim();
     if (!trimmed) return;
-    const tagToUse =
-      newTaskTag ?? (filterTag !== "all" ? (filterTag as Task["tag"]) : undefined);
+    const tagToUse = newTaskTag;
     const task: Task = {
       id: generateId(),
       title: trimmed,
@@ -397,13 +401,11 @@ export default function PlannerPage() {
   }
 
   function handleDropToPool(data: string) {
-    let parsed:
-      | {
-          type: "pool" | "scheduled";
-          id: string;
-          day?: string;
-        }
-      | null = null;
+    let parsed: {
+      type: "pool" | "scheduled";
+      id: string;
+      day?: string;
+    } | null = null;
     try {
       parsed = JSON.parse(data);
     } catch {
@@ -565,7 +567,9 @@ export default function PlannerPage() {
 
   function handleDeleteCustomTag(tag: string) {
     setCustomTags((prev) => prev.filter((t) => t !== tag));
-    setPool((prev) => prev.map((t) => (t.tag === tag ? { ...t, tag: undefined } : t)));
+    setPool((prev) =>
+      prev.map((t) => (t.tag === tag ? { ...t, tag: undefined } : t))
+    );
     setSchedule((prev) => retagSchedule(prev, tag, undefined));
     if (newTaskTag === tag) setNewTaskTag(undefined);
     if (filterTag === tag) setFilterTag("all");
@@ -710,7 +714,7 @@ export default function PlannerPage() {
                 اضافه کن
               </button>
             </div>
-            <div className="filters">
+            {/* <div className="filters">
               <input
                 placeholder="جستجو در لیست..."
                 value={search}
@@ -780,9 +784,11 @@ export default function PlannerPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </div> */}
             <div
-              className={["pool", poolHover && "pool--hover"].filter(Boolean).join(" ")}
+              className={["pool", poolHover && "pool--hover"]
+                .filter(Boolean)
+                .join(" ")}
               aria-label="Backlog"
               onDragOver={(e) => {
                 e.preventDefault();
@@ -815,7 +821,11 @@ export default function PlannerPage() {
                   <div className="task__title">{task.title}</div>
                   <div className="task__meta">
                     {task.tag && (
-                      <span className={["pill", getTagClass(task.tag)].filter(Boolean).join(" ")}>
+                      <span
+                        className={["pill", getTagClass(task.tag)]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
                         {getTagLabel(task.tag)}
                       </span>
                     )}
@@ -831,50 +841,12 @@ export default function PlannerPage() {
               ))}
             </div>
           </div>
-        </section>
-
-        <section className="planner__board">
-          <div className="panel calendar-picker">
-            <div className="calendar-picker__header">
-              <div className="calendar-picker__title">
-                <span className="calendar-picker__icon" aria-hidden>
-                  <FiCalendar />
-                </span>
-                <div>
-                  <p className="eyebrow">انتخاب زمان</p>
-                  <p className="light small">ماه و سال را جابه‌جا کن</p>
-                </div>
-              </div>
-              <div className="calendar-picker__nav">
-                <div className="calendar-nav__group">
+          <div className="panel calendar-strip" aria-label="انتخاب زمان">
+            <div className="calendar-strip__head">
+              <div className="calendar-strip__nav">
+                <div className="calendar-strip__nav-group">
                   <button
-                    className="calendar-nav__btn"
-                    type="button"
-                    aria-label="سال قبل"
-                    onClick={() => handleJalaliMonthShift(-12)}
-                  >
-                    <FiChevronRight />
-                  </button>
-                  <button
-                    className="calendar-nav__label-btn"
-                    type="button"
-                    onClick={() => setCalendarModal("year")}
-                  >
-                    {jalaliMonthView.jy}
-                  </button>
-                  <button
-                    className="calendar-nav__btn"
-                    type="button"
-                    aria-label="سال بعد"
-                    onClick={() => handleJalaliMonthShift(12)}
-                  >
-                    <FiChevronLeft />
-                  </button>
-                </div>
-                <div className="calendar-nav__divider" aria-hidden />
-                <div className="calendar-nav__group">
-                  <button
-                    className="calendar-nav__btn"
+                    className="calendar-strip__btn"
                     type="button"
                     aria-label="ماه قبل"
                     onClick={() => handleJalaliMonthShift(-1)}
@@ -882,14 +854,14 @@ export default function PlannerPage() {
                     <FiChevronRight />
                   </button>
                   <button
-                    className="calendar-nav__label-btn"
+                    className="calendar-strip__label"
                     type="button"
                     onClick={() => setCalendarModal("month")}
                   >
                     {jalaliMonthName}
                   </button>
                   <button
-                    className="calendar-nav__btn"
+                    className="calendar-strip__btn"
                     type="button"
                     aria-label="ماه بعد"
                     onClick={() => handleJalaliMonthShift(1)}
@@ -897,51 +869,67 @@ export default function PlannerPage() {
                     <FiChevronLeft />
                   </button>
                 </div>
+                <div className="calendar-strip__nav-group">
+                  <button
+                    className="calendar-strip__btn"
+                    type="button"
+                    aria-label="سال قبل"
+                    onClick={() => handleJalaliMonthShift(-12)}
+                  >
+                    <FiChevronRight />
+                  </button>
+                  <button
+                    className="calendar-strip__label"
+                    type="button"
+                    onClick={() => setCalendarModal("year")}
+                  >
+                    {jalaliMonthView.jy}
+                  </button>
+                  <button
+                    className="calendar-strip__btn"
+                    type="button"
+                    aria-label="سال بعد"
+                    onClick={() => handleJalaliMonthShift(12)}
+                  >
+                    <FiChevronLeft />
+                  </button>
+                </div>
               </div>
             </div>
-            <div
-              className="calendar-picker__days"
-              aria-label="Jalali month days"
-            >
-              {jalaliMonthDays.map((d, idx) => {
-                if (d === null) {
+            <div className="calendar-strip__days">
+              {jalaliMonthDays
+                .filter((d): d is number => d !== null)
+                .map((d) => {
+                  const isSelected =
+                    jalaliMonthView.jy === jalaliActiveDate.jy &&
+                    jalaliMonthView.jm === jalaliActiveDate.jm &&
+                    d === jalaliActiveDate.jd;
+                  const isToday =
+                    jalaliMonthView.jy === jalaliToday.jy &&
+                    jalaliMonthView.jm === jalaliToday.jm &&
+                    d === jalaliToday.jd;
                   return (
-                    <div
-                      key={`empty-${idx}`}
-                      className="calendar-picker__day calendar-picker__day--empty"
-                      aria-hidden
-                    />
+                    <button
+                      key={d}
+                      type="button"
+                      className={[
+                        "calendar-strip__day",
+                        isSelected && "calendar-strip__day--active",
+                        isToday && "calendar-strip__day--today",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => handleSelectJalaliDay(d)}
+                    >
+                      <span>{PERSIAN_NUMBER.format(d)}</span>
+                    </button>
                   );
-                }
-                const isSelected =
-                  jalaliMonthView.jy === jalaliActiveDate.jy &&
-                  jalaliMonthView.jm === jalaliActiveDate.jm &&
-                  d === jalaliActiveDate.jd;
-                const isToday =
-                  jalaliMonthView.jy === jalaliToday.jy &&
-                  jalaliMonthView.jm === jalaliToday.jm &&
-                  d === jalaliToday.jd;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    className={[
-                      "calendar-picker__day",
-                      isSelected && "calendar-picker__day--active",
-                      isToday && "calendar-picker__day--today",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => handleSelectJalaliDay(d)}
-                  >
-                    <span>{PERSIAN_NUMBER.format(d)}</span>
-                    {isToday && <small>امروز</small>}
-                  </button>
-                );
-              })}
+                })}
             </div>
           </div>
+        </section>
 
+        <section className="planner__board">
           <section className="grid" aria-label="24 hour grid">
             {hours.map((hour) => {
               const blockStart = blocksByStart.get(hour);
@@ -1042,18 +1030,22 @@ export default function PlannerPage() {
                             </span>
                             <div className="task__meta-actions">
                               <button
-                              className="icon-btn"
-                              type="button"
-                              aria-label="علامت انجام شده"
-                              onClick={() => toggleDoneForTask(task.id, task.day)}
-                            >
+                                className="icon-btn"
+                                type="button"
+                                aria-label="علامت انجام شده"
+                                onClick={() =>
+                                  toggleDoneForTask(task.id, task.day)
+                                }
+                              >
                                 <FiCheck aria-hidden />
                               </button>
                               <button
                                 className="icon-btn icon-btn--danger"
                                 type="button"
                                 aria-label="حذف"
-                                onClick={() => handleDeleteScheduled(task.id, task.day)}
+                                onClick={() =>
+                                  handleDeleteScheduled(task.id, task.day)
+                                }
                               >
                                 <FiTrash2 aria-hidden />
                               </button>
@@ -1096,7 +1088,10 @@ export default function PlannerPage() {
                         <div className="task__meta">
                           {blockStart.task.tag && (
                             <span
-                              className={["pill", getTagClass(blockStart.task.tag)]
+                              className={[
+                                "pill",
+                                getTagClass(blockStart.task.tag),
+                              ]
                                 .filter(Boolean)
                                 .join(" ")}
                             >
@@ -1167,7 +1162,11 @@ export default function PlannerPage() {
 
       {tagModalOpen && (
         <div className="modal">
-          <div className="modal__backdrop" onClick={closeTagModal} aria-hidden />
+          <div
+            className="modal__backdrop"
+            onClick={closeTagModal}
+            aria-hidden
+          />
           <div className="modal__card" role="dialog" aria-modal="true">
             <h3>{editingTag ? "ویرایش برچسب" : "برچسب جدید"}</h3>
             <p className="light small">یک نام برای برچسب وارد کنید</p>
@@ -1234,7 +1233,9 @@ export default function PlannerPage() {
                   <FiCalendar />
                 </span>
                 <div>
-                  <p className="eyebrow">انتخاب {calendarModal === "month" ? "ماه" : "سال"}</p>
+                  <p className="eyebrow">
+                    انتخاب {calendarModal === "month" ? "ماه" : "سال"}
+                  </p>
                   <p className="light small">
                     {calendarModal === "month"
                       ? "یکی از ماه‌ها را انتخاب کن"
@@ -1269,7 +1270,10 @@ export default function PlannerPage() {
                             .join(" ")}
                           type="button"
                           onClick={() => {
-                            setJalaliMonthView((prev) => ({ ...prev, jm: month }));
+                            setJalaliMonthView((prev) => ({
+                              ...prev,
+                              jm: month,
+                            }));
                             setCalendarModal(null);
                           }}
                         >
@@ -1297,7 +1301,10 @@ export default function PlannerPage() {
                             .join(" ")}
                           type="button"
                           onClick={() => {
-                            setJalaliMonthView((prev) => ({ ...prev, jy: year }));
+                            setJalaliMonthView((prev) => ({
+                              ...prev,
+                              jy: year,
+                            }));
                             setCalendarModal(null);
                           }}
                         >
