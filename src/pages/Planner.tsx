@@ -134,7 +134,7 @@ function readStorage(): StorageShape {
   }
 }
 
-export default function PlannerPage() {
+function PlannerPage() {
   const [activeDay, setActiveDay] = useState<string>(todayKey());
   const [pool, setPool] = useState<Task[]>([]);
   const [schedule, setSchedule] = useState<Record<string, ScheduledTask[]>>({});
@@ -1052,88 +1052,89 @@ export default function PlannerPage() {
           </div>
           <div className="panel calendar-strip" aria-label="انتخاب زمان">
             <div className="calendar-strip__head">
-              <div className="calendar-strip__nav">
-                <div className="calendar-strip__nav-group">
-                  <button
-                    className="calendar-strip__btn"
-                    type="button"
-                    aria-label="ماه قبل"
-                    onClick={() => handleJalaliMonthShift(-1)}
-                  >
-                    <FiChevronRight />
-                  </button>
-                  <button
-                    className="calendar-strip__label"
-                    type="button"
-                    onClick={() => setCalendarModal("month")}
-                  >
-                    {jalaliMonthName}
-                  </button>
-                  <button
-                    className="calendar-strip__btn"
-                    type="button"
-                    aria-label="ماه بعد"
-                    onClick={() => handleJalaliMonthShift(1)}
-                  >
-                    <FiChevronLeft />
-                  </button>
-                </div>
-                <div className="calendar-strip__nav-group">
-                  <button
-                    className="calendar-strip__btn"
-                    type="button"
-                    aria-label="سال قبل"
-                    onClick={() => handleJalaliMonthShift(-12)}
-                  >
-                    <FiChevronRight />
-                  </button>
-                  <button
-                    className="calendar-strip__label"
-                    type="button"
-                    onClick={() => setCalendarModal("year")}
-                  >
-                    {jalaliMonthView.jy}
-                  </button>
-                  <button
-                    className="calendar-strip__btn"
-                    type="button"
-                    aria-label="سال بعد"
-                    onClick={() => handleJalaliMonthShift(12)}
-                  >
-                    <FiChevronLeft />
-                  </button>
-                </div>
+              <button
+                className="calendar-strip__btn"
+                type="button"
+                aria-label="ماه قبل"
+                onClick={() => handleJalaliMonthShift(-1)}
+              >
+                <FiChevronRight />
+              </button>
+              <div className="calendar-strip__title">
+                <button
+                  className="calendar-strip__title-btn"
+                  type="button"
+                  onClick={() => setCalendarModal("month")}
+                >
+                  <span>{jalaliMonthName}</span>
+                  <span className="calendar-strip__caret">▾</span>
+                </button>
+                <button
+                  className="calendar-strip__year-btn"
+                  type="button"
+                  onClick={() => setCalendarModal("year")}
+                >
+                  {jalaliMonthView.jy}
+                </button>
+                <p className="calendar-strip__sub">
+                  {formatGregorianSpanForJalaliMonth(
+                    jalaliMonthView.jy,
+                    jalaliMonthView.jm
+                  )}
+                </p>
               </div>
+              <button
+                className="calendar-strip__btn"
+                type="button"
+                aria-label="ماه بعد"
+                onClick={() => handleJalaliMonthShift(1)}
+              >
+                <FiChevronLeft />
+              </button>
+            </div>
+            <div className="calendar-strip__weekdays">
+              {["ش", "ی", "د", "س", "چ", "پ", "ج"].map((label) => (
+                <span key={label} className="calendar-strip__weekday">
+                  {label}
+                </span>
+              ))}
             </div>
             <div className="calendar-strip__days">
-              {jalaliMonthDays
-                .filter((d): d is number => d !== null)
-                .map((d) => {
-                  const isSelected =
-                    jalaliMonthView.jy === jalaliActiveDate.jy &&
-                    jalaliMonthView.jm === jalaliActiveDate.jm &&
-                    d === jalaliActiveDate.jd;
-                  const isToday =
-                    jalaliMonthView.jy === jalaliToday.jy &&
-                    jalaliMonthView.jm === jalaliToday.jm &&
-                    d === jalaliToday.jd;
+              {jalaliMonthDays.map((d, idx) => {
+                if (d === null) {
                   return (
-                    <button
-                      key={d}
-                      type="button"
-                      className={[
-                        "calendar-strip__day",
-                        isSelected && "calendar-strip__day--active",
-                        isToday && "calendar-strip__day--today",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      onClick={() => handleSelectJalaliDay(d)}
-                    >
-                      <span>{PERSIAN_NUMBER.format(d)}</span>
-                    </button>
+                    <span
+                      key={`empty-${idx}`}
+                      className="calendar-strip__day calendar-strip__day--ghost"
+                      aria-hidden
+                    />
                   );
-                })}
+                }
+                const isSelected =
+                  jalaliMonthView.jy === jalaliActiveDate.jy &&
+                  jalaliMonthView.jm === jalaliActiveDate.jm &&
+                  d === jalaliActiveDate.jd;
+                const isToday =
+                  jalaliMonthView.jy === jalaliToday.jy &&
+                  jalaliMonthView.jm === jalaliToday.jm &&
+                  d === jalaliToday.jd;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    className={[
+                      "calendar-strip__day",
+                      isSelected && "calendar-strip__day--active",
+                      isToday && "calendar-strip__day--today",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => handleSelectJalaliDay(d)}
+                  >
+                    <span>{PERSIAN_NUMBER.format(d)}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -1645,6 +1646,15 @@ function formatJalaliMonthName(date: JalaliDateParts) {
   return anchor.toLocaleDateString("fa-IR-u-ca-persian", { month: "long" });
 }
 
+function formatGregorianSpanForJalaliMonth(jy: number, jm: number) {
+  const start = jalaliToGregorian(jy, jm, 1);
+  const end = jalaliToGregorian(jy, jm, jalaliMonthLength(jy, jm));
+  const fmt = new Intl.DateTimeFormat("en-US", { month: "short" });
+  const startLabel = fmt.format(new Date(Date.UTC(start.gy, start.gm - 1, start.gd)));
+  const endLabel = fmt.format(new Date(Date.UTC(end.gy, end.gm - 1, end.gd)));
+  return startLabel === endLabel ? startLabel : `${startLabel}-${endLabel}`;
+}
+
 function buildJalaliMonthDays(jy: number, jm: number): JalaliMonthDays {
   const count = jalaliMonthLength(jy, jm);
   const first = jalaliToGregorian(jy, jm, 1);
@@ -1785,3 +1795,5 @@ function jalaliToGregorian(
 function isGregorianLeap(year: number) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
+
+export default PlannerPage;

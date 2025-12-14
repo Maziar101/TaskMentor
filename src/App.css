@@ -465,43 +465,22 @@ body {
 
 .calendar-strip {
   grid-column: 1 / -1;
-  background: rgba(19, 14, 38, 0.94);
+  background: rgba(19, 21, 32, 0.96);
   border: 1px solid rgba(132, 102, 228, 0.35);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 16px;
+  padding: 14px 14px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .calendar-strip__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.calendar-strip__nav {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.calendar-strip__nav-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: 49%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(153, 126, 255, 0.35);
-  border-radius: 12px;
-  padding: 6px 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  gap: 10px;
 }
 
 .calendar-strip__btn {
@@ -522,61 +501,72 @@ body {
   box-shadow: 0 8px 18px rgba(153, 126, 255, 0.3);
 }
 
-.calendar-strip__label {
+.calendar-strip__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.calendar-strip__title-btn {
   border: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: #f4edff;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-weight: 700;
-  min-width: 82px;
+  background: transparent;
+  color: #f6f2ff;
+  font-weight: 800;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.calendar-strip__meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(153, 126, 255, 0.25);
-  padding: 8px 10px;
-  border-radius: 12px;
-  color: #dbe9ff;
+.calendar-strip__caret {
+  font-size: 0.7rem;
+  opacity: 0.7;
 }
 
-.calendar-strip__icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(153, 126, 255, 0.35);
-  background: rgba(153, 126, 255, 0.12);
-  color: #f4edff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.calendar-strip__year-btn {
+  border: none;
+  background: transparent;
+  color: #c8d3ff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.calendar-strip__sub {
+  margin: 0;
+  color: #96a2c9;
+  font-size: 0.82rem;
+}
+
+.calendar-strip__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  color: #8fa1c7;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.calendar-strip__weekday {
+  padding: 4px 0;
 }
 
 .calendar-strip__days {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-  background: transparent;
-  border-radius: 12px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 6px 2px 2px;
 }
 
 .calendar-strip__day {
   min-width: 0;
-  border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  margin-inline-start: -1px;
-  margin-block-start: -1px;
-  background: transparent;
-  color: #f5efff;
-  padding: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8edff;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -592,16 +582,22 @@ body {
   font-size: 0.7rem;
 }
 
+.calendar-strip__day--ghost {
+  visibility: hidden;
+  border: none;
+  background: transparent;
+}
+
 .calendar-strip__day--today {
-  border-color: rgba(120, 85, 255, 0.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(120, 85, 255, 0.8);
+  box-shadow: 0 6px 16px rgba(120, 85, 255, 0.25);
 }
 
 .calendar-strip__day--active {
-  background: linear-gradient(120deg, #f7d046, #f0a63c);
-  color: #1a132f;
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 24px rgba(247, 208, 70, 0.25);
+  background: linear-gradient(140deg, #ff7b5f, #fcb045);
+  color: #1b1328;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 24px rgba(255, 123, 95, 0.35);
 }
 
 .calendar-strip__day--active small {
