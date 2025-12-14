@@ -21,13 +21,14 @@ router.post("/", async (req, res, next) => {
   try {
     const title = req.body.title?.trim();
     const tag = req.body.tag?.trim();
+    const priority = req.body.priority?.trim();
     const userId = req.body.userId;
     if (!title || !userId) {
       return res.status(400).json({ message: "title and userId are required" });
     }
     const userExists = await User.exists({ _id: userId });
     if (!userExists) return res.status(404).json({ message: "user not found" });
-    const task = await Task.create({ title, tag, user: userId });
+    const task = await Task.create({ title, tag, priority, user: userId });
     res.status(201).json(task);
   } catch (err) {
     next(err);

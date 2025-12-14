@@ -25,6 +25,7 @@ import ShortGoalsPage from "./pages/ShortGoals";
 import LongGoalsPage from "./pages/LongGoals";
 import AddGoalPage from "./pages/AddGoal";
 import ProfilePage from "./pages/Profile";
+import PrioritiesPage from "./pages/Priorities";
 import LoginPage from "./pages/Login";
 import "./App.css";
 
@@ -131,6 +132,15 @@ function App() {
               <span className="nav-link__label">برنامه‌ریز</span>
             </NavLink>
             <NavLink
+              to="/priorities"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiTarget />
+              </span>
+              <span className="nav-link__label">اولویت‌ها</span>
+            </NavLink>
+            <NavLink
               to="/short-goals"
               className={({ isActive }) => navClass(isActive)}
             >
@@ -206,6 +216,7 @@ function App() {
           />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/planner" element={requireAuth(<PlannerPage />)} />
+          <Route path="/priorities" element={requireAuth(<PrioritiesPage />)} />
           <Route
             path="/short-goals"
             element={requireAuth(<ShortGoalsPage />)}

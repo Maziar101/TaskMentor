@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiCheck,
   FiTrash2,
@@ -7,12 +7,20 @@ import {
   FiCalendar,
   FiX,
 } from "react-icons/fi";
+import { loadPriorities, type Priority } from "../utils/priorities";
+const PRIORITY_LEVELS = [
+  { id: undefined, label: "بدون اولویت", color: "var(--priority-none, #555a65)" },
+  { id: "low", label: "پایین", color: "#2ecc71" },
+  { id: "medium", label: "متوسط", color: "#f39c12" },
+  { id: "high", label: "بالا", color: "#e74c3c" },
+];
 type BaseTag = "focus" | "meeting" | "errand";
 
 type Task = {
   id: string;
   title: string;
   tag?: BaseTag | string;
+  priorityId?: string;
 };
 
 type ScheduledTask = Task & {
@@ -158,6 +166,10 @@ function PlannerPage() {
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [tagModalError, setTagModalError] = useState("");
   const [formError, setFormError] = useState("");
+  const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities());
+  const [newTaskPriority, setNewTaskPriority] = useState<string | undefined>();
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const priorityRef = useRef<HTMLDivElement | null>(null);
   const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
@@ -189,6 +201,7 @@ function PlannerPage() {
               id: t._id ?? t.id,
               title: t.title,
               tag: t.tag,
+              priorityId: t.priority,
             }))
           : [];
       setPool(mapped);
@@ -211,6 +224,7 @@ function PlannerPage() {
                 id: item._id ?? item.id,
                 title: item.title,
                 tag: item.tag,
+                priorityId: item.priority,
                 day: item.day,
                 hour: Number(item.hour),
                 done: Boolean(item.done),
@@ -228,6 +242,25 @@ function PlannerPage() {
     const payload: StorageShape = { notes, customTags };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [notes, customTags]);
+
+  useEffect(() => {
+    function syncPriorities() {
+      setPriorities(loadPriorities());
+    }
+    window.addEventListener("storage", syncPriorities);
+    return () => window.removeEventListener("storage", syncPriorities);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!priorityRef.current) return;
+      if (!priorityRef.current.contains(e.target as Node)) {
+        setPriorityOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -407,14 +440,15 @@ function PlannerPage() {
           fetch("/api/schedule", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: t.title,
-              tag: t.tag,
-              day: activeDay,
-              hour: t.hour,
-              done: false,
-              userId,
-            }),
+              body: JSON.stringify({
+                title: t.title,
+                tag: t.tag,
+                priority: t.priorityId,
+                day: activeDay,
+                hour: t.hour,
+                done: false,
+                userId,
+              }),
           })
         )
       );
@@ -466,7 +500,7 @@ function PlannerPage() {
       const res = await fetch("/api/pool", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed, tag: tagToUse, userId }),
+        body: JSON.stringify({ title: trimmed, tag: tagToUse, priority: newTaskPriority, userId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Failed to add task");
@@ -474,6 +508,7 @@ function PlannerPage() {
         id: data._id ?? data.id ?? generateId(),
         title: data.title ?? trimmed,
         tag: data.tag ?? tagToUse,
+        priorityId: data.priority ?? newTaskPriority,
       };
       setPool((prev) => [task, ...prev]);
       if (tagToUse) setFilterTag(tagToUse as string);
@@ -503,15 +538,16 @@ function PlannerPage() {
       try {
         const res = await fetch("/api/schedule", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: task.title,
-            tag: task.tag,
-            day: activeDay,
-            hour,
-            done: false,
-            userId,
-          }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: task.title,
+              tag: task.tag,
+              priority: task.priorityId,
+              day: activeDay,
+              hour,
+              done: false,
+              userId,
+            }),
         });
         const created = await res.json();
         if (!res.ok) throw new Error(created?.message || "Failed to schedule task");
@@ -579,6 +615,7 @@ function PlannerPage() {
         body: JSON.stringify({
           title: task.title,
           tag: task.tag,
+          priority: task.priorityId,
           userId,
         }),
       });
@@ -918,6 +955,58 @@ function PlannerPage() {
                   + برچسب جدید
                 </button>
               </div>
+              <div
+                className="priority-picker"
+                ref={priorityRef}
+              >
+                <p className="light small">اولویت</p>
+                <button
+                  type="button"
+                  className="priority-dropdown__button"
+                  onClick={() => setPriorityOpen((v) => !v)}
+                >
+                  <span
+                    className="priority-dot"
+                    style={{
+                      backgroundColor:
+                        PRIORITY_LEVELS.find((p) => p.id === newTaskPriority)?.color ??
+                        "var(--priority-none, #555a65)",
+                    }}
+                  />
+                  <span className="priority-dropdown__label">
+                    {PRIORITY_LEVELS.find((p) => p.id === newTaskPriority)?.label ||
+                      "بدون اولویت"}
+                  </span>
+                  <span className="priority-dropdown__caret">▾</span>
+                </button>
+                {priorityOpen && (
+                  <div className="priority-dropdown__menu">
+                    {PRIORITY_LEVELS.map((level) => (
+                      <button
+                        key={level.id ?? "none"}
+                        type="button"
+                        className={[
+                          "priority-dropdown__item",
+                          newTaskPriority === level.id && "priority-dropdown__item--active",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        onClick={() => {
+                          setNewTaskPriority(level.id as string | undefined);
+                          setPriorityOpen(false);
+                        }}
+                      >
+                        <span
+                          className="priority-dot"
+                          style={{ backgroundColor: level.color }}
+                          aria-hidden
+                        />
+                        <span>{level.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button className="primary" onClick={handleAddTask}>
                 اضافه کن
               </button>
@@ -1029,15 +1118,22 @@ function PlannerPage() {
                 >
                   <div className="task__title">{task.title}</div>
                   <div className="task__meta">
-                    {task.tag && (
-                      <span
-                        className={["pill", getTagClass(task.tag)]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        {getTagLabel(task.tag)}
-                      </span>
-                    )}
+                    <div className="task__meta-left">
+                      {task.priorityId && (
+                        <span className="pill pill--custom">
+                          {getPriorityLabel(task.priorityId, priorities)}
+                        </span>
+                      )}
+                      {task.tag && (
+                        <span
+                          className={["pill", getTagClass(task.tag)]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {getTagLabel(task.tag)}
+                        </span>
+                      )}
+                    </div>
                     <button
                       className="danger tiny"
                       type="button"
@@ -1296,18 +1392,25 @@ function PlannerPage() {
                           {blockStart.task.title}
                         </div>
                         <div className="task__meta">
-                          {blockStart.task.tag && (
-                            <span
-                              className={[
-                                "pill",
-                                getTagClass(blockStart.task.tag),
-                              ]
-                                .filter(Boolean)
-                                .join(" ")}
-                            >
-                              {getTagLabel(blockStart.task.tag)}
-                            </span>
-                          )}
+                          <div className="task__meta-left">
+                            {blockStart.task.priorityId && (
+                              <span className="pill pill--custom">
+                                {getPriorityLabel(blockStart.task.priorityId, priorities)}
+                              </span>
+                            )}
+                            {blockStart.task.tag && (
+                              <span
+                                className={[
+                                  "pill",
+                                  getTagClass(blockStart.task.tag),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ")}
+                              >
+                                {getTagLabel(blockStart.task.tag)}
+                              </span>
+                            )}
+                          </div>
                           <div className="task__meta-actions">
                             <button
                               className="icon-btn"
@@ -1588,9 +1691,7 @@ function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
 function dedupe(list: ScheduledTask[]) {
   const map = new Map<string, ScheduledTask>();
   list.forEach((t) => {
-    const key = `${t.title.trim().toLowerCase()}|${t.tag ?? "none"}|${t.hour}|${
-      t.day
-    }`;
+    const key = `${t.title.trim().toLowerCase()}|${t.tag ?? "none"}|${t.priorityId ?? "none"}|${t.hour}|${t.day}`;
     map.set(key, t);
   });
   return Array.from(map.values()).sort(
@@ -1621,6 +1722,14 @@ function getTagLabel(tag?: string) {
 function getTagClass(tag?: string) {
   if (!tag) return "";
   return baseTags.includes(tag as BaseTag) ? `pill--${tag}` : "pill--custom";
+}
+
+function getPriorityLabel(id: string | undefined, priorities: Priority[]) {
+  if (!id) return "بدون اولویت";
+  const builtin = PRIORITY_LEVELS.find((p) => p.id === id);
+  if (builtin) return builtin.label;
+  const found = priorities.find((p) => p.id === id);
+  return found?.title ?? "بدون اولویت";
 }
 
 function dateKeyFromGregorian(gy: number, gm: number, gd: number) {

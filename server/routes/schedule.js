@@ -33,6 +33,7 @@ router.post("/", async (req, res, next) => {
     const day = normalizeDay(req.body.day);
     const hour = Number(req.body.hour);
     const done = Boolean(req.body.done);
+    const priority = req.body.priority?.trim();
     const userId = req.body.userId;
 
     if (!title || !day || Number.isNaN(hour) || !userId) {
@@ -44,7 +45,7 @@ router.post("/", async (req, res, next) => {
     const userExists = await User.exists({ _id: userId });
     if (!userExists) return res.status(404).json({ message: "user not found" });
 
-    const item = await ScheduledItem.create({ title, tag, day, hour, done, user: userId });
+    const item = await ScheduledItem.create({ title, tag, priority, day, hour, done, user: userId });
     res.status(201).json(item);
   } catch (err) {
     next(err);
@@ -64,6 +65,7 @@ router.patch("/:id", async (req, res, next) => {
     if (typeof req.body.day === "string") updates.day = normalizeDay(req.body.day);
     if (typeof req.body.hour !== "undefined") updates.hour = Number(req.body.hour);
     if (typeof req.body.done !== "undefined") updates.done = Boolean(req.body.done);
+    if (typeof req.body.priority === "string") updates.priority = req.body.priority.trim();
 
     const item = await ScheduledItem.findOneAndUpdate(
       { _id: req.params.id, user: userId },

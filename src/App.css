@@ -732,6 +732,8 @@ body {
   flex-direction: column;
   gap: 8px;
   border: 1px solid rgba(153, 126, 255, 0.25);
+  position: relative;
+  overflow: visible;
 }
 
 .add-form input {
@@ -784,6 +786,83 @@ body {
 .tag-chip--add:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(172, 143, 255, 0.6);
+}
+
+.priority-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.priority-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+}
+
+.priority-dropdown__button {
+  width: 100%;
+  border: 1px solid rgba(132, 102, 228, 0.25);
+  background: rgba(37, 26, 63, 0.9);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #f4edff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.priority-dropdown__label {
+  flex: 1;
+  text-align: right;
+  font-weight: 700;
+}
+
+.priority-dropdown__caret {
+  color: #c8d3ff;
+  font-size: 0.8rem;
+}
+
+.priority-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(25, 17, 43, 0.96);
+  border: 1px solid rgba(132, 102, 228, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  max-height: 220px;
+  z-index: 1000;
+}
+
+.priority-dropdown__item {
+  width: 100%;
+  text-align: right;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #eaeffd;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.priority-dropdown__item:hover,
+.priority-dropdown__item--active {
+  background: rgba(132, 102, 228, 0.12);
 }
 
 .filters {
@@ -924,6 +1003,13 @@ body {
   gap: 8px;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.task__meta-left {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
