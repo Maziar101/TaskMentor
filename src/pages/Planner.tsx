@@ -157,6 +157,7 @@ export default function PlannerPage() {
   const [tagModalValue, setTagModalValue] = useState("");
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [tagModalError, setTagModalError] = useState("");
+  const [formError, setFormError] = useState("");
   const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
@@ -453,7 +454,11 @@ export default function PlannerPage() {
   }
 
   async function handleAddTask() {
-    if (!userId) return;
+    if (!userId) {
+      setFormError("برای افزودن، دوباره وارد حساب شو.");
+      return;
+    }
+    setFormError("");
     const trimmed = newTaskTitle.trim();
     if (!trimmed) return;
     const tagToUse = newTaskTag;
@@ -475,6 +480,7 @@ export default function PlannerPage() {
       setNewTaskTitle("");
     } catch (err) {
       console.error("Failed to add task", err);
+      setFormError("افزودن تسک انجام نشد. اتصال یا ورود را چک کن.");
     }
   }
 
@@ -915,6 +921,7 @@ export default function PlannerPage() {
               <button className="primary" onClick={handleAddTask}>
                 اضافه کن
               </button>
+              {formError && <p className="error">{formError}</p>}
             </div>
             {/* <div className="filters">
               <input
