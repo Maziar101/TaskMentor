@@ -79,7 +79,7 @@ function App() {
               <strong className="profile-card__name">مازیار</strong>
               <span className="profile-card__role">کاربر</span>
             </div>
-            {user && (
+            {user && !sidebarCollapsed && (
               <button
                 className="profile-card__logout"
                 type="button"

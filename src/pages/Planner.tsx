@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiCheck,
   FiTrash2,
@@ -46,8 +46,6 @@ type GregorianDateParts = {
 };
 
 type StorageShape = {
-  pool: Task[];
-  schedule: Record<string, ScheduledTask[]>;
   notes?: Record<string, string>;
   customTags?: string[];
 };
@@ -99,15 +97,6 @@ function generateId() {
   });
 }
 
-const defaultPool: Task[] = [
-  { id: "task-1", title: "Deep work: main project", tag: "focus" },
-  { id: "task-2", title: "Team sync", tag: "meeting" },
-  { id: "task-3", title: "Email + admin", tag: "errand" },
-  { id: "task-4", title: "Personal learning block", tag: "focus" },
-  { id: "task-5", title: "ورزش کوتاه ۳۰ دقیقه", tag: "errand" },
-  { id: "task-6", title: "پیگیری مشتریان کلیدی", tag: "meeting" },
-];
-
 const tagLabels: Record<BaseTag, string> = {
   focus: "تمرکز",
   meeting: "جلسه",
@@ -130,29 +119,25 @@ function todayKey(reference = new Date()) {
 }
 
 function readStorage(): StorageShape {
-  if (typeof window === "undefined") return { pool: defaultPool, schedule: {} };
+  if (typeof window === "undefined") return {};
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { pool: defaultPool, schedule: {} };
+  if (!raw) return {};
   try {
     const parsed = JSON.parse(raw) as StorageShape;
     return {
-      pool: parsed.pool ?? defaultPool,
-      schedule: parsed.schedule ?? {},
       notes: parsed.notes ?? {},
       customTags: parsed.customTags ?? [],
     };
   } catch (e) {
     console.warn("Failed to parse stored data, resetting.", e);
-    return { pool: defaultPool, schedule: {} };
+    return {};
   }
 }
 
 export default function PlannerPage() {
   const [activeDay, setActiveDay] = useState<string>(todayKey());
-  const [pool, setPool] = useState<Task[]>(() => readStorage().pool);
-  const [schedule, setSchedule] = useState<Record<string, ScheduledTask[]>>(
-    () => readStorage().schedule
-  );
+  const [pool, setPool] = useState<Task[]>([]);
+  const [schedule, setSchedule] = useState<Record<string, ScheduledTask[]>>({});
   const [notes] = useState<Record<string, string>>(
     () => readStorage().notes ?? {}
   );
@@ -179,11 +164,78 @@ export default function PlannerPage() {
   const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
     null
   );
+  const userId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("taskmentor-user");
+    if (!raw) return null;
+    try {
+      return (JSON.parse(raw) as { userId: string }).userId;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const loadPool = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/pool?userId=${userId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to load pool");
+      const mapped =
+        Array.isArray(data) && data.length > 0
+          ? data.map((t: any) => ({
+              id: t._id ?? t.id,
+              title: t.title,
+              tag: t.tag,
+            }))
+          : [];
+      setPool(mapped);
+    } catch (err) {
+      console.error(err);
+      setPool([]);
+    }
+  }, [userId]);
+
+  const loadSchedule = useCallback(
+    async (day: string) => {
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/schedule/${day}?userId=${userId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Failed to load schedule");
+        const mapped =
+          Array.isArray(data) && data.length > 0
+            ? data.map((item: any) => ({
+                id: item._id ?? item.id,
+                title: item.title,
+                tag: item.tag,
+                day: item.day,
+                hour: Number(item.hour),
+                done: Boolean(item.done),
+              }))
+            : [];
+        setSchedule((prev) => ({ ...prev, [day]: mapped }));
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [userId]
+  );
 
   useEffect(() => {
-    const payload: StorageShape = { pool, schedule, notes, customTags };
+    const payload: StorageShape = { notes, customTags };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [pool, schedule, notes, customTags]);
+  }, [notes, customTags]);
+
+  useEffect(() => {
+    if (!userId) return;
+    loadPool();
+  }, [userId, loadPool]);
+
+  useEffect(() => {
+    if (!userId) return;
+    loadSchedule(activeDay);
+  }, [userId, activeDay, loadSchedule]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000);
@@ -286,11 +338,6 @@ export default function PlannerPage() {
       .reverse();
   }, [schedule, activeDay]);
 
-  function persistSchedule(dayKey: string, tasks: ScheduledTask[]) {
-    const cleaned = dedupe(tasks);
-    setSchedule((prev) => ({ ...prev, [dayKey]: cleaned }));
-  }
-
   function showUndoToast(payload: UndoPayload) {
     if (undoTimer) window.clearTimeout(undoTimer);
     setUndoToast(payload);
@@ -299,58 +346,138 @@ export default function PlannerPage() {
     setUndoTimer(timer);
   }
 
-  function handleUndo() {
+  async function handleUndo() {
     if (!undoToast) return;
     if (undoTimer) window.clearTimeout(undoTimer);
     setUndoTimer(null);
     const payload = undoToast;
     setUndoToast(null);
-    if (payload.type === "pool") {
-      setPool((prev) => [...payload.tasks, ...prev]);
-    } else {
-      const existing = schedule[payload.day] ?? [];
-      persistSchedule(payload.day, sortByHour([...existing, ...payload.tasks]));
+    if (!userId) return;
+    try {
+      if (payload.type === "pool") {
+        await Promise.all(
+          payload.tasks.map((t) =>
+            fetch("/api/pool", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: t.title,
+                tag: t.tag,
+                userId,
+              }),
+            })
+          )
+        );
+        await loadPool();
+      } else {
+        await Promise.all(
+          payload.tasks.map((t) =>
+            fetch("/api/schedule", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: t.title,
+                tag: t.tag,
+                day: t.day,
+                hour: t.hour,
+                done: t.done,
+                userId,
+              }),
+            })
+          )
+        );
+        await loadSchedule(payload.day);
+      }
+    } catch (err) {
+      console.error("Failed to undo", err);
     }
   }
 
-  function copyLatestDayIntoActive() {
+  async function copyLatestDayIntoActive() {
+    if (!userId) return;
     const source = previousDays[0];
     if (!source) return;
     const sourceTasks = schedule[source] ?? [];
-    const cloned = sourceTasks.map((t) => ({
-      ...t,
-      id: generateId(),
-      day: activeDay,
-      done: false,
-    }));
-    persistSchedule(activeDay, sortByHour(cloned));
+    if (sourceTasks.length === 0) return;
+    try {
+      await Promise.all(
+        sourceTasks.map((t) =>
+          fetch("/api/schedule", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: t.title,
+              tag: t.tag,
+              day: activeDay,
+              hour: t.hour,
+              done: false,
+              userId,
+            }),
+          })
+        )
+      );
+      await loadSchedule(activeDay);
+    } catch (err) {
+      console.error("Failed to copy day", err);
+    }
   }
 
-  function clearActiveDay() {
+  async function clearActiveDay() {
+    if (!userId) return;
     const tasks = schedule[activeDay] ?? [];
     if (tasks.length === 0) return;
-    setPool((prev) => [
-      ...tasks.map((t) => ({ id: t.id, title: t.title, tag: t.tag })),
-      ...prev,
-    ]);
-    persistSchedule(activeDay, []);
+    try {
+      await Promise.all(
+        tasks.map((t) =>
+          fetch(`/api/schedule/${t.id}?userId=${userId}`, { method: "DELETE" })
+        )
+      );
+      await Promise.all(
+        tasks.map((t) =>
+          fetch("/api/pool", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: t.title,
+              tag: t.tag,
+              userId,
+            }),
+          })
+        )
+      );
+      await Promise.all([loadSchedule(activeDay), loadPool()]);
+    } catch (err) {
+      console.error("Failed to clear day", err);
+    }
   }
 
-  function handleAddTask() {
+  async function handleAddTask() {
+    if (!userId) return;
     const trimmed = newTaskTitle.trim();
     if (!trimmed) return;
     const tagToUse = newTaskTag;
-    const task: Task = {
-      id: generateId(),
-      title: trimmed,
-      tag: tagToUse,
-    };
-    setPool((prev) => [task, ...prev]);
-    if (tagToUse) setFilterTag(tagToUse as string);
-    setNewTaskTitle("");
+    try {
+      const res = await fetch("/api/pool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed, tag: tagToUse, userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to add task");
+      const task: Task = {
+        id: data._id ?? data.id ?? generateId(),
+        title: data.title ?? trimmed,
+        tag: data.tag ?? tagToUse,
+      };
+      setPool((prev) => [task, ...prev]);
+      if (tagToUse) setFilterTag(tagToUse as string);
+      setNewTaskTitle("");
+    } catch (err) {
+      console.error("Failed to add task", err);
+    }
   }
 
-  function handleDrop(hour: number, data: string) {
+  async function handleDrop(hour: number, data: string) {
     let parsed: {
       type: "pool" | "scheduled";
       id: string;
@@ -364,43 +491,60 @@ export default function PlannerPage() {
     if (!parsed) return;
 
     if (parsed.type === "pool") {
-      setPool((prev) => {
-        const task = prev.find((t) => t.id === parsed?.id);
-        if (!task) return prev;
-        const updated = prev.filter((t) => t.id !== task.id);
-        const newScheduled: ScheduledTask = {
-          ...task,
-          hour,
-          day: activeDay,
-          done: false,
-        };
-        const list = schedule[activeDay] ?? [];
-        const withoutExisting = list.filter((t) => t.id !== task.id);
-        persistSchedule(
-          activeDay,
-          sortByHour([...withoutExisting, newScheduled])
-        );
-        return updated;
-      });
+      const task = pool.find((t) => t.id === parsed?.id);
+      if (!task || !userId) return;
+      try {
+        const res = await fetch("/api/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: task.title,
+            tag: task.tag,
+            day: activeDay,
+            hour,
+            done: false,
+            userId,
+          }),
+        });
+        const created = await res.json();
+        if (!res.ok) throw new Error(created?.message || "Failed to schedule task");
+        await fetch(`/api/pool/${task.id}?userId=${userId}`, {
+          method: "DELETE",
+        });
+        setPool((prev) => prev.filter((t) => t.id !== task.id));
+        await loadPool();
+        await loadSchedule(activeDay);
+      } catch (err) {
+        console.error("Failed to move task into schedule", err);
+      }
     }
 
     if (parsed.type === "scheduled") {
       const fromDay = parsed.day ?? activeDay;
       const existing = schedule[fromDay] ?? [];
       const task = existing.find((t) => t.id === parsed?.id);
-      if (!task) return;
+      if (!task || !userId) return;
 
-      const updatedSource = existing.filter((t) => t.id !== task.id);
-      persistSchedule(fromDay, sortByHour(updatedSource));
-
-      const targetList = schedule[activeDay] ?? [];
-      const withoutDup = targetList.filter((t) => t.id !== task.id);
-      const moved = { ...task, hour, day: activeDay };
-      persistSchedule(activeDay, sortByHour([...withoutDup, moved]));
+      try {
+        const res = await fetch(`/api/schedule/${task.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ day: activeDay, hour, userId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Failed to move scheduled task");
+        if (fromDay === activeDay) {
+          await loadSchedule(activeDay);
+        } else {
+          await Promise.all([loadSchedule(fromDay), loadSchedule(activeDay)]);
+        }
+      } catch (err) {
+        console.error("Failed to move scheduled task", err);
+      }
     }
   }
 
-  function handleDropToPool(data: string) {
+  async function handleDropToPool(data: string) {
     let parsed: {
       type: "pool" | "scheduled";
       id: string;
@@ -416,17 +560,28 @@ export default function PlannerPage() {
     const fromDay = parsed.day ?? activeDay;
     const existing = schedule[fromDay] ?? [];
     const task = existing.find((t) => t.id === parsed.id);
-    if (!task) return;
+    if (!task || !userId) return;
 
-    const remaining = existing.filter((t) => t.id !== task.id);
-    persistSchedule(fromDay, sortByHour(remaining));
-    setPool((prev) => [
-      { id: generateId(), title: task.title, tag: task.tag },
-      ...prev,
-    ]);
+    try {
+      await fetch(`/api/schedule/${task.id}?userId=${userId}`, {
+        method: "DELETE",
+      });
+      await fetch("/api/pool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          tag: task.tag,
+          userId,
+        }),
+      });
+      await Promise.all([loadSchedule(fromDay), loadPool()]);
+    } catch (err) {
+      console.error("Failed to move back to pool", err);
+    }
   }
 
-  function handleDeleteBlock(block: MergedBlock) {
+  async function handleDeleteBlock(block: MergedBlock) {
     const fromDay = block.task.day;
     const fromList = schedule[fromDay] ?? [];
     const removed = fromList.filter((t) => {
@@ -436,58 +591,103 @@ export default function PlannerPage() {
       const inRange = t.hour >= block.start && t.hour < block.end;
       return sameTitle && sameTag && inRange;
     });
-    const remaining = fromList.filter((t) => !removed.includes(t));
-    if (removed.length > 0) {
-      showUndoToast({ type: "scheduled", tasks: removed, day: fromDay });
+    if (removed.length === 0 || !userId) return;
+    showUndoToast({ type: "scheduled", tasks: removed, day: fromDay });
+    try {
+      await Promise.all(
+        removed.map((t) =>
+          fetch(`/api/schedule/${t.id}?userId=${userId}`, { method: "DELETE" })
+        )
+      );
+      await loadSchedule(fromDay);
+    } catch (err) {
+      console.error("Failed to delete block", err);
     }
-    persistSchedule(fromDay, sortByHour(remaining));
   }
 
-  function handleDeleteScheduled(taskId: string, day: string) {
+  async function handleDeleteScheduled(taskId: string, day: string) {
     const fromList = schedule[day] ?? [];
     const removed = fromList.find((t) => t.id === taskId);
-    const remaining = fromList.filter((t) => t.id !== taskId);
-    if (removed) {
-      showUndoToast({ type: "scheduled", tasks: [removed], day });
+    if (!removed || !userId) return;
+    showUndoToast({ type: "scheduled", tasks: [removed], day });
+    try {
+      await fetch(`/api/schedule/${taskId}?userId=${userId}`, {
+        method: "DELETE",
+      });
+      await loadSchedule(day);
+    } catch (err) {
+      console.error("Failed to delete scheduled task", err);
     }
-    persistSchedule(day, sortByHour(remaining));
   }
 
-  function toggleDoneForTask(taskId: string, day: string) {
+  async function toggleDoneForTask(taskId: string, day: string) {
     const fromList = schedule[day] ?? [];
-    const updated = fromList.map((t) =>
-      t.id === taskId ? { ...t, done: !t.done } : t
-    );
-    persistSchedule(day, sortByHour(updated));
+    const target = fromList.find((t) => t.id === taskId);
+    if (!target || !userId) return;
+    try {
+      await fetch(`/api/schedule/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ done: !target.done, userId }),
+      });
+      await loadSchedule(day);
+    } catch (err) {
+      console.error("Failed to toggle task", err);
+    }
   }
 
-  function toggleDoneForBlock(block: MergedBlock) {
+  async function toggleDoneForBlock(block: MergedBlock) {
     const fromDay = block.task.day;
     const fromList = schedule[fromDay] ?? [];
-    const updated = fromList.map((t) => {
+    const affected = fromList.filter((t) => {
       const sameTitle =
         t.title.trim().toLowerCase() === block.task.title.trim().toLowerCase();
       const sameTag = t.tag === block.task.tag;
       const inRange = t.hour >= block.start && t.hour < block.end;
-      if (sameTitle && sameTag && inRange) {
-        return { ...t, done: !block.task.done };
-      }
-      return t;
+      return sameTitle && sameTag && inRange;
     });
-    persistSchedule(fromDay, sortByHour(updated));
+    if (affected.length === 0 || !userId) return;
+    try {
+      await Promise.all(
+        affected.map((t) =>
+          fetch(`/api/schedule/${t.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ done: !block.task.done, userId }),
+          })
+        )
+      );
+      await loadSchedule(fromDay);
+    } catch (err) {
+      console.error("Failed to toggle block", err);
+    }
   }
 
-  function handleDeletePoolTask(taskId: string) {
-    setPool((prev) => {
-      const task = prev.find((t) => t.id === taskId);
-      if (!task) return prev;
-      showUndoToast({ type: "pool", tasks: [task] });
-      return prev.filter((t) => t.id !== taskId);
-    });
+  async function handleDeletePoolTask(taskId: string) {
+    if (!userId) return;
+    const task = pool.find((t) => t.id === taskId);
+    if (!task) return;
+    showUndoToast({ type: "pool", tasks: [task] });
+    try {
+      await fetch(`/api/pool/${taskId}?userId=${userId}`, { method: "DELETE" });
+      await loadPool();
+    } catch (err) {
+      console.error("Failed to delete pool task", err);
+    }
   }
 
-  function handleDeleteAllPool() {
-    setPool([]);
+  async function handleDeleteAllPool() {
+    if (!userId) return;
+    try {
+      await Promise.all(
+        pool.map((t) =>
+          fetch(`/api/pool/${t.id}?userId=${userId}`, { method: "DELETE" })
+        )
+      );
+      await loadPool();
+    } catch (err) {
+      console.error("Failed to delete all pool tasks", err);
+    }
   }
 
   function handleDayShift(delta: number) {
