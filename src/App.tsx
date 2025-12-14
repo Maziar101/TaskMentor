@@ -1,4 +1,10 @@
-import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import {
@@ -24,16 +30,18 @@ import "./App.css";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [user, setUser] = useState<null | { userId: string; username: string }>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem("taskmentor-user");
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
+  const [user, setUser] = useState<null | { userId: string; username: string }>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const raw = localStorage.getItem("taskmentor-user");
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
     }
-  });
+  );
 
   const requireAuth = (element: ReactElement) =>
     user ? element : <Navigate to="/login" replace />;
@@ -85,6 +93,15 @@ function App() {
           </div>
           <nav className="sidebar__nav">
             <NavLink
+              to="/dashboard"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiGrid />
+              </span>
+              <span className="nav-link__label">داشبورد</span>
+            </NavLink>
+            <NavLink
               to="/planner"
               className={({ isActive }) => navClass(isActive)}
             >
@@ -119,15 +136,6 @@ function App() {
                 <FiPlusCircle />
               </span>
               <span className="nav-link__label">افزودن هدف</span>
-            </NavLink>
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) => navClass(isActive)}
-            >
-              <span className="nav-link__icon" aria-hidden>
-                <FiGrid />
-              </span>
-              <span className="nav-link__label">داشبورد</span>
             </NavLink>
 
             <NavLink
@@ -169,12 +177,19 @@ function App() {
           <Route
             path="/"
             element={
-              user ? <Navigate to="/planner" replace /> : <Navigate to="/login" replace />
+              user ? (
+                <Navigate to="/planner" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/planner" element={requireAuth(<PlannerPage />)} />
-          <Route path="/short-goals" element={requireAuth(<ShortGoalsPage />)} />
+          <Route
+            path="/short-goals"
+            element={requireAuth(<ShortGoalsPage />)}
+          />
           <Route path="/long-goals" element={requireAuth(<LongGoalsPage />)} />
           <Route path="/goals/new" element={requireAuth(<AddGoalPage />)} />
           <Route path="/dashboard" element={requireAuth(<DashboardPage />)} />

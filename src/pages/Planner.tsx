@@ -683,6 +683,7 @@ export default function PlannerPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddTask();
                 }}
+                style={{ outline: "none" }}
               />
               <div className="tag-choices">
                 {allTags.map((tag) => (
