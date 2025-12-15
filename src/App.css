@@ -800,7 +800,15 @@ body {
   height: 12px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+}
+
+.task__title--with-dot .priority-dot {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .priority-dropdown__button {
@@ -832,7 +840,7 @@ body {
 
 .priority-dropdown__menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   background: rgba(25, 17, 43, 0.96);
@@ -996,6 +1004,28 @@ body {
 .task__title {
   font-weight: 700;
   font-size: 0.95rem;
+}
+
+.task__title--with-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.task__title--with-dot .priority-dot {
+  flex: 0 0 auto;
+}
+
+.task__title-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  display: block;
 }
 
 .task__meta {

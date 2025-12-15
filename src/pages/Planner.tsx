@@ -12,7 +12,7 @@ const PRIORITY_LEVELS = [
   { id: undefined, label: "بدون اولویت", color: "var(--priority-none, #555a65)" },
   { id: "low", label: "پایین", color: "#2ecc71" },
   { id: "medium", label: "متوسط", color: "#f39c12" },
-  { id: "high", label: "بالا", color: "#e74c3c" },
+  { id: "high", label: "بالا", color: "#ff5f6d" },
 ];
 type BaseTag = "focus" | "meeting" | "errand";
 
@@ -56,6 +56,12 @@ type GregorianDateParts = {
 type StorageShape = {
   notes?: Record<string, string>;
   customTags?: string[];
+};
+
+const PRIORITY_RANK: Record<string, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
 };
 
 const STORAGE_KEY = "taskmentor-data";
@@ -301,7 +307,7 @@ function PlannerPage() {
   }, [activeDay, currentDayKey]);
 
   const daySchedule = useMemo(
-    () => schedule[activeDay] ?? [],
+    () => sortByHour(schedule[activeDay] ?? []),
     [schedule, activeDay]
   );
 
@@ -902,7 +908,7 @@ function PlannerPage() {
           className="planner__backlog"
           style={{
             display: "flex",
-            gap: "10px",
+            gap: "20px",
             flexDirection: "column",
             justifyContent: "space-between",
             height: "100%",
@@ -1012,77 +1018,6 @@ function PlannerPage() {
               </button>
               {formError && <p className="error">{formError}</p>}
             </div>
-            {/* <div className="filters">
-              <input
-                placeholder="جستجو در لیست..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <div className="filter-tags">
-                <button
-                  type="button"
-                  className={["pill", filterTag === "all" && "pill--solid"]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onClick={() => setFilterTag("all")}
-                >
-                  همه
-                </button>
-                {allTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={["pill", filterTag === tag && "pill--solid"]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => setFilterTag(tag)}
-                  >
-                    {getTagLabel(tag)}
-                  </button>
-                ))}
-              </div>                                      
-              <div className="filter-actions">
-                <button
-                  className="ghost tiny"
-                  type="button"
-                  onClick={() => openTagModal()}
-                >
-                  اضافه کردن برچسب
-                </button>
-                <button
-                  className="ghost tiny"
-                  type="button"
-                  onClick={handleDeleteAllPool}
-                >
-                  حذف همه لیست
-                </button>
-              </div>
-              {customTags.length > 0 && (
-                <div className="custom-tags">
-                  {customTags.map((tag) => (
-                    <div key={tag} className="custom-tags__row">
-                      <span className="pill custom-pill">{getTagLabel(tag)}</span>
-                      <div className="custom-tags__actions">
-                        <button
-                          className="ghost tiny"
-                          type="button"
-                          onClick={() => openTagModal(tag)}
-                        >
-                          ادیت
-                        </button>
-                        <button
-                          className="danger tiny"
-                          type="button"
-                          onClick={() => handleDeleteCustomTag(tag)}
-                        >
-                          حذف
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div> */}
             <div
               className={["pool", poolHover && "pool--hover"]
                 .filter(Boolean)
@@ -1116,7 +1051,13 @@ function PlannerPage() {
                     e.dataTransfer.effectAllowed = "move";
                   }}
                 >
-                  <div className="task__title">{task.title}</div>
+                  <div className="task__title task__title--with-dot">
+                    <span
+                      className="priority-dot"
+                      style={{ backgroundColor: getPriorityColor(task.priorityId, priorities) }}
+                    />
+                    <span className="task__title-text">{task.title}</span>
+                  </div>
                   <div className="task__meta">
                     <div className="task__meta-left">
                       {task.priorityId && (
@@ -1331,8 +1272,12 @@ function PlannerPage() {
                               e.dataTransfer.effectAllowed = "move";
                             }}
                           >
-                            <span className="stacked-task__title">
-                              {task.title}
+                            <span className="stacked-task__title task__title--with-dot">
+                              <span
+                                className="priority-dot"
+                                style={{ backgroundColor: getPriorityColor(task.priorityId, priorities) }}
+                              />
+                              <span className="task__title-text">{task.title}</span>
                             </span>
                             <div className="task__meta-actions">
                               <button
@@ -1388,8 +1333,12 @@ function PlannerPage() {
                           e.dataTransfer.effectAllowed = "move";
                         }}
                       >
-                        <div className="task__title">
-                          {blockStart.task.title}
+                        <div className="task__title task__title--with-dot">
+                          <span
+                            className="priority-dot"
+                            style={{ backgroundColor: getPriorityColor(blockStart.task.priorityId, priorities) }}
+                          />
+                          <span className="task__title-text">{blockStart.task.title}</span>
                         </div>
                         <div className="task__meta">
                           <div className="task__meta-left">
@@ -1636,10 +1585,18 @@ function PlannerPage() {
   );
 }
 
+function priorityRank(id?: string) {
+  if (!id) return 3;
+  return PRIORITY_RANK[id] ?? 3;
+}
+
 function sortByHour(list: ScheduledTask[]) {
-  return [...list].sort(
-    (a, b) => a.hour - b.hour || a.title.localeCompare(b.title)
-  );
+  return [...list].sort((a, b) => {
+    if (a.hour !== b.hour) return a.hour - b.hour;
+    const rankDiff = priorityRank(a.priorityId) - priorityRank(b.priorityId);
+    if (rankDiff !== 0) return rankDiff;
+    return a.title.localeCompare(b.title);
+  });
 }
 
 function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
@@ -1694,9 +1651,12 @@ function dedupe(list: ScheduledTask[]) {
     const key = `${t.title.trim().toLowerCase()}|${t.tag ?? "none"}|${t.priorityId ?? "none"}|${t.hour}|${t.day}`;
     map.set(key, t);
   });
-  return Array.from(map.values()).sort(
-    (a, b) => a.hour - b.hour || a.title.localeCompare(b.title)
-  );
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.hour !== b.hour) return a.hour - b.hour;
+    const rankDiff = priorityRank(a.priorityId) - priorityRank(b.priorityId);
+    if (rankDiff !== 0) return rankDiff;
+    return a.title.localeCompare(b.title);
+  });
 }
 
 function retagSchedule(
@@ -1730,6 +1690,15 @@ function getPriorityLabel(id: string | undefined, priorities: Priority[]) {
   if (builtin) return builtin.label;
   const found = priorities.find((p) => p.id === id);
   return found?.title ?? "بدون اولویت";
+}
+
+function getPriorityColor(id: string | undefined, priorities: Priority[]) {
+  const fallback = "var(--priority-none, #555a65)";
+  if (!id) return fallback;
+  const builtin = PRIORITY_LEVELS.find((p) => p.id === id);
+  if (builtin) return builtin.color;
+  const found = priorities.find((p) => p.id === id);
+  return found?.color ?? fallback;
 }
 
 function dateKeyFromGregorian(gy: number, gm: number, gd: number) {
