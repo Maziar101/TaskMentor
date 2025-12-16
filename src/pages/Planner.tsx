@@ -161,7 +161,7 @@ function PlannerPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskTag, setNewTaskTag] = useState<Task["tag"]>();
   const [filterTag, setFilterTag] = useState<string | "all">("all");
-  const [search, setSearch] = useState("");
+  const [search] = useState("");
   const [hoverHour, setHoverHour] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [jalaliMonthView, setJalaliMonthView] = useState(() =>
@@ -726,20 +726,6 @@ function PlannerPage() {
     }
   }
 
-  async function handleDeleteAllPool() {
-    if (!userId) return;
-    try {
-      await Promise.all(
-        pool.map((t) =>
-          fetch(`/api/pool/${t.id}?userId=${userId}`, { method: "DELETE" })
-        )
-      );
-      await loadPool();
-    } catch (err) {
-      console.error("Failed to delete all pool tasks", err);
-    }
-  }
-
   function handleDayShift(delta: number) {
     const base = new Date(`${activeDay}T00:00:00Z`);
     base.setUTCDate(base.getUTCDate() + delta);
@@ -813,16 +799,6 @@ function PlannerPage() {
     }
 
     closeTagModal();
-  }
-
-  function handleDeleteCustomTag(tag: string) {
-    setCustomTags((prev) => prev.filter((t) => t !== tag));
-    setPool((prev) =>
-      prev.map((t) => (t.tag === tag ? { ...t, tag: undefined } : t))
-    );
-    setSchedule((prev) => retagSchedule(prev, tag, undefined));
-    if (newTaskTag === tag) setNewTaskTag(undefined);
-    if (filterTag === tag) setFilterTag("all");
   }
 
   const dayLabel = useMemo(() => {

@@ -15,6 +15,7 @@ import {
   FiGrid,
   FiBarChart2,
   FiUser,
+  FiBriefcase,
   FiMenu,
   FiLogOut,
 } from "react-icons/fi";
@@ -26,6 +27,7 @@ import LongGoalsPage from "./pages/LongGoals";
 import AddGoalPage from "./pages/AddGoal";
 import ProfilePage from "./pages/Profile";
 import PrioritiesPage from "./pages/Priorities";
+import ProjectsPage from "./pages/Projects";
 import LoginPage from "./pages/Login";
 import "./App.css";
 
@@ -141,6 +143,15 @@ function App() {
               <span className="nav-link__label">اولویت‌ها</span>
             </NavLink>
             <NavLink
+              to="/projects"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiBriefcase />
+              </span>
+              <span className="nav-link__label">پروژه‌ها</span>
+            </NavLink>
+            <NavLink
               to="/short-goals"
               className={({ isActive }) => navClass(isActive)}
             >
@@ -217,6 +228,7 @@ function App() {
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/planner" element={requireAuth(<PlannerPage />)} />
           <Route path="/priorities" element={requireAuth(<PrioritiesPage />)} />
+          <Route path="/projects" element={requireAuth(<ProjectsPage />)} />
           <Route
             path="/short-goals"
             element={requireAuth(<ShortGoalsPage />)}

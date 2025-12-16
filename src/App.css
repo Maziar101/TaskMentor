@@ -1750,6 +1750,209 @@ body {
   flex-wrap: wrap;
 }
 
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.projects__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.projects__form,
+.projects__summary {
+  display: grid;
+  gap: 10px;
+}
+
+.project-deadlines {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.project-deadline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-card {
+  display: grid;
+  gap: 10px;
+}
+
+.project-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.project-card__meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.project-add-row {
+  display: grid;
+  grid-template-columns: 1fr 200px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.project-add-row input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f4edff;
+  direction: rtl;
+  outline: none;
+}
+
+.project-add-row input::placeholder {
+  color: #9db0d7;
+}
+
+.project-card__tasks {
+  display: grid;
+  gap: 8px;
+}
+
+.date-picker {
+  width: 100%;
+}
+
+.date-picker__container {
+  width: 100%;
+}
+
+.date-picker__picker {
+  width: 100%;
+}
+
+.date-field {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(168, 142, 255, 0.25);
+  color: #f4edff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 600;
+  min-height: 44px;
+}
+
+.date-field:hover,
+.date-field:focus-visible {
+  border-color: rgba(149, 118, 255, 0.7);
+  box-shadow: 0 8px 20px rgba(149, 118, 255, 0.18);
+  background: rgba(149, 118, 255, 0.08);
+  outline: none;
+}
+
+.date-field__placeholder {
+  color: #9db0d7;
+}
+
+.date-picker .rmdp-container {
+  width: 100%;
+}
+
+.date-picker .rmdp-wrapper {
+  background: rgba(16, 12, 30, 0.95);
+  border: 1px solid rgba(153, 126, 255, 0.45);
+  border-radius: 12px;
+  color: #f4edff;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  padding: 10px;
+}
+
+.date-picker .rmdp-calendar {
+  direction: rtl;
+}
+
+.date-picker .rmdp-header {
+  color: #f4edff;
+  font-weight: 700;
+}
+
+.date-picker .rmdp-week-day {
+  color: #c6d4ff;
+}
+
+.date-picker .rmdp-day span,
+.date-picker .rmdp-time-picker span {
+  color: #e9e5ff;
+  border-radius: 10px;
+}
+
+.date-picker .rmdp-day span:hover {
+  background: rgba(149, 118, 255, 0.16);
+}
+
+.date-picker .rmdp-day.rmdp-today span {
+  border: 1px solid rgba(149, 118, 255, 0.8);
+}
+
+.date-picker .rmdp-day.rmdp-selected span {
+  background: linear-gradient(120deg, #a16bff, #6f4bff);
+  color: #120b27;
+}
+
+.project-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.project-task__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-task__meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill--high {
+  background: rgba(255, 123, 95, 0.18);
+  border-color: rgba(255, 123, 95, 0.45);
+  color: #ffd4c6;
+}
+
+.pill--medium {
+  background: rgba(255, 208, 102, 0.16);
+  border-color: rgba(255, 208, 102, 0.45);
+  color: #ffe8b5;
+}
+
+.pill--low {
+  background: rgba(120, 255, 193, 0.12);
+  border-color: rgba(120, 255, 193, 0.4);
+  color: #d8ffe9;
+}
+
 .otp {
   display: flex;
   gap: 8px;
