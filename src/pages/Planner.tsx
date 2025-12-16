@@ -917,7 +917,7 @@ function PlannerPage() {
           <div className="panel" style={{ gap: "30px" }}>
             <header className="panel__header">
               <div>
-                <h2>لیست تسک ها</h2>
+                <h3>لیست تسک ها</h3>
               </div>
               <div className="counts">
                 <span>در انتظار: {dayPendingCount}</span>
