@@ -162,7 +162,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
               <span>کد تایید</span>
               <span className="light small">کد جادویی 000000</span>
             </div>
-            <div className="otp" onPaste={handleOtpPaste}>
+            <div className="otp" onPaste={handleOtpPaste} dir="ltr">
               {otpValues.map((val, idx) => (
                 <input
                   key={idx}

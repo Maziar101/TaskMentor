@@ -1754,6 +1754,7 @@ body {
   display: flex;
   gap: 8px;
   justify-content: center;
+  direction: ltr;
 }
 
 .otp__box {
