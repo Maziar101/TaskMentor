@@ -1,3 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Infant:ital,wght@1,400;1,600&display=swap");
+
+h2 {
+  font-family: "Cormorant Infant", "Times New Roman", serif;
+  font-style: italic;
+  letter-spacing: 0.6px;
+}
+
 .shell {
   --sidebar-width: 240px;
   min-height: 100vh;
@@ -1514,7 +1522,7 @@ body {
   max-width: 420px;
   width: 100%;
   display: grid;
-  gap: 10px;
+  gap: 20px;
   text-align: center;
   box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
 }
@@ -1740,6 +1748,32 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.otp {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.otp__box {
+  width: 44px;
+  height: 44px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f3ecff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.otp__box:focus {
+  border-color: rgba(247, 208, 70, 0.7);
+  box-shadow: 0 8px 20px rgba(247, 208, 70, 0.2);
+  background: rgba(247, 208, 70, 0.12);
 }
 
 .badge {

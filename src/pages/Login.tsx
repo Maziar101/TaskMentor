@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser } from "react-icons/fi";
 
@@ -10,11 +10,61 @@ export default function LoginPage({ setUser }: LoginPageProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
-  const [code, setCode] = useState("");
   const [newUser, setNewUser] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpValues, setOtpValues] = useState(Array(6).fill("") as string[]);
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (step === "code" && otpRefs.current[0]) {
+      otpRefs.current[0]?.focus();
+    }
+  }, [step]);
+
+  const otpCode = otpValues.join("");
+
+  function updateOtpValue(index: number, raw: string) {
+    const digit = raw.replace(/\D/g, "").slice(-1);
+    setOtpValues((prev) => {
+      const next = [...prev];
+      next[index] = digit ?? "";
+      return next;
+    });
+    if (digit && otpRefs.current[index + 1]) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(e: React.KeyboardEvent<HTMLInputElement>, index: number) {
+    if (e.key === "Backspace" && !otpValues[index] && otpRefs.current[index - 1]) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowLeft" && otpRefs.current[index - 1]) {
+      e.preventDefault();
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowRight" && otpRefs.current[index + 1]) {
+      e.preventDefault();
+      otpRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!text) return;
+    e.preventDefault();
+    setOtpValues((prev) => {
+      const next = [...prev];
+      for (let i = 0; i < Math.min(6, text.length); i += 1) {
+        next[i] = text[i];
+      }
+      return next;
+    });
+    const targetIndex = Math.min(text.length, 5);
+    otpRefs.current[targetIndex]?.focus();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +89,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
         } else {
           setStep("code");
           setNewUser(Boolean(data?.newUser));
+          setOtpValues(Array(6).fill(""));
           setError("");
         }
       } catch (err) {
@@ -47,7 +98,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
         setLoading(false);
       }
     } else {
-      const trimmedCode = code.trim();
+      const trimmedCode = otpCode.trim();
       if (!trimmedCode) {
         setError("کد را وارد کنید");
         return;
@@ -86,7 +137,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
         <div className="auth-card__icon">
           <FiUser />
         </div>
-        <h2>ورود به تسک منیجر</h2>
+        <h2 style={{ fontSize: "32px" }}>Task Mentor</h2>
         <p className="light small">
           {step === "phone"
             ? "برای ادامه فقط شماره تلفن را وارد کنید"
@@ -111,12 +162,23 @@ export default function LoginPage({ setUser }: LoginPageProps) {
               <span>کد تایید</span>
               <span className="light small">کد جادویی 000000</span>
             </div>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="مثلا 000000"
-              maxLength={6}
-            />
+            <div className="otp" onPaste={handleOtpPaste}>
+              {otpValues.map((val, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => {
+                    otpRefs.current[idx] = el;
+                  }}
+                  className="otp__box"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={1}
+                  value={val}
+                  onChange={(e) => updateOtpValue(idx, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                />
+              ))}
+            </div>
           </label>
         )}
         {step === "code" && newUser && (
