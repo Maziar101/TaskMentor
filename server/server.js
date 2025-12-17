@@ -7,6 +7,9 @@ const tasksRouter = require("./routes/tasks");
 const scheduleRouter = require("./routes/schedule");
 const usersRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
+const teamsRouter = require("./routes/teams");
+const teamTasksRouter = require("./routes/teamTasks");
+const notificationsRouter = require("./routes/notifications");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -24,6 +27,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/pool", tasksRouter);
 app.use("/api/schedule", scheduleRouter);
+app.use("/api/teams", teamsRouter);
+app.use("/api/team-tasks", teamTasksRouter);
+app.use("/api/notifications", notificationsRouter);
 
 app.use(errorHandler);
 

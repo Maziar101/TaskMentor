@@ -18,6 +18,7 @@ import {
   FiBriefcase,
   FiMenu,
   FiLogOut,
+  FiUsers,
 } from "react-icons/fi";
 import PlannerPage from "./pages/Planner";
 import DashboardPage from "./pages/Dashboard";
@@ -29,6 +30,7 @@ import ProfilePage from "./pages/Profile";
 import PrioritiesPage from "./pages/Priorities";
 import ProjectsPage from "./pages/Projects";
 import LoginPage from "./pages/Login";
+import TeamsPage from "./pages/Teams";
 import "./App.css";
 
 function App() {
@@ -152,6 +154,15 @@ function App() {
               <span className="nav-link__label">پروژه‌ها</span>
             </NavLink>
             <NavLink
+              to="/teams"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiUsers />
+              </span>
+              <span className="nav-link__label">تیم‌ها</span>
+            </NavLink>
+            <NavLink
               to="/short-goals"
               className={({ isActive }) => navClass(isActive)}
             >
@@ -238,6 +249,7 @@ function App() {
           <Route path="/dashboard" element={requireAuth(<DashboardPage />)} />
           <Route path="/reports" element={requireAuth(<ReportsPage />)} />
           <Route path="/profile" element={requireAuth(<ProfilePage />)} />
+          <Route path="/teams" element={requireAuth(<TeamsPage />)} />
         </Routes>
       </main>
     </div>

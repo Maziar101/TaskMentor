@@ -1057,6 +1057,15 @@ body {
   align-items: center;
 }
 
+.copy-hint {
+  font-size: 0.78rem;
+  color: #a4ffd5;
+  background: rgba(120, 255, 193, 0.12);
+  border: 1px solid rgba(120, 255, 193, 0.35);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
 .icon-btn {
   width: 28px;
   height: 28px;
@@ -1561,6 +1570,150 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #f3ecff;
+}
+
+.panels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.teams .page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.team-form input,
+.team-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f3ecff;
+}
+
+.team-list {
+  display: grid;
+  gap: 10px;
+}
+
+.team-card {
+  width: 100%;
+  text-align: right;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  color: #f2eaff;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  transition: border-color 0.2s ease, transform 0.1s ease;
+}
+
+.team-card:hover {
+  border-color: rgba(247, 208, 70, 0.6);
+  transform: translateY(-2px);
+}
+
+.team-card--active {
+  border-color: rgba(101, 236, 204, 0.6);
+  box-shadow: 0 10px 24px rgba(101, 236, 204, 0.15);
+}
+
+.team-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.team-members {
+  display: grid;
+  gap: 8px;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: #f2eaff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.badge--pill {
+  border-radius: 999px;
+  background: linear-gradient(120deg, #f7d046, #f0a63c);
+  color: #1a132f;
+  border-color: transparent;
+}
+
+.badge--new {
+  background: rgba(101, 236, 204, 0.14);
+  color: #7ff0d8;
+  border-color: rgba(101, 236, 204, 0.4);
+}
+
+.notifications {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 6px;
+}
+
+.notification-card--read {
+  opacity: 0.7;
+}
+
+.notification-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notification-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.team-tasks {
+  display: grid;
+  gap: 8px;
+}
+
+.task--team {
+  cursor: default;
 }
 
 .modal {

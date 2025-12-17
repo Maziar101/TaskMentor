@@ -6,6 +6,7 @@ import {
   FiChevronRight,
   FiCalendar,
   FiX,
+  FiCopy,
 } from "react-icons/fi";
 import { loadPriorities, type Priority } from "../utils/priorities";
 const PRIORITY_LEVELS = [
@@ -176,6 +177,7 @@ function PlannerPage() {
   const [newTaskPriority, setNewTaskPriority] = useState<string | undefined>();
   const [priorityOpen, setPriorityOpen] = useState(false);
   const priorityRef = useRef<HTMLDivElement | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
   const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
@@ -183,6 +185,7 @@ function PlannerPage() {
   const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
     null
   );
+  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const userId = useMemo(() => {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem("taskmentor-user");
@@ -295,6 +298,12 @@ function PlannerPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [undoToast, schedule]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const activeDate = useMemo(
     () => new Date(`${activeDay}T00:00:00Z`),
@@ -726,6 +735,33 @@ function PlannerPage() {
     }
   }
 
+  async function handleCopyTask(task: Task | ScheduledTask) {
+    const text = task.title?.trim();
+    if (!text) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedTaskId(task.id);
+      if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedTaskId(null);
+        copyTimeoutRef.current = null;
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy task", err);
+    }
+  }
+
   function handleDayShift(delta: number) {
     const base = new Date(`${activeDay}T00:00:00Z`);
     base.setUTCDate(base.getUTCDate() + delta);
@@ -1036,11 +1072,6 @@ function PlannerPage() {
                   </div>
                   <div className="task__meta">
                     <div className="task__meta-left">
-                      {task.priorityId && (
-                        <span className="pill pill--custom">
-                          {getPriorityLabel(task.priorityId, priorities)}
-                        </span>
-                      )}
                       {task.tag && (
                         <span
                           className={["pill", getTagClass(task.tag)]
@@ -1050,14 +1081,30 @@ function PlannerPage() {
                           {getTagLabel(task.tag)}
                         </span>
                       )}
+                      {copiedTaskId === task.id && (
+                        <span className="copy-hint" aria-live="polite">
+                          کپی شد
+                        </span>
+                      )}
                     </div>
-                    <button
-                      className="danger tiny"
-                      type="button"
-                      onClick={() => handleDeletePoolTask(task.id)}
-                    >
-                      حذف
-                    </button>
+                    <div className="task__meta-actions">
+                      <button
+                        className="icon-btn"
+                        type="button"
+                        aria-label="کپی کردن"
+                        onClick={() => handleCopyTask(task)}
+                      >
+                        <FiCopy aria-hidden />
+                      </button>
+                      <button
+                        className="icon-btn icon-btn--danger"
+                        type="button"
+                        aria-label="حذف"
+                        onClick={() => handleDeletePoolTask(task.id)}
+                      >
+                        <FiTrash2 aria-hidden />
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -1259,6 +1306,14 @@ function PlannerPage() {
                               <button
                                 className="icon-btn"
                                 type="button"
+                                aria-label="کپی کردن"
+                                onClick={() => handleCopyTask(task)}
+                              >
+                                <FiCopy aria-hidden />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                type="button"
                                 aria-label="علامت انجام شده"
                                 onClick={() =>
                                   toggleDoneForTask(task.id, task.day)
@@ -1276,6 +1331,11 @@ function PlannerPage() {
                               >
                                 <FiTrash2 aria-hidden />
                               </button>
+                              {copiedTaskId === task.id && (
+                                <span className="copy-hint" aria-live="polite">
+                                  کپی شد
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1318,11 +1378,6 @@ function PlannerPage() {
                         </div>
                         <div className="task__meta">
                           <div className="task__meta-left">
-                            {blockStart.task.priorityId && (
-                              <span className="pill pill--custom">
-                                {getPriorityLabel(blockStart.task.priorityId, priorities)}
-                              </span>
-                            )}
                             {blockStart.task.tag && (
                               <span
                                 className={[
@@ -1335,8 +1390,21 @@ function PlannerPage() {
                                 {getTagLabel(blockStart.task.tag)}
                               </span>
                             )}
+                            {copiedTaskId === blockStart.task.id && (
+                              <span className="copy-hint" aria-live="polite">
+                                کپی شد
+                              </span>
+                            )}
                           </div>
                           <div className="task__meta-actions">
+                            <button
+                              className="icon-btn"
+                              type="button"
+                              aria-label="کپی کردن"
+                              onClick={() => handleCopyTask(blockStart.task)}
+                            >
+                              <FiCopy aria-hidden />
+                            </button>
                             <button
                               className="icon-btn"
                               type="button"
@@ -1374,6 +1442,14 @@ function PlannerPage() {
                           <button
                             className="icon-btn"
                             type="button"
+                            aria-label="کپی کردن"
+                            onClick={() => handleCopyTask(covered.task)}
+                          >
+                            <FiCopy aria-hidden />
+                          </button>
+                          <button
+                            className="icon-btn"
+                            type="button"
                             aria-label="علامت انجام شده"
                             onClick={() => toggleDoneForBlock(covered)}
                           >
@@ -1387,6 +1463,11 @@ function PlannerPage() {
                           >
                             <FiTrash2 aria-hidden />
                           </button>
+                          {copiedTaskId === covered.task.id && (
+                            <span className="copy-hint" aria-live="polite">
+                              کپی شد
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1658,14 +1739,6 @@ function getTagLabel(tag?: string) {
 function getTagClass(tag?: string) {
   if (!tag) return "";
   return baseTags.includes(tag as BaseTag) ? `pill--${tag}` : "pill--custom";
-}
-
-function getPriorityLabel(id: string | undefined, priorities: Priority[]) {
-  if (!id) return "بدون اولویت";
-  const builtin = PRIORITY_LEVELS.find((p) => p.id === id);
-  if (builtin) return builtin.label;
-  const found = priorities.find((p) => p.id === id);
-  return found?.title ?? "بدون اولویت";
 }
 
 function getPriorityColor(id: string | undefined, priorities: Priority[]) {
