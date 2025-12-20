@@ -1,12 +1,5 @@
-import {
-  NavLink,
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
-import { useEffect, useState } from "react";
-import type { ReactElement } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useState } from "react";
 import {
   FiCalendar,
   FiTarget,
@@ -20,61 +13,12 @@ import {
   FiLogOut,
   FiUsers,
 } from "react-icons/fi";
-import PlannerPage from "./pages/Planner";
-import DashboardPage from "./pages/Dashboard";
-import ReportsPage from "./pages/Reports";
-import ShortGoalsPage from "./pages/ShortGoals";
-import LongGoalsPage from "./pages/LongGoals";
-import AddGoalPage from "./pages/AddGoal";
-import ProfilePage from "./pages/Profile";
-import PrioritiesPage from "./pages/Priorities";
-import ProjectsPage from "./pages/Projects";
-import LoginPage from "./pages/Login";
-import TeamsPage from "./pages/Teams";
+import { useAuth } from "./context/AuthContext";
 import "./App.css";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [user, setUser] = useState<null | { userId: string; username: string }>(
-    () => {
-      if (typeof window === "undefined") return null;
-      const raw = localStorage.getItem("taskmentor-user");
-      if (!raw) return null;
-      try {
-        return JSON.parse(raw);
-      } catch {
-        return null;
-      }
-    }
-  );
-
-  const requireAuth = (element: ReactElement) =>
-    user ? element : <Navigate to="/login" replace />;
-
-  const handleLogout = () => {
-    localStorage.removeItem("taskmentor-user");
-    setUser(null);
-  };
-
-  useEffect(() => {
-    let ignore = false;
-    async function verifyUser() {
-      if (!user) return;
-      try {
-        const res = await fetch(`/api/users/${user.userId}`);
-        if (!res.ok) {
-          throw new Error("user not valid");
-        }
-      } catch {
-        localStorage.removeItem("taskmentor-user");
-        if (!ignore) setUser(null);
-      }
-    }
-    verifyUser();
-    return () => {
-      ignore = true;
-    };
-  }, [user]);
+  const { user, logout } = useAuth();
 
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
@@ -109,7 +53,7 @@ function App() {
                 className="profile-card__logout"
                 type="button"
                 aria-label="خروج"
-                onClick={handleLogout}
+                onClick={logout}
                 title="خروج"
               >
                 <FiLogOut />
@@ -152,15 +96,6 @@ function App() {
                 <FiBriefcase />
               </span>
               <span className="nav-link__label">پروژه‌ها</span>
-            </NavLink>
-            <NavLink
-              to="/teams"
-              className={({ isActive }) => navClass(isActive)}
-            >
-              <span className="nav-link__icon" aria-hidden>
-                <FiUsers />
-              </span>
-              <span className="nav-link__label">تیم‌ها</span>
             </NavLink>
             <NavLink
               to="/short-goals"
@@ -225,32 +160,7 @@ function App() {
       )}
 
       <main className="route-area">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              user ? (
-                <Navigate to="/planner" replace />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route path="/login" element={<LoginPage setUser={setUser} />} />
-          <Route path="/planner" element={requireAuth(<PlannerPage />)} />
-          <Route path="/priorities" element={requireAuth(<PrioritiesPage />)} />
-          <Route path="/projects" element={requireAuth(<ProjectsPage />)} />
-          <Route
-            path="/short-goals"
-            element={requireAuth(<ShortGoalsPage />)}
-          />
-          <Route path="/long-goals" element={requireAuth(<LongGoalsPage />)} />
-          <Route path="/goals/new" element={requireAuth(<AddGoalPage />)} />
-          <Route path="/dashboard" element={requireAuth(<DashboardPage />)} />
-          <Route path="/reports" element={requireAuth(<ReportsPage />)} />
-          <Route path="/profile" element={requireAuth(<ProfilePage />)} />
-          <Route path="/teams" element={requireAuth(<TeamsPage />)} />
-        </Routes>
+        <Outlet />
       </main>
     </div>
   );

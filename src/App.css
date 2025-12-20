@@ -1909,6 +1909,349 @@ body {
   gap: 14px;
 }
 
+.projects-board {
+  min-height: 100%;
+  background: rgba(17, 12, 32, 0.82);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.projects-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.projects-board__header h1 {
+  margin: 0;
+  color: #f4edff;
+  font-size: 1.4rem;
+}
+
+.projects-board__eyebrow {
+  margin: 0 0 6px;
+  color: #d6b6ff;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.projects-board__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.projects-board__create {
+  border: none;
+  color: #120b27;
+  background: linear-gradient(120deg, #f7d046, #f0a63c);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 10px 24px rgba(247, 208, 70, 0.25);
+}
+
+.projects-board__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.projects-board__search input {
+  min-width: 240px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+  color: #f4edff;
+}
+
+.projects-board__stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #cbbde6;
+  font-size: 0.85rem;
+}
+
+.projects-board__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.project-tile {
+  background: rgba(22, 16, 42, 0.9);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.project-tile--new {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.project-tile__new-trigger {
+  border: none;
+  background: transparent;
+  color: #d6b6ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.project-tile__new-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  color: #f7d046;
+  border: 1px solid rgba(247, 208, 70, 0.5);
+  background: rgba(247, 208, 70, 0.12);
+}
+
+.project-tile__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-tile__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f4edff;
+}
+
+.project-tile__subtitle {
+  margin: 4px 0 0;
+  color: #cbbde6;
+  font-size: 0.85rem;
+}
+
+.project-tile__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #1a132f;
+}
+
+.project-tile__delete {
+  margin-inline-start: auto;
+  border: none;
+  background: transparent;
+  color: #ff9aa7;
+  cursor: pointer;
+}
+
+.project-tile__metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+  color: #cbbde6;
+  font-size: 0.8rem;
+}
+
+.project-tile__bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.project-tile__bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(120deg, #f7d046, #f0a63c);
+}
+
+.project-tile__percent {
+  justify-self: end;
+  font-size: 0.75rem;
+}
+
+.project-tile__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #cbbde6;
+  font-size: 0.8rem;
+}
+
+.project-tile__foot strong {
+  display: block;
+  color: #f4edff;
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.project-tile__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-tile__toggle {
+  border: none;
+  background: rgba(149, 118, 255, 0.18);
+  color: #efe6ff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.project-tile__details {
+  display: grid;
+  gap: 10px;
+}
+
+.project-tile__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+
+.project-form {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.project-form label {
+  display: grid;
+  gap: 6px;
+  color: #d6b6ff;
+  font-size: 0.85rem;
+}
+
+.project-form input,
+.project-form textarea {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4edff;
+}
+
+.project-form textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.project-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.project-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.projects-board .project-add-row input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4edff;
+}
+
+.projects-board .project-task {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.projects-board .priority-dropdown__button {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f4edff;
+}
+
+.projects-board .priority-dropdown__menu {
+  background: rgba(16, 12, 30, 0.98);
+  border-color: rgba(153, 126, 255, 0.35);
+  color: #f4edff;
+}
+
+.projects-board .priority-dropdown__item {
+  color: #f4edff;
+}
+
+.projects-board .date-field {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(153, 126, 255, 0.25);
+  color: #f4edff;
+}
+
+.projects-board .date-field__placeholder {
+  color: #9db0d7;
+}
+
+.projects-board .date-picker .rmdp-wrapper {
+  background: rgba(16, 12, 30, 0.98);
+  border-color: rgba(153, 126, 255, 0.45);
+  color: #f4edff;
+}
+
+.projects-board .date-picker .rmdp-header,
+.projects-board .date-picker .rmdp-week-day,
+.projects-board .date-picker .rmdp-day span {
+  color: #f4edff;
+}
+
+.projects-board .date-picker .rmdp-day.rmdp-selected span {
+  background: linear-gradient(120deg, #f7d046, #f0a63c);
+  color: #120b27;
+}
+
+@media (max-width: 700px) {
+  .projects-board {
+    padding: 16px;
+  }
+
+  .projects-board__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .projects-board__stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 .projects__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

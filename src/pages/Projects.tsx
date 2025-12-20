@@ -127,6 +127,9 @@ export default function ProjectsPage() {
   const [description, setDescription] = useState("");
   const [taskDrafts, setTaskDrafts] = useState<TaskDrafts>({});
   const [priorityOpen, setPriorityOpen] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     saveProjects(projects);
@@ -140,6 +143,12 @@ export default function ProjectsPage() {
     () => projects.reduce((acc, p) => acc + p.tasks.filter((t) => t.done).length, 0),
     [projects]
   );
+
+  const filteredProjects = useMemo(() => {
+    const query = filter.trim().toLowerCase();
+    if (!query) return projects;
+    return projects.filter((project) => project.title.toLowerCase().includes(query));
+  }, [filter, projects]);
 
   function handleAddProject(e: FormEvent) {
     e.preventDefault();
@@ -159,6 +168,7 @@ export default function ProjectsPage() {
     setPriority(undefined);
     setDue("");
     setDescription("");
+    setCreateOpen(false);
   }
 
   function handleDeleteProject(projectId: string) {
@@ -208,247 +218,295 @@ export default function ProjectsPage() {
     );
   }
 
+  function projectInitials(projectTitle: string) {
+    const trimmed = projectTitle.trim();
+    if (!trimmed) return "پ";
+    const parts = trimmed.split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2);
+    return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`;
+  }
+
+  function colorSeed(input: string) {
+    let hash = 0;
+    for (let i = 0; i < input.length; i += 1) {
+      hash = input.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue} 65% 75%)`;
+  }
+
   return (
-    <div className="projects" dir="rtl">
-      <header className="goals__header">
+    <div className="projects-board" dir="rtl">
+      <header className="projects-board__header">
         <div>
-          <p className="eyebrow">پروژه‌ها</p>
-          <h1>پروژه‌ها و تسک‌های وابسته</h1>
-          <p className="light">
-            پروژه را با اولویت و ددلاین بساز، تسک‌هایش را تعریف کن و پیشرفت را دنبال کن. داده‌ها ذخیره
-            محلی می‌شوند و در داشبورد هم خلاصه می‌بینی.
-          </p>
+          <p className="projects-board__eyebrow">پروژه‌ها</p>
+          <h1>پروژه‌ها</h1>
         </div>
-        <div className="priorities__stats">
-          <span className="pill">{projects.length} پروژه</span>
-          <span className="pill">
-            {totalDone}/{totalTasks} تسک انجام
-          </span>
+        <div className="projects-board__actions">
+          <button className="projects-board__create" type="button" onClick={() => setCreateOpen((prev) => !prev)}>
+            <FiPlus aria-hidden /> ایجاد پروژه جدید
+          </button>
         </div>
       </header>
 
-      <section className="projects__grid">
-        <form className="panel projects__form" onSubmit={handleAddProject}>
-          <h3>افزودن پروژه</h3>
-          <label className="field">
-            <span>عنوان پروژه</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثلا: لانچ نسخه جدید پرداخت"
-            />
-          </label>
-          <label className="field">
-            <span>توضیح</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="چرا این پروژه مهم است؟"
-            />
-          </label>
-          <div className="form-grid">
-            <div className="field">
-              <span>اولویت</span>
-              <div className="priority-picker" style={{ position: "relative" }}>
-                <button
-                  type="button"
-                  className="priority-dropdown__button"
-                  onClick={() => setPriorityOpen((v) => !v)}
-                >
-                  <span
-                    className="priority-dot"
-                    style={{
-                      backgroundColor:
-                        PRIORITY_LEVELS.find((p) => p.id === priority)?.color ??
-                        "var(--priority-none, #555a65)",
-                    }}
-                  />
-                  <span className="priority-dropdown__label">
-                    {PRIORITY_LEVELS.find((p) => p.id === priority)?.label || "بدون اولویت"}
-                  </span>
-                  <span className="priority-dropdown__caret">▾</span>
-                </button>
-                {priorityOpen && (
-                  <div className="priority-dropdown__menu">
-                    {PRIORITY_LEVELS.map((level) => (
-                      <button
-                        key={level.id ?? "none"}
-                        type="button"
-                        className={[
-                          "priority-dropdown__item",
-                          priority === level.id && "priority-dropdown__item--active",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        onClick={() => {
-                          setPriority(level.id);
-                          setPriorityOpen(false);
-                        }}
-                      >
-                        <span
-                          className="priority-dot"
-                          style={{ backgroundColor: level.color }}
-                          aria-hidden
-                        />
-                        <span>{level.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <label className="field">
-              <span>ددلاین پروژه</span>
-              <Calender value={due} onChange={setDue} place="مثلا 1402-12-01" />
-            </label>
-          </div>
-          <button className="primary" type="submit">
-            <FiPlus aria-hidden /> ساخت پروژه
-          </button>
-        </form>
-
-        <div className="panel projects__summary">
-          <h3>خلاصه سریع</h3>
-          <p className="light">تعداد پروژه‌ها، تسک‌ها و نزدیک‌ترین ددلاین.</p>
-          <div className="counts">
-            <span>پروژه‌ها: {projects.length}</span>
-            <span>
-              تسک‌ها: {totalDone}/{totalTasks}
-            </span>
-            <span>
-              پیشرفت کل: {totalTasks ? Math.round((totalDone / totalTasks) * 100) : 0}٪
-            </span>
-          </div>
-          <div className="project-deadlines">
-            {projects.length === 0 && <p className="empty">پروژه‌ای ثبت نشده</p>}
-            {projects.slice(0, 3).map((project) => {
-              const remaining = daysUntil(project.due);
-              return (
-                <div key={project.id} className="project-deadline">
-                  <span className={`pill pill--${project.priority}`}>
-                    <FiFlag aria-hidden /> {priorityLabel(project.priority)}
-                  </span>
-                  <span className="light small">
-                    {project.due
-                      ? remaining !== null && remaining < 0
-                        ? `تاخیر ${Math.abs(remaining)} روزه`
-                        : `تا ${project.due}`
-                      : "بدون ددلاین"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      <div className="projects-board__toolbar">
+        <label className="projects-board__search">
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="فیلتر عنوان پروژه..."
+          />
+        </label>
+        <div className="projects-board__stats">
+          <span>{projects.length} پروژه</span>
+          <span>
+            {totalDone}/{totalTasks} تسک انجام
+          </span>
         </div>
-      </section>
+      </div>
 
-      <section className="goal-grid projects__list">
-        {projects.length === 0 && <p className="empty">برای شروع، یک پروژه بساز.</p>}
-        {projects.map((project) => {
+      <section className="projects-board__grid">
+        {filteredProjects.map((project) => {
           const progress = projectProgress(project);
-          const remaining = daysUntil(project.due);
+          const completedTasks = project.tasks.filter((task) => task.done);
+          const lastDone = completedTasks[completedTasks.length - 1];
           const draft = taskDrafts[project.id] ?? { title: "", due: "" };
+          const isExpanded = expandedProjectId === project.id;
           return (
-            <article key={project.id} className="panel project-card">
-              <header className="project-card__head">
-                <div className="project-card__title">
+            <article key={project.id} className="project-tile">
+              <div className="project-tile__header">
+                <div className="project-tile__avatar" style={{ background: colorSeed(project.title) }}>
+                  {projectInitials(project.title)}
+                </div>
+                <div>
                   <h3>{project.title}</h3>
-                  {project.description && <p className="light small">{project.description}</p>}
-                  <div className="project-card__meta">
+                  <p className="project-tile__subtitle">
+                    {project.priority ? priorityLabel(project.priority) : "پروژه عمومی"}
+                  </p>
+                </div>
+                <button
+                  className="project-tile__delete"
+                  type="button"
+                  onClick={() => handleDeleteProject(project.id)}
+                  aria-label="حذف پروژه"
+                >
+                  <FiTrash2 aria-hidden />
+                </button>
+              </div>
+
+              <div className="project-tile__metric">
+                <span>وضعیت کل پروژه</span>
+                <div className="project-tile__bar">
+                  <span style={{ width: `${progress.percent}%` }} />
+                </div>
+                <span className="project-tile__percent">{progress.percent}%</span>
+              </div>
+
+              <div className="project-tile__metric">
+                <span>وظایف من</span>
+                <div className="project-tile__bar">
+                  <span style={{ width: `${progress.percent}%` }} />
+                </div>
+                <span className="project-tile__percent">{progress.percent}%</span>
+              </div>
+
+              <div className="project-tile__foot">
+                <div>
+                  <span>آخرین وظیفه انجام شده:</span>
+                  <strong>{lastDone ? lastDone.title : "—"}</strong>
+                </div>
+                <span className="project-tile__count">
+                  وظایف انجام شده: {completedTasks.length} از {project.tasks.length}
+                </span>
+              </div>
+
+              <button
+                className="project-tile__toggle"
+                type="button"
+                onClick={() => setExpandedProjectId(isExpanded ? null : project.id)}
+              >
+                {isExpanded ? "بستن جزئیات" : "جزئیات و تسک‌ها"}
+              </button>
+
+              {isExpanded && (
+                <div className="project-tile__details">
+                  <div className="project-tile__meta">
                     <span className={project.priority ? `pill pill--${project.priority}` : "pill"}>
                       <FiFlag aria-hidden /> {priorityLabel(project.priority)}
                     </span>
                     <span className="pill pill--solid">
                       <FiCalendar aria-hidden />
                       {project.due
-                        ? remaining !== null && remaining < 0
-                          ? `تاخیر ${Math.abs(remaining)} روزه`
-                          : `تا ${project.due}`
+                        ? `تا ${project.due}`
                         : "بدون ددلاین"}
                     </span>
                     <span className="pill">
                       {progress.done}/{progress.total} تسک
                     </span>
                   </div>
-                </div>
-                <button className="icon-btn icon-btn--danger" onClick={() => handleDeleteProject(project.id)}>
-                  <FiTrash2 aria-hidden />
-                </button>
-              </header>
 
-              <div className="progress">
-                <span
-                  className={`progress__fill progress__fill--${
-                    progress.percent === 100 ? "done" : "in-progress"
-                  }`}
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
+                  <div className="project-add-row">
+                    <input
+                      value={draft.title}
+                      onChange={(e) =>
+                        setTaskDrafts((prev) => ({
+                          ...prev,
+                          [project.id]: { ...draft, title: e.target.value },
+                        }))
+                      }
+                      placeholder="تسک جدید..."
+                    />
+                    <Calender
+                      value={draft.due}
+                      onChange={(val) =>
+                        setTaskDrafts((prev) => ({
+                          ...prev,
+                          [project.id]: { ...draft, due: val },
+                        }))
+                      }
+                      place="ددلاین تسک"
+                    />
+                    <button className="ghost" type="button" onClick={() => handleAddTask(project.id)}>
+                      <FiPlus aria-hidden /> افزودن
+                    </button>
+                  </div>
 
-              <div className="project-add-row">
-                <input
-                  value={draft.title}
-                  onChange={(e) =>
-                    setTaskDrafts((prev) => ({
-                      ...prev,
-                      [project.id]: { ...draft, title: e.target.value },
-                    }))
-                  }
-                  placeholder="تسک جدید..."
-                />
-                <Calender
-                  value={draft.due}
-                  onChange={(val) =>
-                    setTaskDrafts((prev) => ({
-                      ...prev,
-                      [project.id]: { ...draft, due: val },
-                    }))
-                  }
-                  place="ددلاین تسک"
-                />
-                <button className="ghost" type="button" onClick={() => handleAddTask(project.id)}>
-                  <FiPlus aria-hidden /> افزودن
-                </button>
-              </div>
-
-              <div className="project-card__tasks">
-                {project.tasks.length === 0 && <p className="empty">تسکی تعریف نشده؛ یکی اضافه کن.</p>}
-                {project.tasks.map((task) => {
-                  const overdue = task.due && task.due < new Date().toISOString().slice(0, 10) && !task.done;
-                  return (
-                    <div key={task.id} className="project-task">
-                      <button
-                        className={"icon-btn " + (task.done ? "" : "pill")}
-                        onClick={() => toggleTask(project.id, task.id)}
-                        aria-label="علامت انجام"
-                      >
-                        <FiCheckCircle aria-hidden />
-                      </button>
-                      <div className="project-task__body">
-                        <strong className={task.done ? "line-through" : ""}>{task.title}</strong>
-                        <div className="project-task__meta">
-                          {task.due && (
-                            <span className={overdue ? "pill pill--blocked" : "pill"}>
-                              <FiCalendar aria-hidden /> تا {task.due}
-                            </span>
-                          )}
-                          {task.done && <span className="pill pill--solid">انجام شد</span>}
+                  <div className="project-card__tasks">
+                    {project.tasks.length === 0 && <p className="empty">تسکی تعریف نشده؛ یکی اضافه کن.</p>}
+                    {project.tasks.map((task) => {
+                      const overdue =
+                        task.due && task.due < new Date().toISOString().slice(0, 10) && !task.done;
+                      return (
+                        <div key={task.id} className="project-task">
+                          <button
+                            className={"icon-btn " + (task.done ? "" : "pill")}
+                            onClick={() => toggleTask(project.id, task.id)}
+                            aria-label="علامت انجام"
+                          >
+                            <FiCheckCircle aria-hidden />
+                          </button>
+                          <div className="project-task__body">
+                            <strong className={task.done ? "line-through" : ""}>{task.title}</strong>
+                            <div className="project-task__meta">
+                              {task.due && (
+                                <span className={overdue ? "pill pill--blocked" : "pill"}>
+                                  <FiCalendar aria-hidden /> تا {task.due}
+                                </span>
+                              )}
+                              {task.done && <span className="pill pill--solid">انجام شد</span>}
+                            </div>
+                          </div>
+                          <button
+                            className="icon-btn icon-btn--danger"
+                            onClick={() => deleteTask(project.id, task.id)}
+                            aria-label="حذف تسک"
+                          >
+                            <FiTrash2 aria-hidden />
+                          </button>
                         </div>
-                      </div>
-                      <button
-                        className="icon-btn icon-btn--danger"
-                        onClick={() => deleteTask(project.id, task.id)}
-                        aria-label="حذف تسک"
-                      >
-                        <FiTrash2 aria-hidden />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </article>
           );
         })}
+
+        <article className="project-tile project-tile--new">
+          <button
+            className="project-tile__new-trigger"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+          >
+            <span className="project-tile__new-icon">+</span>
+            <span>پروژه جدید</span>
+          </button>
+          {createOpen && (
+            <form className="project-form" onSubmit={handleAddProject}>
+              <label>
+                <span>عنوان پروژه</span>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="مثلا: لانچ نسخه جدید پرداخت"
+                />
+              </label>
+              <label>
+                <span>توضیح</span>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="چرا این پروژه مهم است؟"
+                />
+              </label>
+              <div className="project-form__row">
+                <div className="project-form__field">
+                  <span>اولویت</span>
+                  <div className="priority-picker" style={{ position: "relative" }}>
+                    <button
+                      type="button"
+                      className="priority-dropdown__button"
+                      onClick={() => setPriorityOpen((v) => !v)}
+                    >
+                      <span
+                        className="priority-dot"
+                        style={{
+                          backgroundColor:
+                            PRIORITY_LEVELS.find((p) => p.id === priority)?.color ??
+                            "var(--priority-none, #555a65)",
+                        }}
+                      />
+                      <span className="priority-dropdown__label">
+                        {PRIORITY_LEVELS.find((p) => p.id === priority)?.label || "بدون اولویت"}
+                      </span>
+                      <span className="priority-dropdown__caret">▾</span>
+                    </button>
+                    {priorityOpen && (
+                      <div className="priority-dropdown__menu">
+                        {PRIORITY_LEVELS.map((level) => (
+                          <button
+                            key={level.id ?? "none"}
+                            type="button"
+                            className={[
+                              "priority-dropdown__item",
+                              priority === level.id && "priority-dropdown__item--active",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            onClick={() => {
+                              setPriority(level.id);
+                              setPriorityOpen(false);
+                            }}
+                          >
+                            <span
+                              className="priority-dot"
+                              style={{ backgroundColor: level.color }}
+                              aria-hidden
+                            />
+                            <span>{level.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <label>
+                  <span>ددلاین پروژه</span>
+                  <Calender value={due} onChange={setDue} place="مثلا 1402-12-01" />
+                </label>
+              </div>
+              <div className="project-form__actions">
+                <button className="ghost" type="button" onClick={() => setCreateOpen(false)}>
+                  انصراف
+                </button>
+                <button className="primary" type="submit">
+                  ساخت پروژه
+                </button>
+              </div>
+            </form>
+          )}
+        </article>
       </section>
     </div>
   );
