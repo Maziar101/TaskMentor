@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import DatePicker, { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
@@ -20,7 +19,9 @@ export default function Calender({
   setFieldValue,
   setTimestamps,
 }: CalendarProps) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(value ?? null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    value ?? null
+  );
 
   useEffect(() => {
     setSelectedDate(value ?? null);
@@ -60,7 +61,11 @@ export default function Calender({
         portal={typeof document !== "undefined"}
         render={(val, openCalendar) => (
           <button type="button" className="date-field" onClick={openCalendar}>
-            <span className={val ? "date-field__value" : "date-field__placeholder"}>{val || placeholder}</span>
+            <span
+              className={val ? "date-field__value" : "date-field__placeholder"}
+            >
+              {val || placeholder}
+            </span>
             <FiCalendar aria-hidden />
           </button>
         )}

@@ -414,14 +414,6 @@ export default function ProjectsPage() {
         })}
 
         <article className="project-tile project-tile--new">
-          <button
-            className="project-tile__new-trigger"
-            type="button"
-            onClick={() => setCreateOpen(true)}
-          >
-            <span className="project-tile__new-icon">+</span>
-            <span>پروژه جدید</span>
-          </button>
           {createOpen && (
             <form className="project-form" onSubmit={handleAddProject}>
               <label>

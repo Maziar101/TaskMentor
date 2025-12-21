@@ -7,6 +7,7 @@ import {
   FiCalendar,
   FiX,
   FiCopy,
+  FiClipboard,
 } from "react-icons/fi";
 import { loadPriorities, type Priority } from "../utils/priorities";
 const PRIORITY_LEVELS = [
@@ -28,6 +29,16 @@ type ScheduledTask = Task & {
   hour: number;
   day: string;
   done?: boolean;
+};
+
+type CopiedTask = {
+  id: string;
+  title: string;
+  tag?: Task["tag"];
+  priorityId?: string;
+  hour?: number;
+  day?: string;
+  source: "pool" | "scheduled";
 };
 
 type UndoPayload =
@@ -186,6 +197,7 @@ function PlannerPage() {
     null
   );
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const [copiedTask, setCopiedTask] = useState<CopiedTask | null>(null);
   const userId = useMemo(() => {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem("taskmentor-user");
@@ -751,6 +763,16 @@ function PlannerPage() {
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
+      const scheduledTask = "hour" in task ? task : null;
+      setCopiedTask({
+        id: task.id,
+        title: text,
+        tag: task.tag,
+        priorityId: task.priorityId,
+        source: scheduledTask ? "scheduled" : "pool",
+        hour: scheduledTask?.hour,
+        day: scheduledTask?.day,
+      });
       setCopiedTaskId(task.id);
       if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = window.setTimeout(() => {
@@ -759,6 +781,35 @@ function PlannerPage() {
       }, 2000);
     } catch (err) {
       console.error("Failed to copy task", err);
+    }
+  }
+
+  async function handlePasteToHour(hour: number) {
+    if (!copiedTask || !userId) return;
+    const sameSlot =
+      copiedTask.source === "scheduled" &&
+      copiedTask.day === activeDay &&
+      copiedTask.hour === hour;
+    if (sameSlot) return;
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: copiedTask.title,
+          tag: copiedTask.tag,
+          priority: copiedTask.priorityId,
+          day: activeDay,
+          hour,
+          done: false,
+          userId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to paste task");
+      await loadSchedule(activeDay);
+    } catch (err) {
+      console.error("Failed to paste task", err);
     }
   }
 
@@ -1213,6 +1264,14 @@ function PlannerPage() {
               const hasOverlap = hourTasks.length > 1;
               const hasTasks = hourTasks.length > 0;
               const allDone = hasTasks && hourTasks.every((t) => t.done);
+              const canPaste =
+                Boolean(copiedTask) &&
+                (!copiedTask?.day ||
+                  copiedTask.day !== activeDay ||
+                  copiedTask.hour !== hour);
+              const pasteLabel = copiedTask
+                ? `پیست: ${copiedTask.title}`
+                : "پیست";
               let chipLabel: string | null = null;
               let chipClassName = "slot__chip";
 
@@ -1264,8 +1323,23 @@ function PlannerPage() {
                 >
                   <div className="slot__label-row">
                     <div className="slot__label">{formatHour(hour)}</div>
-                    {chipLabel && (
-                      <span className={chipClassName}>{chipLabel}</span>
+                    {(chipLabel || canPaste) && (
+                      <div className="slot__actions">
+                        {chipLabel && (
+                          <span className={chipClassName}>{chipLabel}</span>
+                        )}
+                        {canPaste && (
+                          <button
+                            className="icon-btn slot__paste"
+                            type="button"
+                            aria-label={pasteLabel}
+                            title={pasteLabel}
+                            onClick={() => handlePasteToHour(hour)}
+                          >
+                            <FiClipboard aria-hidden />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="slot__content">
