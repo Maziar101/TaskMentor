@@ -53,6 +53,8 @@ p {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font-family: inherit;
 }

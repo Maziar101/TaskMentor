@@ -223,6 +223,10 @@ h2 {
     linear-gradient(135deg, #110b24, #0c0a18);
 }
 
+.route-area.route-area--projects {
+  padding: 0;
+}
+
 .planner {
   display: flex;
   flex-direction: column;
@@ -2197,6 +2201,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.12);
   color: #f4edff;
+  min-height: 44px;
 }
 
 .projects-board .priority-dropdown__menu {

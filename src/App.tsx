@@ -22,6 +22,7 @@ function App() {
 
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
+  const isProjectsPage = location.pathname.startsWith("/projects");
 
   return (
     <div
@@ -159,7 +160,11 @@ function App() {
         </aside>
       )}
 
-      <main className="route-area">
+      <main
+        className={["route-area", isProjectsPage && "route-area--projects"]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <Outlet />
       </main>
     </div>
