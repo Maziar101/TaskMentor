@@ -1,17 +1,17 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import type { ReactElement } from "react";
-import App from "../App";
-import PlannerPage from "../pages/Planner";
-import DashboardPage from "../pages/Dashboard";
-import ReportsPage from "../pages/Reports";
-import ShortGoalsPage from "../pages/ShortGoals";
-import LongGoalsPage from "../pages/LongGoals";
-import AddGoalPage from "../pages/AddGoal";
-import ProfilePage from "../pages/Profile";
-import PrioritiesPage from "../pages/Priorities";
-import ProjectsPage from "../pages/Projects";
-import LoginPage from "../pages/Login";
-import { useAuth } from "../context/AuthContext";
+import App from "../App/index";
+import PlannerPage from "../pages/Planner/index";
+import DashboardPage from "../pages/Dashboard/index";
+import ReportsPage from "../pages/Reports/index";
+import ShortGoalsPage from "../pages/ShortGoals/index";
+import LongGoalsPage from "../pages/LongGoals/index";
+import AddGoalPage from "../pages/AddGoal/index";
+import ProfilePage from "../pages/Profile/index";
+import PrioritiesPage from "../pages/Priorities/index";
+import ProjectsPage from "../pages/Projects/index";
+import LoginPage from "../pages/Login/index";
+import { useAuth } from "../context/AuthContext/index";
 
 function ProtectedRoute({ children }: { children: ReactElement }) {
   const { user } = useAuth();

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { impactLabel, statusLabel } from '../../utils/labels/index'
 
 type ShortGoal = {
   id: string
@@ -346,23 +347,6 @@ export default function AddGoalPage() {
   )
 }
 
-function statusLabel(status: ShortGoal['status']) {
-  const map = {
-    'in-progress': 'در حال انجام',
-    blocked: 'مسدود',
-    done: 'انجام شد',
-  }
-  return map[status]
-}
-
-function impactLabel(impact: ShortGoal['impact']) {
-  const map = {
-    high: 'اولویت بالا',
-    medium: 'اولویت متوسط',
-    low: 'اولویت کم',
-  }
-  return map[impact]
-}
 
 function riskLabel(risk: LongGoal['risk']) {
   const map = {

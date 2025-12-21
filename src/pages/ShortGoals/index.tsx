@@ -1,3 +1,5 @@
+import GoalCard from '../../components/GoalCard/index'
+
 type Goal = {
   id: string
   title: string
@@ -48,20 +50,14 @@ export default function ShortGoalsPage() {
 
       <section className="goal-grid">
         {goals.map((goal) => (
-          <article key={goal.id} className="goal-card">
-            <div className="goal-card__top">
-              <h3>{goal.title}</h3>
-              <span className={`badge badge--${goal.status}`}>{statusLabel(goal.status)}</span>
-            </div>
-            <p className="light">{goal.desc}</p>
-            <div className="goal-card__meta">
-              <span className="pill">موعد: {goal.due}</span>
-              <span className={`pill pill--${goal.impact}`}>{impactLabel(goal.impact)}</span>
-            </div>
-            <div className="progress">
-              <span className={`progress__fill progress__fill--${goal.status}`} />
-            </div>
-          </article>
+          <GoalCard
+            key={goal.id}
+            title={goal.title}
+            desc={goal.desc}
+            due={goal.due}
+            status={goal.status}
+            impact={goal.impact}
+          />
         ))}
       </section>
 
@@ -86,22 +82,4 @@ export default function ShortGoalsPage() {
       </section>
     </div>
   )
-}
-
-function statusLabel(status: Goal['status']) {
-  const map = {
-    'in-progress': 'در حال انجام',
-    blocked: 'مسدود',
-    done: 'انجام شد',
-  }
-  return map[status]
-}
-
-function impactLabel(impact: Goal['impact']) {
-  const map = {
-    high: 'اولویت بالا',
-    medium: 'اولویت متوسط',
-    low: 'اولویت کم',
-  }
-  return map[impact]
 }

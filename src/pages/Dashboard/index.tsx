@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import GoalCard from "../../components/GoalCard/index";
+import { statusLabel } from "../../utils/labels/index";
 
 type Goal = {
   id: string;
@@ -114,23 +116,6 @@ function formatHour(hour: number) {
   return `${hour.toString().padStart(2, "0")}:00`;
 }
 
-function statusLabel(status: Goal["status"]) {
-  const map = {
-    "in-progress": "در حال انجام",
-    blocked: "مسدود",
-    done: "انجام شد",
-  };
-  return map[status];
-}
-
-function impactLabel(impact: Goal["impact"]) {
-  const map = {
-    high: "اولویت بالا",
-    medium: "اولویت متوسط",
-    low: "اولویت کم",
-  };
-  return map[impact];
-}
 
 function scheduleLabel(type: ScheduleItem["tag"] | undefined) {
   const map: Record<string, string> = {
@@ -421,23 +406,15 @@ export default function DashboardPage() {
 
       <section className="goal-grid">
         {goals.map((goal) => (
-          <article key={goal.id} className="goal-card">
-            <div className="goal-card__top">
-              <h3>{goal.title}</h3>
-              <span className={`badge badge--${goal.status}`}>{statusLabel(goal.status)}</span>
-            </div>
-            <p className="light">{goal.desc}</p>
-            <div className="goal-card__meta">
-              <span className="pill">موعد: {goal.due}</span>
-              <span className={`pill pill--${goal.impact}`}>{impactLabel(goal.impact)}</span>
-            </div>
-            <div className="progress">
-              <span
-                className={`progress__fill progress__fill--${goal.status}`}
-                style={{ width: `${goal.progress}%` }}
-              />
-            </div>
-          </article>
+          <GoalCard
+            key={goal.id}
+            title={goal.title}
+            desc={goal.desc}
+            due={goal.due}
+            status={goal.status}
+            impact={goal.impact}
+            progress={goal.progress}
+          />
         ))}
       </section>
 

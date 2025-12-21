@@ -9,7 +9,8 @@ import {
   FiCopy,
   FiClipboard,
 } from "react-icons/fi";
-import { loadPriorities, type Priority } from "../utils/priorities";
+import PriorityDropdown from "../../components/PriorityDropdown/index";
+import { loadPriorities, type Priority } from "../../utils/priorities/index";
 const PRIORITY_LEVELS = [
   { id: undefined, label: "بدون اولویت", color: "var(--priority-none, #555a65)" },
   { id: "low", label: "پایین", color: "#2ecc71" },
@@ -186,8 +187,6 @@ function PlannerPage() {
   const [formError, setFormError] = useState("");
   const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities());
   const [newTaskPriority, setNewTaskPriority] = useState<string | undefined>();
-  const [priorityOpen, setPriorityOpen] = useState(false);
-  const priorityRef = useRef<HTMLDivElement | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
   const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
@@ -272,16 +271,6 @@ function PlannerPage() {
     return () => window.removeEventListener("storage", syncPriorities);
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (!priorityRef.current) return;
-      if (!priorityRef.current.contains(e.target as Node)) {
-        setPriorityOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -1024,57 +1013,13 @@ function PlannerPage() {
                   + برچسب جدید
                 </button>
               </div>
-              <div
-                className="priority-picker"
-                ref={priorityRef}
-              >
+              <div className="priority-picker">
                 <p className="light small">اولویت</p>
-                <button
-                  type="button"
-                  className="priority-dropdown__button"
-                  onClick={() => setPriorityOpen((v) => !v)}
-                >
-                  <span
-                    className="priority-dot"
-                    style={{
-                      backgroundColor:
-                        PRIORITY_LEVELS.find((p) => p.id === newTaskPriority)?.color ??
-                        "var(--priority-none, #555a65)",
-                    }}
-                  />
-                  <span className="priority-dropdown__label">
-                    {PRIORITY_LEVELS.find((p) => p.id === newTaskPriority)?.label ||
-                      "بدون اولویت"}
-                  </span>
-                  <span className="priority-dropdown__caret">▾</span>
-                </button>
-                {priorityOpen && (
-                  <div className="priority-dropdown__menu">
-                    {PRIORITY_LEVELS.map((level) => (
-                      <button
-                        key={level.id ?? "none"}
-                        type="button"
-                        className={[
-                          "priority-dropdown__item",
-                          newTaskPriority === level.id && "priority-dropdown__item--active",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        onClick={() => {
-                          setNewTaskPriority(level.id as string | undefined);
-                          setPriorityOpen(false);
-                        }}
-                      >
-                        <span
-                          className="priority-dot"
-                          style={{ backgroundColor: level.color }}
-                          aria-hidden
-                        />
-                        <span>{level.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <PriorityDropdown
+                  value={newTaskPriority}
+                  options={PRIORITY_LEVELS}
+                  onChange={setNewTaskPriority}
+                />
               </div>
               <button className="primary" onClick={handleAddTask}>
                 اضافه کن

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiPlus, FiTrash2, FiCheckCircle, FiClock } from "react-icons/fi";
-import { loadPriorities, savePriorities, generateId, type Priority } from "../utils/priorities";
+import { loadPriorities, savePriorities, generateId, type Priority } from "../../utils/priorities/index";
 
 export default function PrioritiesPage() {
   const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities());

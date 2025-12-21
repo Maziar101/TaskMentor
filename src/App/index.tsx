@@ -11,10 +11,9 @@ import {
   FiBriefcase,
   FiMenu,
   FiLogOut,
-  FiUsers,
 } from "react-icons/fi";
-import { useAuth } from "./context/AuthContext";
-import "./App.css";
+import { useAuth } from "../context/AuthContext/index";
+import "../App.css";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
