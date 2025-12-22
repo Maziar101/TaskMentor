@@ -11,6 +11,7 @@ import {
   FiBriefcase,
   FiMenu,
   FiLogOut,
+  FiUsers,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext/index";
 import "../App.css";
@@ -96,6 +97,15 @@ function App() {
                 <FiBriefcase />
               </span>
               <span className="nav-link__label">پروژه‌ها</span>
+            </NavLink>
+            <NavLink
+              to="/teams"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiUsers />
+              </span>
+              <span className="nav-link__label">تیم‌ها</span>
             </NavLink>
             <NavLink
               to="/short-goals"

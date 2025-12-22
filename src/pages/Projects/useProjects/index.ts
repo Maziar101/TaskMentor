@@ -62,6 +62,7 @@ export default function useProjects() {
       due: form.due || undefined,
       description: form.description.trim() || undefined,
       tasks: [],
+      members: [],
       createdAt: new Date().toISOString(),
     };
     setProjects((prev) => [next, ...prev]);

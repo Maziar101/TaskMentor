@@ -7,6 +7,12 @@ export type ProjectTask = {
   done: boolean;
 };
 
+export type ProjectMember = {
+  id: string;
+  name: string;
+  role?: string;
+};
+
 export type Project = {
   id: string;
   title: string;
@@ -14,6 +20,7 @@ export type Project = {
   due?: string;
   description?: string;
   tasks: ProjectTask[];
+  members: ProjectMember[];
   createdAt: string;
 };
 
@@ -57,7 +64,12 @@ export function loadProjects(): Project[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as Project[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((project) => ({
+      ...project,
+      tasks: Array.isArray(project.tasks) ? project.tasks : [],
+      members: Array.isArray(project.members) ? project.members : [],
+    }));
   } catch {
     return [];
   }

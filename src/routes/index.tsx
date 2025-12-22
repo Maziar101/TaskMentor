@@ -10,6 +10,8 @@ import AddGoalPage from "../pages/AddGoal/index";
 import ProfilePage from "../pages/Profile/index";
 import PrioritiesPage from "../pages/Priorities/index";
 import ProjectsPage from "../pages/Projects/index";
+import ProjectDetailsPage from "../pages/ProjectDetails/index";
+import TeamsPage from "../pages/Teams/index";
 import LoginPage from "../pages/Login/index";
 import { useAuth } from "../context/AuthContext/index";
 
@@ -60,6 +62,22 @@ const routes = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ProjectsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "projects/:projectId",
+        element: (
+          <ProtectedRoute>
+            <ProjectDetailsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "teams",
+        element: (
+          <ProtectedRoute>
+            <TeamsPage />
           </ProtectedRoute>
         ),
       },

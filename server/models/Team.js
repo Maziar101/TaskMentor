@@ -5,6 +5,8 @@ const memberSchema = new Schema(
     user: { type: Types.ObjectId, ref: "User", required: true },
     role: { type: String, trim: true, default: "member" },
     nickname: { type: String, trim: true },
+    status: { type: String, enum: ["active", "disabled"], default: "active" },
+    joinedAt: { type: Date, default: Date.now },
   },
   { _id: false }
 );

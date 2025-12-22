@@ -2,6 +2,7 @@ const express = require("express");
 const Team = require("../models/Team");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Group = require("../models/Group");
 
 const router = express.Router();
 
@@ -40,7 +41,14 @@ router.post("/", async (req, res, next) => {
     const team = await Team.create({
       name: name.trim(),
       owner: userId,
-      members: [{ user: userId, role: "owner" }],
+      members: [{ user: userId, role: "owner", status: "active" }],
+    });
+    await Group.create({
+      team: team.id,
+      name: "عمومی",
+      isPublic: true,
+      createdBy: userId,
+      members: [],
     });
     res.status(201).json(team);
   } catch (err) {

@@ -1,4 +1,5 @@
-import { FiCalendar, FiCheckCircle, FiFlag, FiPlus, FiTrash2 } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FiCalendar, FiCheckCircle, FiFlag, FiPlus, FiTrash2, FiUsers } from "react-icons/fi";
 import Calender from "../../../components/Calender/index";
 import {
   colorSeed,
@@ -72,9 +73,14 @@ export default function ProjectTile({
         </span>
       </div>
 
-      <button className="project-tile__toggle" type="button" onClick={onToggleExpand}>
-        {isExpanded ? "بستن جزئیات" : "جزئیات و تسک‌ها"}
-      </button>
+      <div className="project-tile__actions">
+        <button className="project-tile__toggle" type="button" onClick={onToggleExpand}>
+          {isExpanded ? "بستن جزئیات" : "جزئیات و تسک‌ها"}
+        </button>
+        <Link className="project-tile__toggle" to={`/projects/${project.id}`}>
+          <FiUsers aria-hidden /> مدیریت اعضا
+        </Link>
+      </div>
 
       {isExpanded && (
         <div className="project-tile__details">
