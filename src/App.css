@@ -127,8 +127,10 @@ h2 {
 }
 
 .sidebar__nav {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  flex: 1;
 }
 
 .sidebar--collapsed {
@@ -168,6 +170,7 @@ h2 {
   width: 100%;
   cursor: pointer;
   text-align: right;
+  margin-top: auto;
 }
 
 .nav-toggle:hover {
