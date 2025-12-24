@@ -1077,15 +1077,15 @@ function PlannerPage() {
                           {getTagLabel(task.tag)}
                         </span>
                       )}
-                      {copiedTaskId === task.id && (
-                        <span className="copy-hint" aria-live="polite">
-                          کپی شد
-                        </span>
-                      )}
                     </div>
                     <div className="task__meta-actions">
                       <button
-                        className="icon-btn"
+                        className={[
+                          "icon-btn",
+                          copiedTaskId === task.id && "icon-btn--copied",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                         type="button"
                         aria-label="کپی کردن"
                         onClick={() => handleCopyTask(task)}
@@ -1323,7 +1323,12 @@ function PlannerPage() {
                             </span>
                             <div className="task__meta-actions">
                               <button
-                                className="icon-btn"
+                                className={[
+                                  "icon-btn",
+                                  copiedTaskId === task.id && "icon-btn--copied",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ")}
                                 type="button"
                                 aria-label="کپی کردن"
                                 onClick={() => handleCopyTask(task)}
@@ -1350,11 +1355,6 @@ function PlannerPage() {
                               >
                                 <FiTrash2 aria-hidden />
                               </button>
-                              {copiedTaskId === task.id && (
-                                <span className="copy-hint" aria-live="polite">
-                                  کپی شد
-                                </span>
-                              )}
                             </div>
                           </div>
                         ))}
@@ -1409,15 +1409,16 @@ function PlannerPage() {
                                 {getTagLabel(blockStart.task.tag)}
                               </span>
                             )}
-                            {copiedTaskId === blockStart.task.id && (
-                              <span className="copy-hint" aria-live="polite">
-                                کپی شد
-                              </span>
-                            )}
                           </div>
                           <div className="task__meta-actions">
                             <button
-                              className="icon-btn"
+                              className={[
+                                "icon-btn",
+                                copiedTaskId === blockStart.task.id &&
+                                  "icon-btn--copied",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
                               type="button"
                               aria-label="کپی کردن"
                               onClick={() => handleCopyTask(blockStart.task)}
@@ -1459,7 +1460,13 @@ function PlannerPage() {
                         </span>
                         <div className="task__meta-actions">
                           <button
-                            className="icon-btn"
+                            className={[
+                              "icon-btn",
+                              copiedTaskId === covered.task.id &&
+                                "icon-btn--copied",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
                             type="button"
                             aria-label="کپی کردن"
                             onClick={() => handleCopyTask(covered.task)}
@@ -1482,11 +1489,6 @@ function PlannerPage() {
                           >
                             <FiTrash2 aria-hidden />
                           </button>
-                          {copiedTaskId === covered.task.id && (
-                            <span className="copy-hint" aria-live="polite">
-                              کپی شد
-                            </span>
-                          )}
                         </div>
                       </div>
                     )}

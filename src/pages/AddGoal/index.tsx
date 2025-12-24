@@ -316,7 +316,13 @@ export default function AddGoalPage() {
             {shortGoals.map((goal) => (
               <article key={goal.id} className="goal-preview">
                 <div className="goal-card__top">
-                  <h4 onDoubleClick={() => handleCopyTitle(goal.title)}>{goal.title}</h4>
+                  <h4
+                    className="goal-card__title"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onDoubleClick={() => handleCopyTitle(goal.title)}
+                  >
+                    {goal.title}
+                  </h4>
                   <span className={`badge badge--${goal.status}`}>{statusLabel(goal.status)}</span>
                 </div>
                 <p className="light small">{goal.desc}</p>
@@ -338,7 +344,13 @@ export default function AddGoalPage() {
             {longGoals.map((goal) => (
               <article key={goal.id} className="goal-preview">
                 <div className="goal-card__top">
-                  <h4 onDoubleClick={() => handleCopyTitle(goal.title)}>{goal.title}</h4>
+                  <h4
+                    className="goal-card__title"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onDoubleClick={() => handleCopyTitle(goal.title)}
+                  >
+                    {goal.title}
+                  </h4>
                   <span className="pill">افق: {goal.horizon}</span>
                 </div>
                 <p className="light small">{goal.desc}</p>
