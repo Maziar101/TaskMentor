@@ -88,6 +88,24 @@ export default function AddGoalPage() {
     return Math.min(100, Math.round(((shortFill + longFill) / 10) * 100))
   }, [shortForm, longForm])
 
+  function handleCopyTitle(title: string) {
+    const text = title.trim()
+    if (!text) return
+    if (navigator.clipboard && window.isSecureContext) {
+      void navigator.clipboard.writeText(text)
+      return
+    }
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'absolute'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
+
   function handleAddShort(e: FormEvent) {
     e.preventDefault()
     if (!shortForm.title.trim() || !shortForm.desc.trim() || !shortForm.due.trim()) return
@@ -298,7 +316,7 @@ export default function AddGoalPage() {
             {shortGoals.map((goal) => (
               <article key={goal.id} className="goal-preview">
                 <div className="goal-card__top">
-                  <h4>{goal.title}</h4>
+                  <h4 onDoubleClick={() => handleCopyTitle(goal.title)}>{goal.title}</h4>
                   <span className={`badge badge--${goal.status}`}>{statusLabel(goal.status)}</span>
                 </div>
                 <p className="light small">{goal.desc}</p>
@@ -320,7 +338,7 @@ export default function AddGoalPage() {
             {longGoals.map((goal) => (
               <article key={goal.id} className="goal-preview">
                 <div className="goal-card__top">
-                  <h4>{goal.title}</h4>
+                  <h4 onDoubleClick={() => handleCopyTitle(goal.title)}>{goal.title}</h4>
                   <span className="pill">افق: {goal.horizon}</span>
                 </div>
                 <p className="light small">{goal.desc}</p>
