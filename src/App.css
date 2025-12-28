@@ -719,6 +719,12 @@ body {
   color: #dfe8ff;
 }
 
+.panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .counts {
   display: flex;
   gap: 8px;

@@ -11,7 +11,8 @@ import ProfilePage from "../pages/Profile/index";
 import PrioritiesPage from "../pages/Priorities/index";
 import ProjectsPage from "../pages/Projects/index";
 import ProjectDetailsPage from "../pages/ProjectDetails/index";
-import TeamsPage from "../pages/Teams/index";
+import TeamsBoardPage from "../pages/Teams/index";
+import TeamChatPage from "../pages/Teams/TeamChat";
 import LoginPage from "../pages/Login/index";
 
 const useRoutesConfig = () =>
@@ -29,7 +30,8 @@ const useRoutesConfig = () =>
             { path: "priorities", element: <PrioritiesPage /> },
             { path: "projects", element: <ProjectsPage /> },
             { path: "projects/:projectId", element: <ProjectDetailsPage /> },
-            { path: "teams", element: <TeamsPage /> },
+            { path: "teams", element: <TeamsBoardPage /> },
+            { path: "teams/:teamId", element: <TeamChatPage /> },
             { path: "short-goals", element: <ShortGoalsPage /> },
             { path: "long-goals", element: <LongGoalsPage /> },
             { path: "goals/new", element: <AddGoalPage /> },

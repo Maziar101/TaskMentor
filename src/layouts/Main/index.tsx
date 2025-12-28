@@ -6,6 +6,8 @@ export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
   const isProjectsPage = location.pathname.startsWith("/projects");
+  const isTeamsBoard = location.pathname === "/teams";
+  const isEdgeToEdge = isProjectsPage || isTeamsBoard;
 
   return (
     <div
@@ -19,7 +21,7 @@ export default function MainLayout() {
       />
 
       <main
-        className={["route-area", isProjectsPage && "route-area--projects"]
+        className={["route-area", isEdgeToEdge && "route-area--projects"]
           .filter(Boolean)
           .join(" ")}
       >
