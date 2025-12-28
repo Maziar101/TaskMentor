@@ -11,7 +11,7 @@ import {
   FiSend,
   FiTrash2,
 } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext/index";
+import { useAuth } from "../../store/authStore";
 import useTeamSocket from "./useTeamSocket";
 
 type Team = {
@@ -56,6 +56,16 @@ type AuditLog = {
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;
   actor?: { _id: string; username: string; phone: string };
+  createdAt: string;
+};
+
+type TeamInvite = {
+  _id: string;
+  type: "team_invite";
+  title: string;
+  body?: string;
+  data?: { teamId?: string; teamName?: string; role?: string; nickname?: string };
+  read?: boolean;
   createdAt: string;
 };
 
@@ -104,6 +114,13 @@ const STRINGS = {
     filters: "فیلترها",
     search: "جستجو...",
     all: "همه",
+    invites: "دعوت‌ها",
+    noInvites: "دعوتی ندارید.",
+    acceptInvite: "پذیرفتن دعوت",
+    dismiss: "بعدا",
+    member: "عضو",
+    inviteError: "دریافت دعوت‌ها ناموفق بود.",
+    loadingInvites: "در حال دریافت دعوت‌ها...",
     locale: "EN",
   },
   en: {
@@ -150,6 +167,13 @@ const STRINGS = {
     filters: "Filters",
     search: "Search...",
     all: "All",
+    invites: "Invites",
+    noInvites: "No invites yet.",
+    acceptInvite: "Accept invite",
+    dismiss: "Dismiss",
+    member: "Member",
+    inviteError: "Failed to load invites.",
+    loadingInvites: "Loading invites...",
     locale: "FA",
   },
 };
@@ -171,6 +195,10 @@ export default function TeamsPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({});
+  const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [invitesError, setInvitesError] = useState(false);
+  const [acceptingInviteId, setAcceptingInviteId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [memberPhone, setMemberPhone] = useState("");
   const [memberRole, setMemberRole] = useState("member");
@@ -246,6 +274,27 @@ export default function TeamsPage() {
   }, [user?.userId]);
 
   useEffect(() => {
+    if (!user?.userId) return;
+    fetchInvites();
+  }, [user?.userId]);
+
+  useEffect(() => {
+    setMembers([]);
+    setGroups([]);
+    setMessages([]);
+    setAuditLogs([]);
+    setOnlineMap({});
+    setUnreadGroups({});
+    setActiveGroupId(null);
+    setMessageDraft("");
+    setTaskLink("");
+    setSendError("");
+    setEditingMessageId(null);
+    setEditingText("");
+    setReplyTo(null);
+  }, [activeTeamId]);
+
+  useEffect(() => {
     if (!activeTeamId || !user?.userId) return;
     fetchMembers(activeTeamId);
     fetchGroups(activeTeamId);
@@ -260,7 +309,7 @@ export default function TeamsPage() {
 
   useEffect(() => {
     if (!activeTeamId || !groups.length) return;
-    if (!activeGroupId) {
+    if (!activeGroupId || !groups.some((group) => group._id === activeGroupId)) {
       setActiveGroupId(groups[0]._id);
     }
   }, [activeTeamId, groups, activeGroupId]);
@@ -300,6 +349,33 @@ export default function TeamsPage() {
     if (!res.ok) return;
     setTeamName("");
     await fetchTeams();
+  };
+
+  const handleAcceptInvite = async (invite: TeamInvite) => {
+    if (!user?.userId) return;
+    const teamId = invite.data?.teamId;
+    if (!teamId) return;
+    setAcceptingInviteId(invite._id);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.userId }),
+      });
+      if (res.ok) {
+        await markNotificationRead(invite._id);
+        await fetchTeams();
+        await fetchInvites();
+      }
+    } finally {
+      setAcceptingInviteId(null);
+    }
+  };
+
+  const handleDismissInvite = async (inviteId: string) => {
+    if (!user?.userId) return;
+    await markNotificationRead(inviteId);
+    setTeamInvites((prev) => prev.filter((item) => item._id !== inviteId));
   };
 
   const handleAddMember = async (event: FormEvent) => {
@@ -473,9 +549,42 @@ export default function TeamsPage() {
     if (!res.ok) return;
     const data = (await res.json()) as Team[];
     setTeams(data);
-    if (!activeTeamId && data.length) {
-      setActiveTeamId(data[0]._id);
+    setActiveTeamId((prev) => {
+      if (!data.length) return null;
+      if (prev && data.some((team) => team._id === prev)) return prev;
+      return data[0]._id;
+    });
+  }
+
+  async function fetchInvites() {
+    if (!user?.userId) return;
+    setInvitesLoading(true);
+    setInvitesError(false);
+    try {
+      const res = await fetch(`/api/notifications?userId=${user.userId}`);
+      if (!res.ok) {
+        setInvitesError(true);
+        return;
+      }
+      const data = (await res.json()) as TeamInvite[];
+      const invites = Array.isArray(data)
+        ? data.filter((item) => item.type === "team_invite")
+        : [];
+      setTeamInvites(invites);
+    } catch {
+      setInvitesError(true);
+    } finally {
+      setInvitesLoading(false);
     }
+  }
+
+  async function markNotificationRead(notificationId: string) {
+    if (!user?.userId) return;
+    await fetch(`/api/notifications/${notificationId}/read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.userId }),
+    });
   }
 
   async function fetchMembers(teamId: string) {
@@ -556,6 +665,7 @@ export default function TeamsPage() {
                     {team.owner === user?.userId && (
                       <span className="badge badge--pill">{t.owner}</span>
                     )}
+                    {team.owner !== user?.userId && <span className="badge">{t.member}</span>}
                   </div>
                   <span className="light small">{team._id}</span>
                 </button>
@@ -572,6 +682,58 @@ export default function TeamsPage() {
               <FiPlus aria-hidden /> {t.createTeam}
             </button>
           </form>
+        </div>
+
+        <div className="panel">
+          <div className="panel__header">
+            <h2>{t.invites}</h2>
+            {teamInvites.length > 0 && (
+              <span className="badge badge--pill">{teamInvites.length}</span>
+            )}
+          </div>
+          {invitesLoading && <p className="light small">{t.loadingInvites}</p>}
+          {invitesError && <p className="error">{t.inviteError}</p>}
+          {!invitesLoading && !invitesError && teamInvites.length === 0 && (
+            <p className="empty">{t.noInvites}</p>
+          )}
+          {teamInvites.length > 0 && (
+            <div className="notifications">
+              {teamInvites.map((invite) => (
+                <div
+                  key={invite._id}
+                  className={
+                    invite.read ? "notification-card notification-card--read" : "notification-card"
+                  }
+                >
+                  <div className="notification-card__head">
+                    <strong>{invite.data?.teamName || invite.title}</strong>
+                    <span className="light small">
+                      {new Date(invite.createdAt).toLocaleDateString(locale)}
+                    </span>
+                  </div>
+                  {invite.body && <p className="light small">{invite.body}</p>}
+                  {invite.data?.role && <span className="pill">{invite.data.role}</span>}
+                  <div className="notification-card__actions">
+                    <button
+                      className="primary"
+                      type="button"
+                      onClick={() => handleAcceptInvite(invite)}
+                      disabled={acceptingInviteId === invite._id}
+                    >
+                      {t.acceptInvite}
+                    </button>
+                    <button
+                      className="ghost"
+                      type="button"
+                      onClick={() => handleDismissInvite(invite._id)}
+                    >
+                      {t.dismiss}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="panel conversations">
@@ -820,16 +982,6 @@ export default function TeamsPage() {
               <button className="primary" type="button" onClick={handleSendMessage}>
                 <FiSend aria-hidden /> {t.send}
               </button>
-            </div>
-            <div className="chat-composer__row chat-composer__meta">
-              <input
-                value={taskLink}
-                onChange={(event) => setTaskLink(event.target.value)}
-                placeholder={t.taskLink}
-              />
-              <span className="copy-hint">
-                <FiBell aria-hidden /> {t.taskLink}
-              </span>
             </div>
             <input
               ref={fileInputRef}

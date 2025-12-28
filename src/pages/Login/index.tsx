@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser } from "react-icons/fi";
+import { useAuth } from "../../store/authStore";
 
-type LoginPageProps = {
-  setUser: (user: { userId: string; username: string }) => void;
-};
-
-export default function LoginPage({ setUser }: LoginPageProps) {
+export default function LoginPage() {
+  const { setUser } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
