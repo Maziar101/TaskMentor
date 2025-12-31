@@ -10,6 +10,7 @@ type SideBarProps = {
 
 export default function SideBar({ collapsed, onToggle }: SideBarProps) {
   const { user, logout } = useAuth();
+  const displayName = user?.username?.trim() || "بدون نام";
 
   return (
     <aside
@@ -23,7 +24,7 @@ export default function SideBar({ collapsed, onToggle }: SideBarProps) {
           <FiUser />
         </div>
         <div className="profile-card__meta">
-          <strong className="profile-card__name">مازیار</strong>
+          <strong className="profile-card__name">{displayName}</strong>
           <span className="profile-card__role">کاربر</span>
         </div>
         {user && !collapsed && (

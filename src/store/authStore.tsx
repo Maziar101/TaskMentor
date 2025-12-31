@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
-type AuthUser = { userId: string; username: string } | null;
+type AuthUser = { userId: string; username?: string } | null;
 
 type AuthContextValue = {
   user: AuthUser;
@@ -32,6 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!res.ok) {
           throw new Error("user not valid");
         }
+        const data = await res.json();
+        const fetchedUsername =
+          typeof data?.username === "string" ? data.username.trim() : "";
+        if (!ignore && fetchedUsername && fetchedUsername !== user.username) {
+          const nextUser = { userId: user.userId, username: fetchedUsername };
+          setUser(nextUser);
+          localStorage.setItem("taskmentor-user", JSON.stringify(nextUser));
+        }
       } catch {
         localStorage.removeItem("taskmentor-user");
         if (!ignore) setUser(null);
@@ -41,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       ignore = true;
     };
-  }, [user]);
+  }, [user?.userId]);
 
   const logout = () => {
     localStorage.removeItem("taskmentor-user");

@@ -986,7 +986,7 @@ function PlannerPage() {
           className="planner__backlog"
           style={{
             display: "flex",
-            gap: "20px",
+            gap: "10px",
             flexDirection: "column",
             justifyContent: "space-between",
             height: "100%",

@@ -350,24 +350,22 @@ export default function DashboardPage() {
     <div className="goals" dir="rtl">
       <header className="goals__header">
         <div>
-          <p className="eyebrow">چشم‌انداز</p>
           <h1>داشبورد</h1>
-          <p className="light">
-            خوش‌آمدگویی، وضعیت اهداف کوتاه‌مدت، تمرکز امروز، ریسک‌ها و نوتیف‌ها.
-            {loading && " (در حال بارگذاری...)"}
-          </p>
           {error && <p className="error">{error}</p>}
         </div>
-        <button className="primary">افزودن هدف جدید</button>
       </header>
 
-      <section className="goal-quick">
+      <section className="goal-quick goal-quick--two-col">
         <div className="panel compact">
           <p className="eyebrow">{welcomeTitle}</p>
           <p className="light">
-            {hasLiveData
-              ? `امروز ${formatFaNumber.format(focusTasks.length)} کار مهم داری؛ اولی در ${focusTasks[0]?.slot} است.`
-              : "نمونه داده برای شروع؛ با پر کردن برنامه، این بخش زنده می‌شود."}
+            {hasLiveData ? (
+              `امروز ${formatFaNumber.format(focusTasks.length)} کار مهم داری؛ اولی در ${focusTasks[0]?.slot} است.`
+            ) : (
+              <span className="typing-text">
+                حقیقتی که در ذهن شما شکل میگیرد ، روزی تبدیل به واقعیت خواهد شد
+              </span>
+            )}
           </p>
           <div className="counts">
             <span>{formatFaNumber.format(scheduleForToday.length)} تسک امروز</span>
@@ -418,7 +416,7 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      <section className="goal-quick">
+      <section className="goal-quick goal-quick--two-col">
         <div className="panel compact">
           <p className="eyebrow">تمرکز امروز</p>
           <p className="light">سه کاری که باید همین امروز جلو برود:</p>
