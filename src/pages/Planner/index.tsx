@@ -9,6 +9,7 @@ import {
   FiCopy,
   FiClipboard,
 } from "react-icons/fi";
+import DeleteModal from "../../components/DeleteModal";
 import PriorityDropdown from "../../components/PriorityDropdown/index";
 import { loadPriorities, type Priority } from "../../utils/priorities/index";
 const PRIORITY_LEVELS = [
@@ -40,6 +41,13 @@ type CopiedTask = {
   hour?: number;
   day?: string;
   source: "pool" | "scheduled";
+};
+
+type DeleteModalState = {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  onConfirm: () => void | Promise<void>;
 };
 
 type UndoPayload =
@@ -191,6 +199,8 @@ function PlannerPage() {
   const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
   const [undoTimer, setUndoTimer] = useState<number | null>(null);
   const [toastKey, setToastKey] = useState(0);
+  const [deleteModal, setDeleteModal] = useState<DeleteModalState | null>(null);
+  const [deleteModalBusy, setDeleteModalBusy] = useState(false);
   const [poolHover, setPoolHover] = useState(false);
   const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
     null
@@ -736,6 +746,22 @@ function PlannerPage() {
     }
   }
 
+  const closeDeleteModal = () => {
+    if (deleteModalBusy) return;
+    setDeleteModal(null);
+  };
+
+  const confirmDeleteModal = async () => {
+    if (!deleteModal) return;
+    setDeleteModalBusy(true);
+    try {
+      await deleteModal.onConfirm();
+      setDeleteModal(null);
+    } finally {
+      setDeleteModalBusy(false);
+    }
+  };
+
   async function handleCopyTask(task: Task | ScheduledTask) {
     const text = task.title?.trim();
     if (!text) return;
@@ -1096,7 +1122,16 @@ function PlannerPage() {
                         className="icon-btn icon-btn--danger"
                         type="button"
                         aria-label="حذف"
-                        onClick={() => handleDeletePoolTask(task.id)}
+                        onClick={() =>
+                          setDeleteModal({
+                            title: "حذف تسک",
+                            description: task.title
+                              ? `حذف تسک "${task.title}"؟`
+                              : "حذف این تسک؟",
+                            confirmLabel: "حذف",
+                            onConfirm: () => handleDeletePoolTask(task.id),
+                          })
+                        }
                       >
                         <FiTrash2 aria-hidden />
                       </button>
@@ -1350,7 +1385,15 @@ function PlannerPage() {
                                 type="button"
                                 aria-label="حذف"
                                 onClick={() =>
-                                  handleDeleteScheduled(task.id, task.day)
+                                  setDeleteModal({
+                                    title: "حذف تسک",
+                                    description: task.title
+                                      ? `حذف تسک "${task.title}"؟`
+                                      : "حذف این تسک؟",
+                                    confirmLabel: "حذف",
+                                    onConfirm: () =>
+                                      handleDeleteScheduled(task.id, task.day),
+                                  })
                                 }
                               >
                                 <FiTrash2 aria-hidden />
@@ -1437,7 +1480,16 @@ function PlannerPage() {
                               className="icon-btn icon-btn--danger"
                               type="button"
                               aria-label="حذف"
-                              onClick={() => handleDeleteBlock(blockStart)}
+                              onClick={() =>
+                                setDeleteModal({
+                                  title: "حذف تسک",
+                                  description: blockStart.task.title
+                                    ? `حذف تسک "${blockStart.task.title}"؟`
+                                    : "حذف این تسک؟",
+                                  confirmLabel: "حذف",
+                                  onConfirm: () => handleDeleteBlock(blockStart),
+                                })
+                              }
                             >
                               <FiTrash2 aria-hidden />
                             </button>
@@ -1485,7 +1537,16 @@ function PlannerPage() {
                             className="icon-btn icon-btn--danger"
                             type="button"
                             aria-label="حذف"
-                            onClick={() => handleDeleteBlock(covered)}
+                            onClick={() =>
+                              setDeleteModal({
+                                title: "حذف تسک",
+                                description: covered.task.title
+                                  ? `حذف تسک "${covered.task.title}"؟`
+                                  : "حذف این تسک؟",
+                                confirmLabel: "حذف",
+                                onConfirm: () => handleDeleteBlock(covered),
+                              })
+                            }
                           >
                             <FiTrash2 aria-hidden />
                           </button>
@@ -1537,6 +1598,16 @@ function PlannerPage() {
           </div>
         </div>
       )}
+      <DeleteModal
+        open={Boolean(deleteModal)}
+        title={deleteModal?.title ?? ""}
+        description={deleteModal?.description}
+        confirmLabel={deleteModal?.confirmLabel ?? "حذف"}
+        cancelLabel="انصراف"
+        busy={deleteModalBusy}
+        onConfirm={confirmDeleteModal}
+        onCancel={closeDeleteModal}
+      />
       {undoToast && (
         <div key={toastKey} className="toast" role="status" aria-live="polite">
           <div className="toast__content">

@@ -12,6 +12,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { useAuth } from "../../store/authStore";
+import DeleteModal from "../../components/DeleteModal";
 import useTeamSocket from "./useTeamSocket";
 
 type Team = {
@@ -33,11 +34,13 @@ type Group = {
   name: string;
   isPublic: boolean;
   members: string[];
+  createdBy?: string;
 };
 
 type Message = {
   _id: string;
   group: string;
+  originGroup?: string;
   sender: { _id: string; username: string; phone: string };
   type: "text" | "file" | "task_link";
   text?: string;
@@ -47,6 +50,13 @@ type Message = {
   replyTo?: string;
   createdAt: string;
   editedAt?: string;
+};
+
+type DeleteModalState = {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  onConfirm: () => void | Promise<void>;
 };
 
 type AuditLog = {
@@ -102,6 +112,11 @@ const STRINGS = {
     search: "جستجو...",
     all: "همه",
     backToTeams: "بازگشت به تیم‌ها",
+    deleteGroup: "حذف تاپیک",
+    deleteGroupConfirm: "حذف تاپیک \"{name}\"؟",
+    deletedGroup: "تاپیک حذف شده",
+    deleteMessageConfirm: "آیا مطمئنی که می‌خواهی این پیام را حذف کنی؟",
+    deleteMemberConfirm: "حذف عضو \"{name}\" از تیم؟",
     locale: "EN",
   },
   en: {
@@ -146,11 +161,18 @@ const STRINGS = {
     search: "Search...",
     all: "All",
     backToTeams: "Back to teams",
+    deleteGroup: "Delete topic",
+    deleteGroupConfirm: "Delete \"{name}\" topic?",
+    deletedGroup: "Deleted topic",
+    deleteMessageConfirm: "Delete this message?",
+    deleteMemberConfirm: "Remove \"{name}\" from the team?",
     locale: "FA",
   },
 };
 
 const ROLE_OPTIONS = ["owner", "admin", "manager", "developer", "viewer", "member"];
+const DEFAULT_GROUP_NAME = "عمومی";
+const isDefaultGroupName = (name?: string) => name?.trim() === DEFAULT_GROUP_NAME;
 
 export default function TeamChatPage() {
   const { user } = useAuth();
@@ -183,11 +205,23 @@ export default function TeamChatPage() {
   const [editingText, setEditingText] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [unreadGroups, setUnreadGroups] = useState<Record<string, number>>({});
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<DeleteModalState | null>(null);
+  const [deleteModalBusy, setDeleteModalBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const activeTeam = teams.find((team) => team._id === activeTeamId) || null;
   const activeGroup = groups.find((group) => group._id === activeGroupId) || null;
+  const defaultGroupId = useMemo(
+    () => groups.find((group) => isDefaultGroupName(group.name))?._id ?? null,
+    [groups]
+  );
+  const isGeneralGroup = activeGroup ? isDefaultGroupName(activeGroup.name) : false;
+  const groupNameById = useMemo(
+    () => new Map(groups.map((group) => [group._id, group.name])),
+    [groups]
+  );
   const pinnedMessage = useMemo(() => {
     if (!messages.length) return null;
     const withAttachment = [...messages].reverse().find((item) => item.type !== "text");
@@ -197,8 +231,12 @@ export default function TeamChatPage() {
 
   const filteredGroups = useMemo(() => {
     const needle = chatSearch.trim().toLowerCase();
-    if (!needle) return groups;
-    return groups.filter((group) => group.name.toLowerCase().includes(needle));
+    const visibleGroups = !needle
+      ? groups
+      : groups.filter((group) => group.name.toLowerCase().includes(needle));
+    const defaults = visibleGroups.filter((group) => isDefaultGroupName(group.name));
+    const rest = visibleGroups.filter((group) => !isDefaultGroupName(group.name));
+    return [...defaults, ...rest];
   }, [groups, chatSearch]);
 
   useTeamSocket({
@@ -255,6 +293,8 @@ export default function TeamChatPage() {
     setEditingMessageId(null);
     setEditingText("");
     setReplyTo(null);
+    setDeleteModal(null);
+    setDeleteModalBusy(false);
   }, [activeTeamId]);
 
   useEffect(() => {
@@ -273,9 +313,9 @@ export default function TeamChatPage() {
   useEffect(() => {
     if (!activeTeamId || !groups.length) return;
     if (!activeGroupId || !groups.some((group) => group._id === activeGroupId)) {
-      setActiveGroupId(groups[0]._id);
+      setActiveGroupId(defaultGroupId || groups[0]._id);
     }
-  }, [activeTeamId, groups, activeGroupId]);
+  }, [activeTeamId, groups, activeGroupId, defaultGroupId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -364,6 +404,26 @@ export default function TeamChatPage() {
     if (!res.ok) return;
     setGroupName("");
     await fetchGroups(activeTeamId);
+  };
+
+  const handleDeleteGroup = async (group: Group) => {
+    if (!activeTeamId || !user?.userId) return;
+    if (isDefaultGroupName(group.name)) return;
+    setDeletingGroupId(group._id);
+    try {
+      const res = await fetch(`/api/teams/${activeTeamId}/groups/${group._id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.userId }),
+      });
+      if (!res.ok) return;
+      if (activeGroupId === group._id) {
+        setActiveGroupId(null);
+      }
+      await fetchGroups(activeTeamId);
+    } finally {
+      setDeletingGroupId(null);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -457,6 +517,22 @@ export default function TeamChatPage() {
       }
     );
     if (!res.ok) return;
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteModalBusy) return;
+    setDeleteModal(null);
+  };
+
+  const confirmDeleteModal = async () => {
+    if (!deleteModal) return;
+    setDeleteModalBusy(true);
+    try {
+      await deleteModal.onConfirm();
+      setDeleteModal(null);
+    } finally {
+      setDeleteModalBusy(false);
+    }
   };
 
   function scrollToBottom() {
@@ -554,6 +630,10 @@ export default function TeamChatPage() {
           <div className="conversations__list">
             {filteredGroups.map((group) => {
               const isActive = group._id === activeGroupId;
+              const isDefault = isDefaultGroupName(group.name);
+              const canDelete =
+                !isDefault &&
+                (group.createdBy === user?.userId || activeTeam?.owner === user?.userId);
               const preview =
                 isActive && latestMessage
                   ? latestMessage.type === "text"
@@ -570,11 +650,19 @@ export default function TeamChatPage() {
                     })
                   : "";
               return (
-                <button
+                <div
                   key={group._id}
-                  type="button"
                   className={isActive ? "conversation conversation--active" : "conversation"}
                   onClick={() => setActiveGroupId(group._id)}
+                  onKeyDown={(event) => {
+                    if (event.currentTarget !== event.target) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setActiveGroupId(group._id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="conversation__avatar">
                     <span>{initials(group.name)}</span>
@@ -586,10 +674,32 @@ export default function TeamChatPage() {
                     </div>
                     <p className="light small">{preview}</p>
                   </div>
-                  {unreadGroups[group._id] ? (
-                    <span className="badge badge--pill">{unreadGroups[group._id]}</span>
-                  ) : null}
-                </button>
+                  <div className="conversation__actions">
+                    {unreadGroups[group._id] ? (
+                      <span className="badge badge--pill">{unreadGroups[group._id]}</span>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        className="icon-btn icon-btn--danger conversation__delete"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDeleteModal({
+                            title: t.deleteGroup,
+                            description: t.deleteGroupConfirm.replace("{name}", group.name),
+                            confirmLabel: t.remove,
+                            onConfirm: () => handleDeleteGroup(group),
+                          });
+                        }}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        aria-label={t.deleteGroup}
+                        disabled={deletingGroupId === group._id}
+                      >
+                        <FiTrash2 aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -610,7 +720,7 @@ export default function TeamChatPage() {
         <div className="panel chat-panel">
           <div className="chat-panel__header">
             <div className="chat-panel__title">
-              <h2>{activeGroup ? activeGroup.name : t.noGroup}</h2>
+              <h2>{activeGroup ? `#${activeGroup.name}` : t.noGroup}</h2>
               <span className="light small">
                 {members.length} {t.membersCount}
               </span>
@@ -651,6 +761,11 @@ export default function TeamChatPage() {
               const currentDateKey = message.createdAt.slice(0, 10);
               const previousDateKey = previous?.createdAt?.slice(0, 10);
               const showDate = currentDateKey !== previousDateKey;
+              const showOrigin =
+                isGeneralGroup && message.originGroup && message.originGroup !== activeGroupId;
+              const originGroupName = message.originGroup
+                ? groupNameById.get(message.originGroup) || t.deletedGroup
+                : "";
               const reply = message.replyTo
                 ? messages.find((item) => item._id === message.replyTo)
                 : null;
@@ -675,6 +790,13 @@ export default function TeamChatPage() {
                           })}
                         </span>
                       </div>
+                      {showOrigin && (
+                        <div className="chat-message__meta">
+                          <span className="pill pill--solid chat-message__tag">
+                            #{originGroupName}
+                          </span>
+                        </div>
+                      )}
                       {reply && (
                         <div className="chat-message__quote">
                           <span>{reply.sender?.username || reply.sender?.phone}</span>
@@ -747,7 +869,14 @@ export default function TeamChatPage() {
                             <button
                               className="ghost"
                               type="button"
-                              onClick={() => handleDeleteMessage(message._id)}
+                              onClick={() =>
+                                setDeleteModal({
+                                  title: t.remove,
+                                  description: t.deleteMessageConfirm,
+                                  confirmLabel: t.remove,
+                                  onConfirm: () => handleDeleteMessage(message._id),
+                                })
+                              }
                             >
                               <FiTrash2 aria-hidden /> {t.remove}
                             </button>
@@ -912,7 +1041,17 @@ export default function TeamChatPage() {
                     <button
                       className="ghost"
                       type="button"
-                      onClick={() => handleRemoveMember(memberId)}
+                      onClick={() =>
+                        setDeleteModal({
+                          title: t.remove,
+                          description: t.deleteMemberConfirm.replace(
+                            "{name}",
+                            member.nickname || member.user.username || member.user.phone
+                          ),
+                          confirmLabel: t.remove,
+                          onConfirm: () => handleRemoveMember(memberId),
+                        })
+                      }
                     >
                       {t.remove}
                     </button>
@@ -944,6 +1083,17 @@ export default function TeamChatPage() {
           </div>
         </div>
       </aside>
+
+      <DeleteModal
+        open={Boolean(deleteModal)}
+        title={deleteModal?.title ?? ""}
+        description={deleteModal?.description}
+        confirmLabel={deleteModal?.confirmLabel ?? t.remove}
+        cancelLabel={t.cancel}
+        busy={deleteModalBusy}
+        onConfirm={confirmDeleteModal}
+        onCancel={closeDeleteModal}
+      />
     </div>
   );
 }

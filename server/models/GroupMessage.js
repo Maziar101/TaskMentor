@@ -14,6 +14,8 @@ const groupMessageSchema = new Schema(
     fileName: { type: String, trim: true },
     taskId: { type: String, trim: true },
     replyTo: { type: Types.ObjectId, ref: "GroupMessage" },
+    originGroup: { type: Types.ObjectId, ref: "Group" },
+    originMessage: { type: Types.ObjectId, ref: "GroupMessage" },
     editedAt: { type: Date },
   },
   { timestamps: true }

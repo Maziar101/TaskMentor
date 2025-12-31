@@ -5,8 +5,32 @@ const GroupMessage = require("../models/GroupMessage");
 
 const router = express.Router({ mergeParams: true });
 
+const DEFAULT_GROUP_NAME = "عمومی";
+
 function getMember(team, userId) {
   return team.members.find((member) => member.user.toString() === userId);
+}
+
+function isDefaultGroupName(name) {
+  return name?.trim() === DEFAULT_GROUP_NAME;
+}
+
+async function ensureGeneralGroup(teamId, userId) {
+  let group = await Group.findOne({ team: teamId, name: DEFAULT_GROUP_NAME });
+  if (!group) {
+    group = await Group.create({
+      team: teamId,
+      name: DEFAULT_GROUP_NAME,
+      isPublic: true,
+      createdBy: userId,
+      members: [],
+    });
+  } else if (!group.isPublic) {
+    group.isPublic = true;
+    group.members = [];
+    await group.save();
+  }
+  return group;
 }
 
 async function ensureGroupAccess(teamId, groupId, userId) {
@@ -29,22 +53,20 @@ router.get("/", async (req, res, next) => {
     const member = getMember(team, userId.toString());
     if (!member) return res.status(403).json({ message: "not a team member" });
 
+    const generalGroup = await ensureGeneralGroup(teamId, userId.toString());
     let groups = await Group.find({ team: teamId }).sort({ createdAt: -1 }).lean();
-    if (groups.length === 0) {
-      const fallback = await Group.create({
-        team: teamId,
-        name: "عمومی",
-        isPublic: true,
-        createdBy: userId,
-        members: [],
-      });
-      groups = [fallback.toObject()];
-    }
     const filteredGroups = groups.filter(
       (group) =>
         group.isPublic || group.members?.some((memberId) => memberId.toString() === userId)
     );
-    res.json(filteredGroups);
+    const generalId = generalGroup?._id?.toString();
+    const orderedGroups = generalId
+      ? [
+          ...filteredGroups.filter((group) => group._id.toString() === generalId),
+          ...filteredGroups.filter((group) => group._id.toString() !== generalId),
+        ]
+      : filteredGroups;
+    res.json(orderedGroups);
   } catch (err) {
     next(err);
   }
@@ -64,6 +86,12 @@ router.post("/", async (req, res, next) => {
       return res.status(403).json({ message: "not allowed" });
     }
 
+    const trimmedName = name.trim();
+    if (isDefaultGroupName(trimmedName)) {
+      const generalGroup = await ensureGeneralGroup(teamId, userId);
+      return res.status(200).json(generalGroup);
+    }
+
     const normalizedMembers = Array.isArray(memberIds) ? memberIds : [];
     const allowedMembers = team.members
       .map((m) => m.user.toString())
@@ -72,7 +100,7 @@ router.post("/", async (req, res, next) => {
 
     const group = await Group.create({
       team: teamId,
-      name: name.trim(),
+      name: trimmedName,
       isPublic: Boolean(isPublic),
       createdBy: userId,
       members: isPublic ? [] : mergedMembers,
@@ -130,6 +158,8 @@ router.post("/:groupId/messages", async (req, res, next) => {
     const group = await ensureGroupAccess(teamId, groupId, userId.toString());
     if (!group) return res.status(403).json({ message: "no access to group" });
 
+    const generalGroup = await ensureGeneralGroup(teamId, userId.toString());
+
     const payload = {
       group: groupId,
       sender: userId,
@@ -160,6 +190,23 @@ router.post("/:groupId/messages", async (req, res, next) => {
         groupId,
         message: populated,
       });
+    }
+
+    if (generalGroup && generalGroup._id.toString() !== groupId) {
+      const generalMessage = await GroupMessage.create({
+        ...payload,
+        group: generalGroup._id,
+        replyTo: undefined,
+        originGroup: groupId,
+        originMessage: message._id,
+      });
+      const populatedGeneral = await generalMessage.populate("sender", "username phone");
+      if (io) {
+        io.to(`group:${generalGroup._id}`).emit("group.message.created", {
+          groupId: generalGroup._id.toString(),
+          message: populatedGeneral,
+        });
+      }
     }
 
     res.status(201).json(populated);
@@ -203,6 +250,26 @@ router.patch("/:groupId/messages/:messageId", async (req, res, next) => {
         message: populated,
       });
     }
+
+    const generalGroup = await ensureGeneralGroup(teamId, userId.toString());
+    if (generalGroup && generalGroup._id.toString() !== groupId) {
+      const generalCopy = await GroupMessage.findOne({
+        group: generalGroup._id,
+        originMessage: messageId,
+      });
+      if (generalCopy) {
+        generalCopy.text = text.trim();
+        generalCopy.editedAt = new Date();
+        await generalCopy.save();
+        const populatedGeneral = await generalCopy.populate("sender", "username phone");
+        if (io) {
+          io.to(`group:${generalGroup._id}`).emit("group.message.updated", {
+            groupId: generalGroup._id.toString(),
+            message: populatedGeneral,
+          });
+        }
+      }
+    }
     res.json(populated);
   } catch (err) {
     next(err);
@@ -241,6 +308,53 @@ router.delete("/:groupId/messages/:messageId", async (req, res, next) => {
       });
     }
 
+    const generalGroup = await ensureGeneralGroup(teamId, userId.toString());
+    if (generalGroup && generalGroup._id.toString() !== groupId) {
+      const generalCopy = await GroupMessage.findOneAndDelete({
+        group: generalGroup._id,
+        originMessage: messageId,
+      });
+      if (generalCopy && io) {
+        io.to(`group:${generalGroup._id}`).emit("group.message.deleted", {
+          groupId: generalGroup._id.toString(),
+          messageId: generalCopy._id.toString(),
+        });
+      }
+    }
+
+    res.json({ message: "deleted" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/:groupId", async (req, res, next) => {
+  try {
+    const { teamId, groupId } = req.params;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+
+    const team = await Team.findById(teamId);
+    if (!team) return res.status(404).json({ message: "team not found" });
+    const member = getMember(team, userId.toString());
+    if (!member || member.status === "disabled") {
+      return res.status(403).json({ message: "not allowed" });
+    }
+
+    const group = await Group.findOne({ _id: groupId, team: teamId });
+    if (!group) return res.status(404).json({ message: "group not found" });
+    if (isDefaultGroupName(group.name)) {
+      return res.status(403).json({ message: "default group cannot be deleted" });
+    }
+
+    const isOwner = team.owner.toString() === userId;
+    const isCreator = group.createdBy.toString() === userId;
+    if (!isOwner && !isCreator) {
+      return res.status(403).json({ message: "only owner or creator can delete" });
+    }
+
+    await GroupMessage.deleteMany({ group: groupId });
+    await group.deleteOne();
     res.json({ message: "deleted" });
   } catch (err) {
     next(err);

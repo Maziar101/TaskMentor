@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FiTrash2 } from "react-icons/fi";
+import DeleteModal from "../../components/DeleteModal";
 import {
   generateId,
   loadProjects,
@@ -20,6 +21,7 @@ export default function ProjectDetailsPage() {
   const { projectId } = useParams();
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
   const [memberForm, setMemberForm] = useState<MemberFormState>({ name: "", role: "" });
+  const [deleteMember, setDeleteMember] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     saveProjects(projects);
@@ -63,6 +65,12 @@ export default function ProjectDetailsPage() {
           : item
       )
     );
+  };
+
+  const confirmDeleteMember = () => {
+    if (!deleteMember) return;
+    handleRemoveMember(deleteMember.id);
+    setDeleteMember(null);
   };
 
   if (!project) {
@@ -151,7 +159,7 @@ export default function ProjectDetailsPage() {
                 <button
                   className="icon-btn icon-btn--danger"
                   type="button"
-                  onClick={() => handleRemoveMember(member.id)}
+                  onClick={() => setDeleteMember({ id: member.id, name: member.name })}
                   aria-label="حذف عضو"
                 >
                   <FiTrash2 aria-hidden />
@@ -161,6 +169,18 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
       </section>
+
+      <DeleteModal
+        open={Boolean(deleteMember)}
+        title="حذف عضو"
+        description={
+          deleteMember ? `حذف عضو "${deleteMember.name}" از پروژه؟` : ""
+        }
+        confirmLabel="حذف"
+        cancelLabel="انصراف"
+        onConfirm={confirmDeleteMember}
+        onCancel={() => setDeleteMember(null)}
+      />
     </div>
   );
 }

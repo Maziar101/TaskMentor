@@ -1918,6 +1918,17 @@ body {
   gap: 8px;
 }
 
+.chat-message__meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.chat-message__tag {
+  font-size: 0.74rem;
+}
+
 .chat-message__quote {
   background: rgba(36, 27, 62, 0.6);
   border: 1px solid rgba(101, 236, 204, 0.25);
@@ -2038,6 +2049,11 @@ body {
   text-align: start;
 }
 
+.conversation:focus-visible {
+  outline: 2px solid rgba(247, 208, 70, 0.6);
+  outline-offset: 2px;
+}
+
 .conversation:hover {
   border-color: rgba(247, 208, 70, 0.5);
   transform: translateY(-1px);
@@ -2069,6 +2085,18 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.conversation__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conversation__delete {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
 }
 
 .chat-composer__row {

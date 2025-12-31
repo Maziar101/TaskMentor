@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiPlus, FiTrash2, FiCheckCircle, FiClock } from "react-icons/fi";
+import DeleteModal from "../../components/DeleteModal";
 import { loadPriorities, savePriorities, generateId, type Priority } from "../../utils/priorities/index";
+
+type DeleteTarget =
+  | { type: "priority"; id: string; title: string }
+  | { type: "task"; priorityId: string; taskId: string; title: string };
 
 export default function PrioritiesPage() {
   const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities());
@@ -11,6 +16,7 @@ export default function PrioritiesPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDue, setNewTaskDue] = useState("");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   useEffect(() => {
     savePriorities(priorities);
@@ -88,6 +94,29 @@ export default function PrioritiesPage() {
     () => priorities.reduce((acc, p) => acc + p.tasks.length, 0),
     [priorities]
   );
+
+  const deleteTitle = deleteTarget
+    ? deleteTarget.type === "priority"
+      ? "حذف اولویت"
+      : "حذف تسک"
+    : "";
+  const deleteDescription = deleteTarget
+    ? deleteTarget.type === "priority"
+      ? `آیا مطمئنی که می‌خواهی اولویت "${deleteTarget.title}" را حذف کنی؟`
+      : deleteTarget.title
+      ? `حذف تسک "${deleteTarget.title}"؟`
+      : "حذف این تسک؟"
+    : "";
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === "priority") {
+      handleDeletePriority(deleteTarget.id);
+    } else {
+      deleteTask(deleteTarget.priorityId, deleteTarget.taskId);
+    }
+    setDeleteTarget(null);
+  };
 
   return (
     <div className="priorities" dir="rtl">
@@ -175,13 +204,22 @@ export default function PrioritiesPage() {
               <div>
                 <h3>{priority.title}</h3>
                 {priority.description && <p className="light small">{priority.description}</p>}
-                {priority.due && (
-                  <span className="pill pill--solid">
-                    <FiClock aria-hidden /> تا {priority.due}
-                  </span>
-                )}
-              </div>
-              <button className="icon-btn icon-btn--danger" onClick={() => handleDeletePriority(priority.id)}>
+              {priority.due && (
+                <span className="pill pill--solid">
+                  <FiClock aria-hidden /> تا {priority.due}
+                </span>
+              )}
+            </div>
+              <button
+                className="icon-btn icon-btn--danger"
+                onClick={() =>
+                  setDeleteTarget({
+                    type: "priority",
+                    id: priority.id,
+                    title: priority.title,
+                  })
+                }
+              >
                 <FiTrash2 />
               </button>
             </header>
@@ -200,7 +238,17 @@ export default function PrioritiesPage() {
                     <strong className={task.done ? "line-through" : ""}>{task.title}</strong>
                     {task.due && <span className="light small">تا {task.due}</span>}
                   </div>
-                  <button className="icon-btn icon-btn--danger" onClick={() => deleteTask(priority.id, task.id)}>
+                  <button
+                    className="icon-btn icon-btn--danger"
+                    onClick={() =>
+                      setDeleteTarget({
+                        type: "task",
+                        priorityId: priority.id,
+                        taskId: task.id,
+                        title: task.title,
+                      })
+                    }
+                  >
                     <FiTrash2 aria-hidden />
                   </button>
                 </div>
@@ -209,6 +257,16 @@ export default function PrioritiesPage() {
           </article>
         ))}
       </section>
+
+      <DeleteModal
+        open={Boolean(deleteTarget)}
+        title={deleteTitle}
+        description={deleteDescription}
+        confirmLabel="حذف"
+        cancelLabel="انصراف"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
