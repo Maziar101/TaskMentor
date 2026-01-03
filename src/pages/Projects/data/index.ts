@@ -105,9 +105,10 @@ export function saveProjects(projects: Project[]) {
 }
 
 export function projectProgress(project: Project) {
-  const total = project.tasks.length || 1;
+  const total = project.tasks.length;
   const done = project.tasks.filter((t) => t.done).length;
-  return { total, done, percent: Math.round((done / total) * 100) };
+  const percent = total ? Math.round((done / total) * 100) : 0;
+  return { total, done, percent };
 }
 
 export function priorityLabel(priority?: ProjectPriority) {

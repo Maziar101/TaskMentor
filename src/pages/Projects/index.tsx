@@ -6,11 +6,7 @@ import ProjectTile from "./ProjectTile/index";
 import ProjectsToolbar from "./ProjectsToolbar/index";
 import useProjects from "./useProjects/index";
 
-const EMPTY_DRAFT = { title: "", due: "" };
-
-type DeleteTarget =
-  | { type: "project"; projectId: string; title: string }
-  | { type: "task"; projectId: string; taskId: string; title: string };
+type DeleteTarget = { projectId: string; title: string };
 
 export default function ProjectsPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -27,35 +23,16 @@ export default function ProjectsPage() {
     setFormField,
     handleAddProject,
     handleDeleteProject,
-    taskDrafts,
-    updateTaskDraft,
-    handleAddTask,
-    toggleTask,
-    deleteTask,
-    expandedProjectId,
-    toggleExpanded,
   } = useProjects();
 
-  const deleteTitle = deleteTarget
-    ? deleteTarget.type === "project"
-      ? "حذف پروژه"
-      : "حذف تسک"
-    : "";
+  const deleteTitle = deleteTarget ? "حذف پروژه" : "";
   const deleteDescription = deleteTarget
-    ? deleteTarget.type === "project"
-      ? `آیا مطمئنی که می‌خواهی پروژه "${deleteTarget.title}" را حذف کنی؟`
-      : deleteTarget.title
-      ? `حذف تسک "${deleteTarget.title}"؟`
-      : "حذف این تسک؟"
+    ? `آیا مطمئنی که می‌خواهی پروژه "${deleteTarget.title}" را حذف کنی؟`
     : "";
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    if (deleteTarget.type === "project") {
-      handleDeleteProject(deleteTarget.projectId);
-    } else {
-      deleteTask(deleteTarget.projectId, deleteTarget.taskId);
-    }
+    handleDeleteProject(deleteTarget.projectId);
     setDeleteTarget(null);
   };
 
@@ -76,25 +53,10 @@ export default function ProjectsPage() {
           <ProjectTile
             key={project.id}
             project={project}
-            draft={taskDrafts[project.id] ?? EMPTY_DRAFT}
-            isExpanded={expandedProjectId === project.id}
-            onToggleExpand={() => toggleExpanded(project.id)}
             onDelete={() =>
               setDeleteTarget({
-                type: "project",
                 projectId: project.id,
                 title: project.title,
-              })
-            }
-            onDraftChange={(patch) => updateTaskDraft(project.id, patch)}
-            onAddTask={() => handleAddTask(project.id)}
-            onToggleTask={(taskId) => toggleTask(project.id, taskId)}
-            onDeleteTask={(taskId) =>
-              setDeleteTarget({
-                type: "task",
-                projectId: project.id,
-                taskId,
-                title: project.tasks.find((task) => task.id === taskId)?.title ?? "",
               })
             }
           />

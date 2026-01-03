@@ -6,8 +6,6 @@ import {
   saveProjects,
   type Project,
   type ProjectPriority,
-  type TaskDraft,
-  type TaskDrafts,
 } from "../data/index";
 
 export type ProjectFormState = {
@@ -17,14 +15,10 @@ export type ProjectFormState = {
   description: string;
 };
 
-const EMPTY_DRAFT: TaskDraft = { title: "", due: "" };
-
 export default function useProjects() {
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
   const [filter, setFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
-  const [taskDrafts, setTaskDrafts] = useState<TaskDrafts>({});
   const [form, setForm] = useState<ProjectFormState>({
     title: "",
     priority: undefined,
@@ -74,72 +68,11 @@ export default function useProjects() {
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
   };
 
-  const handleAddTask = (projectId: string) => {
-    const draft = taskDrafts[projectId] ?? EMPTY_DRAFT;
-    const trimmed = draft.title.trim();
-    if (!trimmed) return;
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              tasks: [
-                ...p.tasks,
-                {
-                  id: generateId(),
-                  title: trimmed,
-                  due: draft.due || undefined,
-                  done: false,
-                },
-              ],
-            }
-          : p
-      )
-    );
-    setTaskDrafts((prev) => ({ ...prev, [projectId]: EMPTY_DRAFT }));
-  };
-
-  const toggleTask = (projectId: string, taskId: string) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              tasks: p.tasks.map((t) =>
-                t.id === taskId ? { ...t, done: !t.done } : t
-              ),
-            }
-          : p
-      )
-    );
-  };
-
-  const deleteTask = (projectId: string, taskId: string) => {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) }
-          : p
-      )
-    );
-  };
-
-  const updateTaskDraft = (projectId: string, patch: Partial<TaskDraft>) => {
-    setTaskDrafts((prev) => ({
-      ...prev,
-      [projectId]: { ...(prev[projectId] ?? EMPTY_DRAFT), ...patch },
-    }));
-  };
-
   const toggleCreateOpen = () => setCreateOpen((prev) => !prev);
 
   const openCreate = () => setCreateOpen(true);
 
   const closeCreate = () => setCreateOpen(false);
-
-  const toggleExpanded = (projectId: string) => {
-    setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
-  };
 
   const setFormField = <K extends keyof ProjectFormState>(
     key: K,
@@ -162,12 +95,5 @@ export default function useProjects() {
     setFormField,
     handleAddProject,
     handleDeleteProject,
-    taskDrafts,
-    updateTaskDraft,
-    handleAddTask,
-    toggleTask,
-    deleteTask,
-    expandedProjectId,
-    toggleExpanded,
   };
 }

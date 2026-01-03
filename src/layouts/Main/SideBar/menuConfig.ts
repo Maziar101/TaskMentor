@@ -20,7 +20,6 @@ export type MenuItem = {
 export const menuItems: MenuItem[] = [
   { label: "داشبورد", to: "/dashboard", icon: FiGrid },
   { label: "برنامه‌ریز", to: "/planner", icon: FiCalendar },
-  { label: "اولویت‌ها", to: "/priorities", icon: FiTarget },
   { label: "پروژه‌ها", to: "/projects", icon: FiBriefcase },
   { label: "تیم‌ها", to: "/teams", icon: FiUsers },
   { label: "اهداف کوتاه‌مدت", to: "/short-goals", icon: FiTarget },

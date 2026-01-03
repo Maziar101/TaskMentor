@@ -1443,8 +1443,8 @@ body {
   white-space: nowrap;
   padding-left: 6px;
   border-left: 2px solid rgba(247, 208, 70, 0.7);
-  animation: typing-reveal 4s steps(60, end) 0.4s forwards,
-    typing-caret 0.8s step-end infinite;
+  animation: typing-reveal 5s steps(60, end) 0.4s forwards,
+    typing-caret 1.3s step-end infinite;
 }
 
 @keyframes typing-reveal {
@@ -2715,6 +2715,88 @@ body {
   gap: 6px;
 }
 
+.project-details {
+  gap: 20px;
+}
+
+.project-details__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.project-details__overview {
+  grid-column: 1 / -1;
+}
+
+.project-details__overview-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+
+.project-details__chart {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.project-details__chart-label {
+  display: grid;
+  gap: 4px;
+}
+
+.project-progress {
+  --progress: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #f7d046 0% calc(var(--progress) * 1%),
+    rgba(255, 255, 255, 0.08) 0 100%
+  );
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.project-progress::after {
+  content: "";
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: rgba(17, 12, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.project-progress span {
+  position: absolute;
+  font-weight: 700;
+  color: #f4edff;
+}
+
+.project-details__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  min-width: 220px;
+}
+
+.project-details__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #cbbde6;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.project-details__stat strong {
+  color: #f4edff;
+  font-size: 0.95rem;
+}
+
 
 .project-form {
   width: 100%;
@@ -2824,6 +2906,16 @@ body {
   .projects-board__stats {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 900px) {
+  .project-details__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-details__overview {
+    grid-column: auto;
   }
 }
 
@@ -3022,6 +3114,12 @@ body {
   background: rgba(120, 255, 193, 0.12);
   border-color: rgba(120, 255, 193, 0.4);
   color: #d8ffe9;
+}
+
+.pill--blocked {
+  background: rgba(255, 129, 129, 0.14);
+  border-color: rgba(255, 129, 129, 0.45);
+  color: #ffd6d6;
 }
 
 .otp {

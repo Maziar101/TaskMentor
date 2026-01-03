@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import GoalCard from "../../components/GoalCard/index";
-import { statusLabel } from "../../utils/labels/index";
 
-type Goal = {
-  id: string;
-  title: string;
-  desc: string;
-  due: string;
-  status: "in-progress" | "blocked" | "done";
-  impact: "high" | "medium" | "low";
-  progress: number;
-};
 
 type FocusTask = {
   id: string;
   title: string;
   slot: string;
   status: "in-progress" | "blocked" | "done";
+};
+
+type RecentTask = {
+  id: string;
+  title: string;
+  meta: string;
+  status: "pending" | "done";
 };
 
 type ScheduleItem = {
@@ -50,35 +46,6 @@ type ProjectsSummary = {
 
 const PROJECTS_SUMMARY_KEY = "taskmentor-projects-summary";
 
-const FALLBACK_GOALS: Goal[] = [
-  {
-    id: "g1",
-    title: "بستن گزارش هفتگی تیم",
-    desc: "جمع‌بندی تسک‌های مهم و ریسک‌های این هفته",
-    due: "تا آخر هفته",
-    status: "in-progress",
-    impact: "high",
-    progress: 65,
-  },
-  {
-    id: "g2",
-    title: "تحویل نسخه MVP مشتری",
-    desc: "دموی قابل ارائه همراه با چک‌لیست QA سبک",
-    due: "۴ روز دیگر",
-    status: "blocked",
-    impact: "high",
-    progress: 35,
-  },
-  {
-    id: "g3",
-    title: "مرتب‌سازی بک‌لاگ اسپرینت",
-    desc: "گروه‌بندی کارت‌ها و حذف آیتم‌های قدیمی",
-    due: "۲ روز دیگر",
-    status: "in-progress",
-    impact: "medium",
-    progress: 50,
-  },
-];
 
 const FALLBACK_FOCUS: FocusTask[] = [
   { id: "f1", title: "بازبینی PRهای معطل", slot: "۰۹:۳۰ - ۱۰:۰۰", status: "in-progress" },
@@ -124,14 +91,6 @@ function scheduleLabel(type: ScheduleItem["tag"] | undefined) {
     break: "استراحت",
   };
   return map[type ?? ""] ?? "تسک";
-}
-
-function toImpact(priority?: string): Goal["impact"] {
-  if (!priority) return "medium";
-  const normalized = priority.toLowerCase();
-  if (normalized.includes("high") || normalized === "high") return "high";
-  if (normalized.includes("low") || normalized === "low") return "low";
-  return "medium";
 }
 
 const formatFaNumber = new Intl.NumberFormat("fa-IR");
@@ -228,47 +187,6 @@ export default function DashboardPage() {
     [user, pool, schedule]
   );
 
-  const goals: Goal[] = useMemo(() => {
-    const items: Goal[] = [];
-    const combined = [...sortedSchedule, ...pool].slice(0, 3);
-    combined.forEach((item, idx) => {
-      const isSchedule = (item as ScheduleItem).hour !== undefined;
-      const done = (item as ScheduleItem).done;
-      items.push({
-        id: (item as ScheduleItem)._id ?? `goal-${idx}`,
-        title: item.title,
-        desc: item.tag ? `برچسب: ${item.tag}` : isSchedule ? "تسک برنامه‌ریزی‌شده" : "از بک‌لاگ",
-        due: isSchedule ? "امروز" : "بک‌لاگ",
-        status: done ? "done" : "in-progress",
-        impact: toImpact(item.priority),
-        progress: done ? 100 : Math.min(90, 40 + idx * 15),
-      });
-    });
-
-    if (projectSummary) {
-      const impact =
-        projectSummary.highestPriority !== undefined
-          ? toImpact(projectSummary.highestPriority)
-          : projectSummary.percent >= 75
-          ? "high"
-          : "medium";
-      items.unshift({
-        id: "project-progress",
-        title: "پیشرفت پروژه‌ها",
-        desc: `تکمیل ${formatFaNumber.format(projectSummary.doneTasks)} از ${formatFaNumber.format(
-          projectSummary.totalTasks
-        )} تسک پروژه‌ای`,
-        due: projectSummary.nextDeadline ? `نزدیک‌ترین ددلاین: ${projectSummary.nextDeadline}` : "بدون ددلاین",
-        status: projectSummary.percent >= 100 ? "done" : "in-progress",
-        impact,
-        progress: projectSummary.percent,
-      });
-    }
-
-    if (items.length === 0) return FALLBACK_GOALS;
-    return items.slice(0, 3);
-  }, [sortedSchedule, pool, projectSummary]);
-
   const focusTasks: FocusTask[] = useMemo(() => {
     if (sortedSchedule.length) {
       return sortedSchedule.slice(0, 3).map((item) => ({
@@ -291,9 +209,43 @@ export default function DashboardPage() {
 
   const scheduleForToday = useMemo(() => {
     if (sortedSchedule.length) return sortedSchedule;
-    if (hasLiveData) return [];
-    return FALLBACK_SCHEDULE;
-  }, [sortedSchedule, hasLiveData]);
+    if (!user) return FALLBACK_SCHEDULE;
+    return [];
+  }, [sortedSchedule, user]);
+
+  const recentPendingTasks = useMemo<RecentTask[]>(() => {
+    const pendingSchedule = scheduleForToday.filter((item) => !item.done);
+    const pendingFromSchedule = pendingSchedule.slice(-2).reverse();
+    const pending: RecentTask[] = pendingFromSchedule.map((item) => ({
+      id: item._id,
+      title: item.title,
+      meta: formatHour(item.hour),
+      status: "pending",
+    }));
+    if (pending.length < 2 && pool.length) {
+      const needed = 2 - pending.length;
+      const extras = pool.slice(0, needed).map((task, idx) => ({
+        id: task._id ?? `pool-${idx}`,
+        title: task.title,
+        meta: task.tag ? `برچسب: ${task.tag}` : "بک‌لاگ",
+        status: "pending" as const,
+      }));
+      pending.push(...extras);
+    }
+    return pending;
+  }, [scheduleForToday, pool]);
+
+  const latestDoneTask = useMemo<RecentTask | null>(() => {
+    const doneTasks = scheduleForToday.filter((item) => item.done);
+    const latest = doneTasks[doneTasks.length - 1];
+    if (!latest) return null;
+    return {
+      id: latest._id,
+      title: latest.title,
+      meta: formatHour(latest.hour),
+      status: "done",
+    };
+  }, [scheduleForToday]);
 
   const riskList = useMemo(() => {
     const nowHour = new Date().getHours();
@@ -363,73 +315,18 @@ export default function DashboardPage() {
               `امروز ${formatFaNumber.format(focusTasks.length)} کار مهم داری؛ اولی در ${focusTasks[0]?.slot} است.`
             ) : (
               <span className="typing-text">
-                حقیقتی که در ذهن شما شکل میگیرد ، روزی تبدیل به واقعیت خواهد شد
+                حقیقتی که در ذهن شما شکل میگیرد ، روزی تبدیل به واقعیت خواهد شد ...
               </span>
             )}
           </p>
           <div className="counts">
             <span>{formatFaNumber.format(scheduleForToday.length)} تسک امروز</span>
-            <span>{formatFaNumber.format(pool.length)} بک‌لاگ</span>
-            <span>{formatFaNumber.format(goals.length)} هدف کوتاه</span>
             <span>{formatFaNumber.format(projectSummary?.totalProjects ?? 0)} پروژه</span>
           </div>
         </div>
-        <div className="panel compact">
-          <p className="eyebrow">KPI سریع</p>
-          <p className="light">مرور کوتاه عملکرد امروز و پروژه‌ها.</p>
-          <div className="counts">
-            <span>
-              {formatFaNumber.format(todayProgress.done)}/{formatFaNumber.format(todayProgress.total)} امروز
-            </span>
-            <span>پیشرفت: {formatFaNumber.format(todayProgress.percent)}٪</span>
-            <span>بک‌لاگ: {formatFaNumber.format(pool.length)}</span>
-            <span>
-              پروژه‌ها: {formatFaNumber.format(projectSummary?.percent ?? 0)}٪
-            </span>
-          </div>
-        </div>
-        <div className="panel compact">
-          <p className="eyebrow">عادت و استریک</p>
-          <p className="light">
-            {hasLiveData
-              ? `${formatFaNumber.format(streakDays)} روز متوالی برنامه‌ریزی تکمیل شده`
-              : "۳ روز متوالی برنامه‌ریزی روزانه تکمیل شده."}
-          </p>
-          <div className="counts">
-            <span>⏱️ {formatFaNumber.format(scheduleForToday.length || 1)} بلوک تمرکز</span>
-            <span>✅ {formatFaNumber.format(todayProgress.done)} تکمیل امروز</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="goal-grid">
-        {goals.map((goal) => (
-          <GoalCard
-            key={goal.id}
-            title={goal.title}
-            desc={goal.desc}
-            due={goal.due}
-            status={goal.status}
-            impact={goal.impact}
-            progress={goal.progress}
-          />
-        ))}
       </section>
 
       <section className="goal-quick goal-quick--two-col">
-        <div className="panel compact">
-          <p className="eyebrow">تمرکز امروز</p>
-          <p className="light">سه کاری که باید همین امروز جلو برود:</p>
-          <div className="stacked-tasks">
-            {focusTasks.map((task) => (
-              <div key={task.id} className="stacked-task">
-                <span className="stacked-task__title">{task.title}</span>
-                <span className="pill">{task.slot}</span>
-                <span className={`badge badge--${task.status}`}>{statusLabel(task.status)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
         <div className="panel compact">
           <p className="eyebrow">برنامه امروز</p>
           <p className="light">هماهنگی جلسات، تمرکز و استراحت.</p>
@@ -446,22 +343,34 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="panel compact">
-          <p className="eyebrow">ریسک‌های فوری</p>
-          <p className="light">مواردی که ممکن است اهداف کوتاه‌مدت را کند کند:</p>
-          <ul className="list">
-            {riskList.map((risk, idx) => (
-              <li key={idx}>{risk}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="panel compact">
-          <p className="eyebrow">نوتیف و آپدیت</p>
-          <p className="light">تغییرات تازه‌ای که باید بدانی:</p>
-          <ul className="list">
-            {notifications.map((note, idx) => (
-              <li key={idx}>{note}</li>
-            ))}
-          </ul>
+          <p className="eyebrow">تسک های اخیر</p>
+          <p className="light">دو تسک آخر انجام نشده و آخرین تسک انجام شده.</p>
+          <p className="small">انجام نشده</p>
+          <div className="stacked-tasks">
+            {recentPendingTasks.length ? (
+              recentPendingTasks.map((task) => (
+                <div key={task.id} className="stacked-task">
+                  <span className="stacked-task__title">{task.title}</span>
+                  <span className="pill">{task.meta}</span>
+                  <span className="badge badge--in-progress">انجام نشده</span>
+                </div>
+              ))
+            ) : (
+              <p className="empty">تسک معوقی ندارید.</p>
+            )}
+          </div>
+          <p className="small">آخرین انجام شده</p>
+          <div className="stacked-tasks">
+            {latestDoneTask ? (
+              <div className="stacked-task">
+                <span className="stacked-task__title">{latestDoneTask.title}</span>
+                <span className="pill">{latestDoneTask.meta}</span>
+                <span className="badge badge--done">انجام شد</span>
+              </div>
+            ) : (
+              <p className="empty">تسک انجام شده‌ای ثبت نشده.</p>
+            )}
+          </div>
         </div>
       </section>
     </div>

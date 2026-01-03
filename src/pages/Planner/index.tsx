@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import {
   FiCheck,
   FiTrash2,
@@ -11,202 +11,99 @@ import {
 } from "react-icons/fi";
 import DeleteModal from "../../components/DeleteModal";
 import PriorityDropdown from "../../components/PriorityDropdown/index";
-import { loadPriorities, type Priority } from "../../utils/priorities/index";
-const PRIORITY_LEVELS = [
-  { id: undefined, label: "بدون اولویت", color: "var(--priority-none, #555a65)" },
-  { id: "low", label: "پایین", color: "#2ecc71" },
-  { id: "medium", label: "متوسط", color: "#f39c12" },
-  { id: "high", label: "بالا", color: "#ff5f6d" },
-];
-type BaseTag = "focus" | "meeting" | "errand";
-
-type Task = {
-  id: string;
-  title: string;
-  tag?: BaseTag | string;
-  priorityId?: string;
-};
-
-type ScheduledTask = Task & {
-  hour: number;
-  day: string;
-  done?: boolean;
-};
-
-type CopiedTask = {
-  id: string;
-  title: string;
-  tag?: Task["tag"];
-  priorityId?: string;
-  hour?: number;
-  day?: string;
-  source: "pool" | "scheduled";
-};
-
-type DeleteModalState = {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  onConfirm: () => void | Promise<void>;
-};
-
-type UndoPayload =
-  | { type: "pool"; tasks: Task[] }
-  | { type: "scheduled"; tasks: ScheduledTask[]; day: string };
-
-type MergedBlock = {
-  task: ScheduledTask;
-  start: number;
-  end: number;
-};
-
-type JalaliDateParts = {
-  jy: number;
-  jm: number;
-  jd: number;
-};
-
-type JalaliMonthDays = Array<number | null>;
-
-type GregorianDateParts = {
-  gy: number;
-  gm: number;
-  gd: number;
-};
-
-type StorageShape = {
-  notes?: Record<string, string>;
-  customTags?: string[];
-};
-
-const PRIORITY_RANK: Record<string, number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-};
-
-const STORAGE_KEY = "taskmentor-data";
-const PERSIAN_NUMBER = new Intl.NumberFormat("fa-IR");
-const FALLBACK_HEX = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-const JALALI_MONTHS = [
-  "فروردین",
-  "اردیبهشت",
-  "خرداد",
-  "تیر",
-  "مرداد",
-  "شهریور",
-  "مهر",
-  "آبان",
-  "آذر",
-  "دی",
-  "بهمن",
-  "اسفند",
-];
-
-function generateId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.getRandomValues === "function"
-  ) {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .replace(
-        /^(.{8})(.{4})(.{4})(.{4})(.{12}).*/,
-        (_m, p1, p2, p3, p4, p5) => `${p1}-${p2}-${p3}-${p4}-${p5}`
-      );
-  }
-  return FALLBACK_HEX.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-const tagLabels: Record<BaseTag, string> = {
-  focus: "تمرکز",
-  meeting: "جلسه",
-  errand: "کارهای ریز",
-};
-const baseTags: BaseTag[] = ["focus", "meeting", "errand"];
-
-const hours = Array.from({ length: 24 }, (_, i) => i);
-
-function formatHour(hour: number) {
-  return `${hour.toString().padStart(2, "0")}:00`;
-}
-
-function todayKey(reference = new Date()) {
-  return dateKeyFromGregorian(
-    reference.getUTCFullYear(),
-    reference.getUTCMonth() + 1,
-    reference.getUTCDate()
-  );
-}
-
-function readStorage(): StorageShape {
-  if (typeof window === "undefined") return {};
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw) as StorageShape;
-    return {
-      notes: parsed.notes ?? {},
-      customTags: parsed.customTags ?? [],
-    };
-  } catch (e) {
-    console.warn("Failed to parse stored data, resetting.", e);
-    return {};
-  }
-}
+import { loadPriorities } from "../../utils/priorities/index";
+import {
+  JALALI_MONTHS,
+  PERSIAN_NUMBER,
+  PRIORITY_LEVELS,
+  STORAGE_KEY,
+  baseTags,
+  buildJalaliMonthDays,
+  buildYearOptions,
+  createPlannerInitialState,
+  dateKeyFromJalali,
+  formatGregorianSpanForJalaliMonth,
+  formatHour,
+  formatJalaliMonthName,
+  generateId,
+  getPriorityColor,
+  getTagClass,
+  getTagLabel,
+  hours,
+  mergeConsecutive,
+  plannerReducer,
+  retagSchedule,
+  sortByHour,
+  todayKey,
+  toJalaliParts,
+  type BaseTag,
+  type JalaliMonthDays,
+  type MergedBlock,
+  type PlannerState,
+  type ScheduledTask,
+  type StorageShape,
+  type Task,
+  type UndoPayload,
+} from "./utils";
 
 function PlannerPage() {
-  const [activeDay, setActiveDay] = useState<string>(todayKey());
-  const [pool, setPool] = useState<Task[]>([]);
-  const [schedule, setSchedule] = useState<Record<string, ScheduledTask[]>>({});
-  const [notes] = useState<Record<string, string>>(
-    () => readStorage().notes ?? {}
+  const [state, dispatch] = useReducer(
+    plannerReducer,
+    undefined,
+    createPlannerInitialState
   );
-  const [customTags, setCustomTags] = useState<string[]>(
-    () => readStorage().customTags ?? []
+  const {
+    activeDay,
+    pool,
+    schedule,
+    notes,
+    customTags,
+    newTaskTitle,
+    newTaskTag,
+    filterTag,
+    search,
+    hoverHour,
+    now,
+    jalaliMonthView,
+    tagModalOpen,
+    tagModalValue,
+    editingTag,
+    tagModalError,
+    formError,
+    priorities,
+    newTaskPriority,
+    undoToast,
+    undoTimer,
+    toastKey,
+    deleteModal,
+    deleteModalBusy,
+    poolHover,
+    calendarModal,
+    copiedTaskId,
+    copiedTask,
+  } = state;
+
+  const setField = useCallback(
+    <K extends keyof PlannerState>(
+      key: K,
+      value: PlannerState[K] | ((prev: PlannerState[K]) => PlannerState[K])
+    ) => {
+      dispatch({
+        type: "update",
+        updater: (prev) => {
+          const nextValue =
+            typeof value === "function"
+              ? (value as (prev: PlannerState[K]) => PlannerState[K])(prev[key])
+              : value;
+          if (Object.is(nextValue, prev[key])) return prev;
+          return { ...prev, [key]: nextValue } as PlannerState;
+        },
+      });
+    },
+    [dispatch]
   );
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskTag, setNewTaskTag] = useState<Task["tag"]>();
-  const [filterTag, setFilterTag] = useState<string | "all">("all");
-  const [search] = useState("");
-  const [hoverHour, setHoverHour] = useState<number | null>(null);
-  const [now, setNow] = useState(() => new Date());
-  const [jalaliMonthView, setJalaliMonthView] = useState(() =>
-    toJalaliParts(new Date())
-  );
-  const [tagModalOpen, setTagModalOpen] = useState(false);
-  const [tagModalValue, setTagModalValue] = useState("");
-  const [editingTag, setEditingTag] = useState<string | null>(null);
-  const [tagModalError, setTagModalError] = useState("");
-  const [formError, setFormError] = useState("");
-  const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities());
-  const [newTaskPriority, setNewTaskPriority] = useState<string | undefined>();
+
   const copyTimeoutRef = useRef<number | null>(null);
-  const [undoToast, setUndoToast] = useState<UndoPayload | null>(null);
-  const [undoTimer, setUndoTimer] = useState<number | null>(null);
-  const [toastKey, setToastKey] = useState(0);
-  const [deleteModal, setDeleteModal] = useState<DeleteModalState | null>(null);
-  const [deleteModalBusy, setDeleteModalBusy] = useState(false);
-  const [poolHover, setPoolHover] = useState(false);
-  const [calendarModal, setCalendarModal] = useState<null | "month" | "year">(
-    null
-  );
-  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [copiedTask, setCopiedTask] = useState<CopiedTask | null>(null);
   const userId = useMemo(() => {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem("taskmentor-user");
@@ -234,12 +131,12 @@ function PlannerPage() {
               priorityId: t.priority,
             }))
           : [];
-      setPool(mapped);
+      setField("pool", mapped);
     } catch (err) {
       console.error(err);
-      setPool([]);
+      setField("pool", []);
     }
-  }, [userId]);
+  }, [userId, setField]);
 
   const loadSchedule = useCallback(
     async (day: string) => {
@@ -260,12 +157,12 @@ function PlannerPage() {
                 done: Boolean(item.done),
               }))
             : [];
-        setSchedule((prev) => ({ ...prev, [day]: mapped }));
+        setField("schedule", (prev) => ({ ...prev, [day]: mapped }));
       } catch (err) {
         console.error(err);
       }
     },
-    [userId]
+    [userId, setField]
   );
 
   useEffect(() => {
@@ -275,11 +172,11 @@ function PlannerPage() {
 
   useEffect(() => {
     function syncPriorities() {
-      setPriorities(loadPriorities());
+      setField("priorities", loadPriorities());
     }
     window.addEventListener("storage", syncPriorities);
     return () => window.removeEventListener("storage", syncPriorities);
-  }, []);
+  }, [setField]);
 
 
   useEffect(() => {
@@ -293,9 +190,9 @@ function PlannerPage() {
   }, [userId, activeDay, loadSchedule]);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60000);
+    const id = setInterval(() => setField("now", new Date()), 60000);
     return () => clearInterval(id);
-  }, []);
+  }, [setField]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -366,8 +263,8 @@ function PlannerPage() {
   }, [customTags]);
 
   useEffect(() => {
-    setJalaliMonthView(toJalaliParts(activeDate));
-  }, [activeDate]);
+    setField("jalaliMonthView", toJalaliParts(activeDate));
+  }, [activeDate, setField]);
 
   const mergedBlocks = useMemo(
     () => mergeConsecutive(daySchedule),
@@ -401,18 +298,18 @@ function PlannerPage() {
 
   function showUndoToast(payload: UndoPayload) {
     if (undoTimer) window.clearTimeout(undoTimer);
-    setUndoToast(payload);
-    setToastKey((k) => k + 1);
-    const timer = window.setTimeout(() => setUndoToast(null), 5000);
-    setUndoTimer(timer);
+    setField("undoToast", payload);
+    setField("toastKey", (k) => k + 1);
+    const timer = window.setTimeout(() => setField("undoToast", null), 5000);
+    setField("undoTimer", timer);
   }
 
   async function handleUndo() {
     if (!undoToast) return;
     if (undoTimer) window.clearTimeout(undoTimer);
-    setUndoTimer(null);
+    setField("undoTimer", null);
     const payload = undoToast;
-    setUndoToast(null);
+    setField("undoToast", null);
     if (!userId) return;
     try {
       if (payload.type === "pool") {
@@ -515,10 +412,10 @@ function PlannerPage() {
 
   async function handleAddTask() {
     if (!userId) {
-      setFormError("برای افزودن، دوباره وارد حساب شو.");
+      setField("formError", "برای افزودن، دوباره وارد حساب شو.");
       return;
     }
-    setFormError("");
+    setField("formError", "");
     const trimmed = newTaskTitle.trim();
     if (!trimmed) return;
     const tagToUse = newTaskTag;
@@ -536,12 +433,12 @@ function PlannerPage() {
         tag: data.tag ?? tagToUse,
         priorityId: data.priority ?? newTaskPriority,
       };
-      setPool((prev) => [task, ...prev]);
-      if (tagToUse) setFilterTag(tagToUse as string);
-      setNewTaskTitle("");
+      setField("pool", (prev) => [task, ...prev]);
+      if (tagToUse) setField("filterTag", tagToUse as string);
+      setField("newTaskTitle", "");
     } catch (err) {
       console.error("Failed to add task", err);
-      setFormError("افزودن تسک انجام نشد. اتصال یا ورود را چک کن.");
+      setField("formError", "افزودن تسک انجام نشد. اتصال یا ورود را چک کن.");
     }
   }
 
@@ -580,7 +477,7 @@ function PlannerPage() {
         await fetch(`/api/pool/${task.id}?userId=${userId}`, {
           method: "DELETE",
         });
-        setPool((prev) => prev.filter((t) => t.id !== task.id));
+        setField("pool", (prev) => prev.filter((t) => t.id !== task.id));
         await loadPool();
         await loadSchedule(activeDay);
       } catch (err) {
@@ -748,17 +645,17 @@ function PlannerPage() {
 
   const closeDeleteModal = () => {
     if (deleteModalBusy) return;
-    setDeleteModal(null);
+    setField("deleteModal", null);
   };
 
   const confirmDeleteModal = async () => {
     if (!deleteModal) return;
-    setDeleteModalBusy(true);
+    setField("deleteModalBusy", true);
     try {
       await deleteModal.onConfirm();
-      setDeleteModal(null);
+      setField("deleteModal", null);
     } finally {
-      setDeleteModalBusy(false);
+      setField("deleteModalBusy", false);
     }
   };
 
@@ -779,7 +676,7 @@ function PlannerPage() {
         document.body.removeChild(textarea);
       }
       const scheduledTask = "hour" in task ? task : null;
-      setCopiedTask({
+      setField("copiedTask", {
         id: task.id,
         title: text,
         tag: task.tag,
@@ -788,10 +685,10 @@ function PlannerPage() {
         hour: scheduledTask?.hour,
         day: scheduledTask?.day,
       });
-      setCopiedTaskId(task.id);
+      setField("copiedTaskId", task.id);
       if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = window.setTimeout(() => {
-        setCopiedTaskId(null);
+        setField("copiedTaskId", null);
         copyTimeoutRef.current = null;
       }, 2000);
     } catch (err) {
@@ -831,11 +728,11 @@ function PlannerPage() {
   function handleDayShift(delta: number) {
     const base = new Date(`${activeDay}T00:00:00Z`);
     base.setUTCDate(base.getUTCDate() + delta);
-    setActiveDay(base.toISOString().slice(0, 10));
+    setField("activeDay", base.toISOString().slice(0, 10));
   }
 
   function handleJalaliMonthShift(delta: number) {
-    setJalaliMonthView((prev) => {
+    setField("jalaliMonthView", (prev) => {
       let jy = prev.jy;
       let jm = prev.jm + delta;
       while (jm > 12) {
@@ -853,51 +750,51 @@ function PlannerPage() {
   function handleSelectJalaliDay(day: number | null) {
     if (!day) return;
     const key = dateKeyFromJalali(jalaliMonthView.jy, jalaliMonthView.jm, day);
-    setActiveDay(key);
+    setField("activeDay", key);
   }
 
   function openTagModal(tag?: string) {
-    setEditingTag(tag ?? null);
-    setTagModalValue(tag ?? "");
-    setTagModalError("");
-    setTagModalOpen(true);
+    setField("editingTag", tag ?? null);
+    setField("tagModalValue", tag ?? "");
+    setField("tagModalError", "");
+    setField("tagModalOpen", true);
   }
 
   function closeTagModal() {
-    setTagModalOpen(false);
-    setTagModalValue("");
-    setEditingTag(null);
-    setTagModalError("");
+    setField("tagModalOpen", false);
+    setField("tagModalValue", "");
+    setField("editingTag", null);
+    setField("tagModalError", "");
   }
 
   function handleSaveTagModal() {
     const value = tagModalValue.trim();
     if (!value) {
-      setTagModalError("نام برچسب را وارد کنید");
+      setField("tagModalError", "نام برچسب را وارد کنید");
       return;
     }
     const duplicate = allTags.some(
       (t) => t.toLowerCase() === value.toLowerCase() && t !== editingTag
     );
     if (duplicate) {
-      setTagModalError("برچسبی با این نام وجود دارد");
+      setField("tagModalError", "برچسبی با این نام وجود دارد");
       return;
     }
 
     if (editingTag) {
-      setCustomTags((prev) => {
+      setField("customTags", (prev) => {
         const next = prev.filter((t) => t !== editingTag);
         if (!baseTags.includes(value as BaseTag)) next.unshift(value);
         return next;
       });
-      setPool((prev) =>
+      setField("pool", (prev) =>
         prev.map((t) => (t.tag === editingTag ? { ...t, tag: value } : t))
       );
-      setSchedule((prev) => retagSchedule(prev, editingTag, value));
-      if (newTaskTag === editingTag) setNewTaskTag(value);
-      if (filterTag === editingTag) setFilterTag(value);
+      setField("schedule", (prev) => retagSchedule(prev, editingTag, value));
+      if (newTaskTag === editingTag) setField("newTaskTag", value);
+      if (filterTag === editingTag) setField("filterTag", value);
     } else {
-      setCustomTags((prev) => [value, ...prev.filter((t) => t !== value)]);
+      setField("customTags", (prev) => [value, ...prev.filter((t) => t !== value)]);
     }
 
     closeTagModal();
@@ -955,7 +852,7 @@ function PlannerPage() {
             روز قبل
           </button>
           <button
-            onClick={() => setActiveDay(todayKey())}
+            onClick={() => setField("activeDay", todayKey())}
             className="ghost"
             type="button"
           >
@@ -1007,7 +904,7 @@ function PlannerPage() {
               <input
                 placeholder="می‌خوای چه کاری انجام بدی؟ بنویس…"
                 value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onChange={(e) => setField("newTaskTitle", e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddTask();
                 }}
@@ -1024,7 +921,7 @@ function PlannerPage() {
                       .filter(Boolean)
                       .join(" ")}
                     onClick={() =>
-                      setNewTaskTag((prev) => (prev === tag ? undefined : tag))
+                      setField("newTaskTag", (prev) => (prev === tag ? undefined : tag))
                     }
                     type="button"
                   >
@@ -1044,7 +941,7 @@ function PlannerPage() {
                 <PriorityDropdown
                   value={newTaskPriority}
                   options={PRIORITY_LEVELS}
-                  onChange={setNewTaskPriority}
+                  onChange={(value) => setField("newTaskPriority", value)}
                 />
               </div>
               <button className="primary" onClick={handleAddTask}>
@@ -1059,14 +956,14 @@ function PlannerPage() {
               aria-label="Backlog"
               onDragOver={(e) => {
                 e.preventDefault();
-                setPoolHover(true);
+                setField("poolHover", true);
               }}
-              onDragLeave={() => setPoolHover(false)}
+              onDragLeave={() => setField("poolHover", false)}
               onDrop={(e) => {
                 e.preventDefault();
                 const data = e.dataTransfer.getData("application/json");
                 handleDropToPool(data);
-                setPoolHover(false);
+                setField("poolHover", false);
               }}
             >
               {filteredPool.length === 0 && (
@@ -1123,7 +1020,7 @@ function PlannerPage() {
                         type="button"
                         aria-label="حذف"
                         onClick={() =>
-                          setDeleteModal({
+                          setField("deleteModal", {
                             title: "حذف تسک",
                             description: task.title
                               ? `حذف تسک "${task.title}"؟`
@@ -1155,7 +1052,7 @@ function PlannerPage() {
                 <button
                   className="calendar-strip__title-btn"
                   type="button"
-                  onClick={() => setCalendarModal("month")}
+                  onClick={() => setField("calendarModal", "month")}
                 >
                   <span>{jalaliMonthName}</span>
                   <span className="calendar-strip__caret">▾</span>
@@ -1163,7 +1060,7 @@ function PlannerPage() {
                 <button
                   className="calendar-strip__year-btn"
                   type="button"
-                  onClick={() => setCalendarModal("year")}
+                  onClick={() => setField("calendarModal", "year")}
                 >
                   {jalaliMonthView.jy}
                 </button>
@@ -1289,16 +1186,16 @@ function PlannerPage() {
                     .join(" ")}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    setHoverHour(hour);
+                    setField("hoverHour", hour);
                   }}
                   onDragLeave={() =>
-                    setHoverHour((prev) => (prev === hour ? null : prev))
+                    setField("hoverHour", (prev) => (prev === hour ? null : prev))
                   }
                   onDrop={(e) => {
                     e.preventDefault();
                     const data = e.dataTransfer.getData("application/json");
                     handleDrop(hour, data);
-                    setHoverHour(null);
+                    setField("hoverHour", null);
                   }}
                 >
                   <div className="slot__label-row">
@@ -1385,7 +1282,7 @@ function PlannerPage() {
                                 type="button"
                                 aria-label="حذف"
                                 onClick={() =>
-                                  setDeleteModal({
+                                  setField("deleteModal", {
                                     title: "حذف تسک",
                                     description: task.title
                                       ? `حذف تسک "${task.title}"؟`
@@ -1481,7 +1378,7 @@ function PlannerPage() {
                               type="button"
                               aria-label="حذف"
                               onClick={() =>
-                                setDeleteModal({
+                                setField("deleteModal", {
                                   title: "حذف تسک",
                                   description: blockStart.task.title
                                     ? `حذف تسک "${blockStart.task.title}"؟`
@@ -1538,7 +1435,7 @@ function PlannerPage() {
                             type="button"
                             aria-label="حذف"
                             onClick={() =>
-                              setDeleteModal({
+                              setField("deleteModal", {
                                 title: "حذف تسک",
                                 description: covered.task.title
                                   ? `حذف تسک "${covered.task.title}"؟`
@@ -1575,8 +1472,8 @@ function PlannerPage() {
               autoFocus
               value={tagModalValue}
               onChange={(e) => {
-                setTagModalValue(e.target.value);
-                setTagModalError("");
+                setField("tagModalValue", e.target.value);
+                setField("tagModalError", "");
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveTagModal();
@@ -1630,7 +1527,7 @@ function PlannerPage() {
         <div className="modal">
           <div
             className="modal__backdrop"
-            onClick={() => setCalendarModal(null)}
+            onClick={() => setField("calendarModal", null)}
             aria-hidden
           />
           <div
@@ -1658,7 +1555,7 @@ function PlannerPage() {
                 className="calendar-modal__close"
                 type="button"
                 aria-label="بستن"
-                onClick={() => setCalendarModal(null)}
+                onClick={() => setField("calendarModal", null)}
               >
                 <FiX />
               </button>
@@ -1681,11 +1578,11 @@ function PlannerPage() {
                             .join(" ")}
                           type="button"
                           onClick={() => {
-                            setJalaliMonthView((prev) => ({
+                            setField("jalaliMonthView", (prev) => ({
                               ...prev,
                               jm: month,
                             }));
-                            setCalendarModal(null);
+                            setField("calendarModal", null);
                           }}
                         >
                           {name}
@@ -1712,11 +1609,11 @@ function PlannerPage() {
                             .join(" ")}
                           type="button"
                           onClick={() => {
-                            setJalaliMonthView((prev) => ({
+                            setField("jalaliMonthView", (prev) => ({
                               ...prev,
                               jy: year,
                             }));
-                            setCalendarModal(null);
+                            setField("calendarModal", null);
                           }}
                         >
                           {year}
@@ -1732,287 +1629,6 @@ function PlannerPage() {
       )}
     </div>
   );
-}
-
-function priorityRank(id?: string) {
-  if (!id) return 3;
-  return PRIORITY_RANK[id] ?? 3;
-}
-
-function sortByHour(list: ScheduledTask[]) {
-  return [...list].sort((a, b) => {
-    if (a.hour !== b.hour) return a.hour - b.hour;
-    const rankDiff = priorityRank(a.priorityId) - priorityRank(b.priorityId);
-    if (rankDiff !== 0) return rankDiff;
-    return a.title.localeCompare(b.title);
-  });
-}
-
-function mergeConsecutive(list: ScheduledTask[]): MergedBlock[] {
-  if (list.length === 0) return [];
-  const sorted = sortByHour(dedupe(list)).map((t) => ({
-    ...t,
-    done: Boolean(t.done),
-  }));
-  const merged: MergedBlock[] = [];
-  let current: MergedBlock | null = null;
-
-  for (const item of sorted) {
-    if (!current) {
-      current = {
-        task: { ...item, done: Boolean(item.done) },
-        start: item.hour,
-        end: item.hour + 1,
-      };
-      continue;
-    }
-
-    const isConsecutive = item.hour === current.end;
-    const isSameTask =
-      item.title.trim().toLowerCase() ===
-        current.task.title.trim().toLowerCase() &&
-      item.tag === current.task.tag;
-
-    if (isConsecutive && isSameTask) {
-      const mergedDone: boolean = Boolean(current.task.done && item.done);
-      current = {
-        ...current,
-        task: { ...current.task, done: mergedDone },
-        end: item.hour + 1,
-      };
-    } else {
-      merged.push(current);
-      current = {
-        task: { ...item, done: Boolean(item.done) },
-        start: item.hour,
-        end: item.hour + 1,
-      };
-    }
-  }
-
-  if (current) merged.push(current);
-  return merged;
-}
-
-function dedupe(list: ScheduledTask[]) {
-  const map = new Map<string, ScheduledTask>();
-  list.forEach((t) => {
-    const key = `${t.title.trim().toLowerCase()}|${t.tag ?? "none"}|${t.priorityId ?? "none"}|${t.hour}|${t.day}`;
-    map.set(key, t);
-  });
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.hour !== b.hour) return a.hour - b.hour;
-    const rankDiff = priorityRank(a.priorityId) - priorityRank(b.priorityId);
-    if (rankDiff !== 0) return rankDiff;
-    return a.title.localeCompare(b.title);
-  });
-}
-
-function retagSchedule(
-  schedule: Record<string, ScheduledTask[]>,
-  fromTag: string,
-  toTag: string | undefined
-) {
-  const next: Record<string, ScheduledTask[]> = {};
-  Object.entries(schedule).forEach(([day, list]) => {
-    const updated = list.map((t) =>
-      t.tag === fromTag ? { ...t, tag: toTag } : t
-    );
-    next[day] = dedupe(updated);
-  });
-  return next;
-}
-
-function getTagLabel(tag?: string) {
-  if (!tag) return "";
-  return tagLabels[tag as BaseTag] ?? tag;
-}
-
-function getTagClass(tag?: string) {
-  if (!tag) return "";
-  return baseTags.includes(tag as BaseTag) ? `pill--${tag}` : "pill--custom";
-}
-
-function getPriorityColor(id: string | undefined, priorities: Priority[]) {
-  const fallback = "var(--priority-none, #555a65)";
-  if (!id) return fallback;
-  const builtin = PRIORITY_LEVELS.find((p) => p.id === id);
-  if (builtin) return builtin.color;
-  const found = priorities.find((p) => p.id === id);
-  return found?.color ?? fallback;
-}
-
-function dateKeyFromGregorian(gy: number, gm: number, gd: number) {
-  return new Date(Date.UTC(gy, gm - 1, gd)).toISOString().slice(0, 10);
-}
-
-function dateKeyFromJalali(jy: number, jm: number, jd: number) {
-  const { gy, gm, gd } = jalaliToGregorian(jy, jm, jd);
-  return dateKeyFromGregorian(gy, gm, gd);
-}
-
-function toJalaliParts(date: Date): JalaliDateParts {
-  return gregorianToJalali(
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1,
-    date.getUTCDate()
-  );
-}
-
-function formatJalaliMonthName(date: JalaliDateParts) {
-  const { gy, gm, gd } = jalaliToGregorian(date.jy, date.jm, 1);
-  const anchor = new Date(Date.UTC(gy, gm - 1, gd));
-  return anchor.toLocaleDateString("fa-IR-u-ca-persian", { month: "long" });
-}
-
-function formatGregorianSpanForJalaliMonth(jy: number, jm: number) {
-  const start = jalaliToGregorian(jy, jm, 1);
-  const end = jalaliToGregorian(jy, jm, jalaliMonthLength(jy, jm));
-  const fmt = new Intl.DateTimeFormat("en-US", { month: "short" });
-  const startLabel = fmt.format(new Date(Date.UTC(start.gy, start.gm - 1, start.gd)));
-  const endLabel = fmt.format(new Date(Date.UTC(end.gy, end.gm - 1, end.gd)));
-  return startLabel === endLabel ? startLabel : `${startLabel}-${endLabel}`;
-}
-
-function buildJalaliMonthDays(jy: number, jm: number): JalaliMonthDays {
-  const count = jalaliMonthLength(jy, jm);
-  const first = jalaliToGregorian(jy, jm, 1);
-  const firstDate = new Date(Date.UTC(first.gy, first.gm - 1, first.gd));
-  const jsWeekDay = firstDate.getUTCDay(); // 0=Sunday
-  const offset = (jsWeekDay + 1) % 7; // shift to Saturday = 0
-
-  const days: JalaliMonthDays = [];
-  for (let i = 0; i < offset; i += 1) days.push(null);
-  for (let d = 1; d <= count; d += 1) days.push(d);
-  const remainder = days.length % 7;
-  if (remainder !== 0) {
-    const trailing = 7 - remainder;
-    for (let i = 0; i < trailing; i += 1) days.push(null);
-  }
-  return days;
-}
-
-function jalaliMonthLength(jy: number, jm: number) {
-  const start = jalaliToGregorian(jy, jm, 1);
-  const next =
-    jm === 12
-      ? jalaliToGregorian(jy + 1, 1, 1)
-      : jalaliToGregorian(jy, jm + 1, 1);
-  const startDate = new Date(
-    Date.UTC(start.gy, start.gm - 1, start.gd)
-  ).getTime();
-  const nextDate = new Date(Date.UTC(next.gy, next.gm - 1, next.gd)).getTime();
-  const diff = Math.round((nextDate - startDate) / (24 * 60 * 60 * 1000));
-  return diff;
-}
-
-function buildYearOptions(current: number) {
-  const start = current - 6;
-  return Array.from({ length: 13 }, (_, i) => start + i);
-}
-
-const gDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const jDaysInMonth = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
-
-function gregorianToJalali(
-  gy: number,
-  gm: number,
-  gd: number
-): JalaliDateParts {
-  const gDayCount = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-  let gy2 = gy - 1600;
-  let gm2 = gm - 1;
-  const gd2 = gd - 1;
-
-  let gDayNo =
-    365 * gy2 +
-    Math.floor((gy2 + 3) / 4) -
-    Math.floor((gy2 + 99) / 100) +
-    Math.floor((gy2 + 399) / 400);
-
-  gDayNo += gDayCount[gm2];
-  if (gm2 > 1 && isGregorianLeap(gy)) gDayNo += 1;
-  gDayNo += gd2;
-
-  let jDayNo = gDayNo - 79;
-
-  const jNp = Math.floor(jDayNo / 12053);
-  jDayNo %= 12053;
-
-  let jy = 979 + 33 * jNp + 4 * Math.floor(jDayNo / 1461);
-  jDayNo %= 1461;
-
-  if (jDayNo >= 366) {
-    jy += Math.floor((jDayNo - 1) / 365);
-    jDayNo = (jDayNo - 1) % 365;
-  }
-
-  let jm = 0;
-  for (; jm < 11 && jDayNo >= jDaysInMonth[jm]; jm += 1) {
-    jDayNo -= jDaysInMonth[jm];
-  }
-
-  const jd = jDayNo + 1;
-  return { jy, jm: jm + 1, jd };
-}
-
-function jalaliToGregorian(
-  jy: number,
-  jm: number,
-  jd: number
-): GregorianDateParts {
-  jy -= 979;
-  jm -= 1;
-  jd -= 1;
-
-  let jDayNo =
-    365 * jy + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4);
-  for (let i = 0; i < jm; i += 1) {
-    jDayNo += jDaysInMonth[i];
-  }
-  jDayNo += jd;
-
-  let gDayNo = jDayNo + 79;
-
-  let gy = 1600 + 400 * Math.floor(gDayNo / 146097);
-  gDayNo %= 146097;
-
-  let leap = true;
-  if (gDayNo >= 36525) {
-    gDayNo -= 1;
-    gy += 100 * Math.floor(gDayNo / 36524);
-    gDayNo %= 36524;
-
-    if (gDayNo >= 365) {
-      gDayNo += 1;
-    } else {
-      leap = false;
-    }
-  }
-
-  gy += 4 * Math.floor(gDayNo / 1461);
-  gDayNo %= 1461;
-
-  if (gDayNo >= 366) {
-    leap = false;
-    gDayNo -= 1;
-    gy += Math.floor(gDayNo / 365);
-    gDayNo %= 365;
-  }
-
-  let gm = 0;
-  for (; gm < 11; gm += 1) {
-    const monthLength = gDaysInMonth[gm] + (gm === 1 && leap ? 1 : 0);
-    if (gDayNo < monthLength) break;
-    gDayNo -= monthLength;
-  }
-
-  const gd = gDayNo + 1;
-  return { gy, gm: gm + 1, gd };
-}
-
-function isGregorianLeap(year: number) {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
 export default PlannerPage;

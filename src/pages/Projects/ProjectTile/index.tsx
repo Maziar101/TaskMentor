@@ -1,42 +1,25 @@
 import { Link } from "react-router-dom";
-import { FiCalendar, FiCheckCircle, FiFlag, FiPlus, FiTrash2, FiUsers } from "react-icons/fi";
-import Calender from "../../../components/Calender/index";
+import { FiTrash2 } from "react-icons/fi";
 import {
   colorSeed,
   priorityLabel,
   projectInitials,
   projectProgress,
   type Project,
-  type TaskDraft,
 } from "../data/index";
 
 type ProjectTileProps = {
   project: Project;
-  draft: TaskDraft;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   onDelete: () => void;
-  onDraftChange: (patch: Partial<TaskDraft>) => void;
-  onAddTask: () => void;
-  onToggleTask: (taskId: string) => void;
-  onDeleteTask: (taskId: string) => void;
 };
 
 export default function ProjectTile({
   project,
-  draft,
-  isExpanded,
-  onToggleExpand,
   onDelete,
-  onDraftChange,
-  onAddTask,
-  onToggleTask,
-  onDeleteTask,
 }: ProjectTileProps) {
   const progress = projectProgress(project);
   const completedTasks = project.tasks.filter((task) => task.done);
   const lastDone = completedTasks[completedTasks.length - 1];
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <article className="project-tile">
@@ -74,84 +57,10 @@ export default function ProjectTile({
       </div>
 
       <div className="project-tile__actions">
-        <button className="project-tile__toggle" type="button" onClick={onToggleExpand}>
-          {isExpanded ? "بستن جزئیات" : "جزئیات و تسک‌ها"}
-        </button>
         <Link className="project-tile__toggle" to={`/projects/${project.id}`}>
-          <FiUsers aria-hidden /> مدیریت اعضا
+          جزئیات پروژه
         </Link>
       </div>
-
-      {isExpanded && (
-        <div className="project-tile__details">
-          <div className="project-tile__meta">
-            <span className={project.priority ? `pill pill--${project.priority}` : "pill"}>
-              <FiFlag aria-hidden /> {priorityLabel(project.priority)}
-            </span>
-            <span className="pill pill--solid">
-              <FiCalendar aria-hidden />
-              {project.due ? `تا ${project.due}` : "بدون ددلاین"}
-            </span>
-            <span className="pill">
-              {progress.done}/{progress.total} تسک
-            </span>
-          </div>
-
-          <div className="project-add-row">
-            <input
-              value={draft.title}
-              onChange={(event) => onDraftChange({ title: event.target.value })}
-              placeholder="تسک جدید..."
-            />
-            <Calender
-              value={draft.due}
-              onChange={(val) => onDraftChange({ due: val })}
-              place="ددلاین تسک"
-            />
-            <button className="ghost" type="button" onClick={onAddTask}>
-              <FiPlus aria-hidden /> افزودن
-            </button>
-          </div>
-
-          <div className="project-card__tasks">
-            {project.tasks.length === 0 && (
-              <p className="empty">تسکی تعریف نشده؛ یکی اضافه کن.</p>
-            )}
-            {project.tasks.map((task) => {
-              const overdue = task.due && task.due < today && !task.done;
-              return (
-                <div key={task.id} className="project-task">
-                  <button
-                    className={"icon-btn " + (task.done ? "" : "pill")}
-                    onClick={() => onToggleTask(task.id)}
-                    aria-label="علامت انجام"
-                  >
-                    <FiCheckCircle aria-hidden />
-                  </button>
-                  <div className="project-task__body">
-                    <strong className={task.done ? "line-through" : ""}>{task.title}</strong>
-                    <div className="project-task__meta">
-                      {task.due && (
-                        <span className={overdue ? "pill pill--blocked" : "pill"}>
-                          <FiCalendar aria-hidden /> تا {task.due}
-                        </span>
-                      )}
-                      {task.done && <span className="pill pill--solid">انجام شد</span>}
-                    </div>
-                  </div>
-                  <button
-                    className="icon-btn icon-btn--danger"
-                    onClick={() => onDeleteTask(task.id)}
-                    aria-label="حذف تسک"
-                  >
-                    <FiTrash2 aria-hidden />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </article>
   );
 }
