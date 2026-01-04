@@ -787,11 +787,6 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
-.tag-chip:hover {
-  color: #ffffff;
-}
-
 .tag-chip--active {
   background: linear-gradient(120deg, #f7d046, #f0a63c);
   color: #1a132f;
@@ -1443,7 +1438,7 @@ body {
   white-space: nowrap;
   padding-left: 6px;
   border-left: 2px solid rgba(247, 208, 70, 0.7);
-  animation: typing-reveal 5s steps(60, end) 0.4s forwards,
+  animation: typing-reveal 8s steps(60, end) 0.4s forwards,
     typing-caret 1.3s step-end infinite;
 }
 
@@ -1827,7 +1822,8 @@ body {
   gap: 6px;
 }
 
-.chat-tabs {
+.chat-tabs,
+.settings-tabs {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1836,13 +1832,15 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.chat-tabs__list {
+.chat-tabs__list,
+.settings-tabs__list {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.chat-tab {
+.chat-tab,
+.settings-tab {
   border: 1px solid transparent;
   background: transparent;
   color: #cbbde6;
@@ -1855,7 +1853,8 @@ body {
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
-.chat-tab--active {
+.chat-tab--active,
+.settings-tab--active {
   color: #f7d046;
   border-color: rgba(247, 208, 70, 0.6);
   background: rgba(247, 208, 70, 0.12);
@@ -2418,6 +2417,25 @@ body {
   gap: 8px;
 }
 
+.panel--centered {
+  align-items: center;
+  text-align: center;
+}
+
+.panel--centered .stacked-tasks {
+  width: 100%;
+  justify-items: center;
+}
+
+.panel--centered .stacked-task {
+  justify-content: center;
+}
+
+.panel--centered .stacked-task__title {
+  flex: 0 1 auto;
+  text-align: center;
+}
+
 .goals {
   display: flex;
   flex-direction: column;
@@ -2554,6 +2572,87 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
+}
+
+.settings {
+  min-height: 100%;
+  background: rgba(17, 12, 32, 0.82);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.settings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings__header h1 {
+  margin: 0;
+  color: #f4edff;
+  font-size: 1.4rem;
+}
+
+.settings__eyebrow {
+  margin: 0 0 6px;
+  color: #d6b6ff;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.settings__panel {
+  gap: 16px;
+}
+
+.settings__content {
+  display: grid;
+  gap: 14px;
+}
+
+.settings__palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.settings__theme-card {
+  text-align: right;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 12px;
+  color: #f2eaff;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings__theme-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(247, 208, 70, 0.6);
+}
+
+.settings__theme-card--active {
+  border-color: rgba(101, 236, 204, 0.6);
+  box-shadow: 0 10px 24px rgba(101, 236, 204, 0.18);
+}
+
+.settings__theme-preview {
+  display: block;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.settings__theme-label {
+  font-weight: 600;
 }
 
 .project-tile {
@@ -2906,6 +3005,15 @@ body {
   .projects-board__stats {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .settings {
+    padding: 16px;
+  }
+
+  .settings__header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

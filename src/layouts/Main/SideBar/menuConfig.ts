@@ -9,6 +9,7 @@ import {
   FiUser,
   FiBriefcase,
   FiUsers,
+  FiSettings,
 } from "react-icons/fi";
 
 export type MenuItem = {
@@ -27,4 +28,5 @@ export const menuItems: MenuItem[] = [
   { label: "افزودن هدف", to: "/goals/new", icon: FiPlusCircle },
   { label: "گزارش‌ها", to: "/reports", icon: FiBarChart2 },
   { label: "پروفایل", to: "/profile", icon: FiUser },
+  { label: "تنظیمات", to: "/settings", icon: FiSettings },
 ];

@@ -8,12 +8,12 @@ import ShortGoalsPage from "../pages/ShortGoals/index";
 import LongGoalsPage from "../pages/LongGoals/index";
 import AddGoalPage from "../pages/AddGoal/index";
 import ProfilePage from "../pages/Profile/index";
-import PrioritiesPage from "../pages/Priorities/index";
 import ProjectsPage from "../pages/Projects/index";
 import ProjectDetailsPage from "../pages/ProjectDetails/index";
 import TeamsBoardPage from "../pages/Teams/index";
 import TeamChatPage from "../pages/Teams/TeamChat";
 import LoginPage from "../pages/Login/index";
+import SettingsPage from "../pages/Settings/index";
 
 const useRoutesConfig = () =>
   createBrowserRouter([
@@ -27,7 +27,6 @@ const useRoutesConfig = () =>
           element: <MainLayout />,
           children: [
             { path: "planner", element: <PlannerPage /> },
-            { path: "priorities", element: <PrioritiesPage /> },
             { path: "projects", element: <ProjectsPage /> },
             { path: "projects/:projectId", element: <ProjectDetailsPage /> },
             { path: "teams", element: <TeamsBoardPage /> },
@@ -38,6 +37,7 @@ const useRoutesConfig = () =>
             { path: "dashboard", element: <DashboardPage /> },
             { path: "reports", element: <ReportsPage /> },
             { path: "profile", element: <ProfilePage /> },
+            { path: "settings", element: <SettingsPage /> },
           ],
         },
       ],

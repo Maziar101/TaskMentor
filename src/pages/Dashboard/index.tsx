@@ -308,7 +308,7 @@ export default function DashboardPage() {
       </header>
 
       <section className="goal-quick goal-quick--two-col">
-        <div className="panel compact">
+        <div className="panel compact panel--centered">
           <p className="eyebrow">{welcomeTitle}</p>
           <p className="light">
             {hasLiveData ? (
@@ -344,7 +344,6 @@ export default function DashboardPage() {
         </div>
         <div className="panel compact">
           <p className="eyebrow">تسک های اخیر</p>
-          <p className="light">دو تسک آخر انجام نشده و آخرین تسک انجام شده.</p>
           <p className="small">انجام نشده</p>
           <div className="stacked-tasks">
             {recentPendingTasks.length ? (
