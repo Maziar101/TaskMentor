@@ -14,6 +14,7 @@ import TeamsBoardPage from "../pages/Teams/index";
 import TeamChatPage from "../pages/Teams/TeamChat";
 import LoginPage from "../pages/Login/index";
 import SettingsPage from "../pages/Settings/index";
+import NotFoundPage from "../pages/NotFound/index";
 
 const useRoutesConfig = () =>
   createBrowserRouter([
@@ -38,6 +39,7 @@ const useRoutesConfig = () =>
             { path: "reports", element: <ReportsPage /> },
             { path: "profile", element: <ProfilePage /> },
             { path: "settings", element: <SettingsPage /> },
+            { path: "*", element: <NotFoundPage /> },
           ],
         },
       ],

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-
 type FocusTask = {
   id: string;
   title: string;
@@ -46,24 +45,50 @@ type ProjectsSummary = {
 
 const PROJECTS_SUMMARY_KEY = "taskmentor-projects-summary";
 
-
 const FALLBACK_FOCUS: FocusTask[] = [
-  { id: "f1", title: "بازبینی PRهای معطل", slot: "۰۹:۳۰ - ۱۰:۰۰", status: "in-progress" },
-  { id: "f2", title: "هماهنگی با طراحی برای اسکرین پرداخت", slot: "۱۱:۰۰ - ۱۱:۳۰", status: "blocked" },
-  { id: "f3", title: "ارسال آپدیت برای استیک‌هولدرها", slot: "۱۶:۰۰ - ۱۶:۱۵", status: "in-progress" },
+  {
+    id: "f1",
+    title: "بازبینی PRهای معطل",
+    slot: "۰۹:۳۰ - ۱۰:۰۰",
+    status: "in-progress",
+  },
+  {
+    id: "f2",
+    title: "هماهنگی با طراحی برای اسکرین پرداخت",
+    slot: "۱۱:۰۰ - ۱۱:۳۰",
+    status: "blocked",
+  },
+  {
+    id: "f3",
+    title: "ارسال آپدیت برای استیک‌هولدرها",
+    slot: "۱۶:۰۰ - ۱۶:۱۵",
+    status: "in-progress",
+  },
 ];
 
 const FALLBACK_SCHEDULE: ScheduleItem[] = [
   { _id: "s1", title: "استندآپ تیم", day: todayKey(), hour: 9, tag: "meeting" },
-  { _id: "s2", title: "Deep Work: تسک پرداخت", day: todayKey(), hour: 10, tag: "focus" },
-  { _id: "s3", title: "ناهار و استراحت کوتاه", day: todayKey(), hour: 13, tag: "break" },
-  { _id: "s4", title: "Sync با مارکتینگ", day: todayKey(), hour: 15, tag: "meeting" },
-];
-
-const FALLBACK_RISKS = [
-  "وابستگی به API مالی که هنوز پایدار نیست",
-  "تاخیر طراحی صفحه پرداخت",
-  "کمبود ظرفیت تیم فرانت برای تسک‌های این هفته",
+  {
+    _id: "s2",
+    title: "Deep Work: تسک پرداخت",
+    day: todayKey(),
+    hour: 10,
+    tag: "focus",
+  },
+  {
+    _id: "s3",
+    title: "ناهار و استراحت کوتاه",
+    day: todayKey(),
+    hour: 13,
+    tag: "break",
+  },
+  {
+    _id: "s4",
+    title: "Sync با مارکتینگ",
+    day: todayKey(),
+    hour: 15,
+    tag: "meeting",
+  },
 ];
 
 const FALLBACK_NOTIFS = [
@@ -83,7 +108,6 @@ function formatHour(hour: number) {
   return `${hour.toString().padStart(2, "0")}:00`;
 }
 
-
 function scheduleLabel(type: ScheduleItem["tag"] | undefined) {
   const map: Record<string, string> = {
     focus: "تمرکز",
@@ -99,7 +123,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [pool, setPool] = useState<PoolTask[]>([]);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [projectSummary, setProjectSummary] = useState<ProjectsSummary | null>(null);
+  const [projectSummary, setProjectSummary] = useState<ProjectsSummary | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -150,8 +176,12 @@ export default function DashboardPage() {
           fetch(`/api/pool?userId=${userId}`),
           fetch(`/api/schedule/${day}?userId=${userId}`),
         ]);
-        const poolData = poolRes.ok ? ((await poolRes.json()) as PoolTask[]) : [];
-        const scheduleData = scheduleRes.ok ? ((await scheduleRes.json()) as ScheduleItem[]) : [];
+        const poolData = poolRes.ok
+          ? ((await poolRes.json()) as PoolTask[])
+          : [];
+        const scheduleData = scheduleRes.ok
+          ? ((await scheduleRes.json()) as ScheduleItem[])
+          : [];
         if (!active) return;
         setPool(poolData);
         setSchedule(scheduleData);
@@ -179,7 +209,11 @@ export default function DashboardPage() {
   const todayProgress = useMemo(() => {
     const total = schedule.length;
     const done = schedule.filter((item) => item.done).length;
-    return { total, done, percent: total ? Math.round((done / total) * 100) : 0 };
+    return {
+      total,
+      done,
+      percent: total ? Math.round((done / total) * 100) : 0,
+    };
   }, [schedule]);
 
   const hasLiveData = useMemo(
@@ -251,33 +285,53 @@ export default function DashboardPage() {
     const nowHour = new Date().getHours();
     const overdue = sortedSchedule
       .filter((item) => !item.done && item.hour < nowHour)
-      .map((item) => `تسک «${item.title}» از ${formatHour(item.hour)} عقب افتاده است`);
+      .map(
+        (item) =>
+          `تسک «${item.title}» از ${formatHour(item.hour)} عقب افتاده است`
+      );
     const backlogPressure =
-      pool.length > 5 ? [`${formatFaNumber.format(pool.length)} تسک در بک‌لاگ منتظر زمان‌بندی است`] : [];
+      pool.length > 5
+        ? [
+            `${formatFaNumber.format(
+              pool.length
+            )} تسک در بک‌لاگ منتظر زمان‌بندی است`,
+          ]
+        : [];
     const projectOverdue =
       projectSummary && projectSummary.overdueTasks
-        ? [`${formatFaNumber.format(projectSummary.overdueTasks)} تسک پروژه عقب است`]
+        ? [
+            `${formatFaNumber.format(
+              projectSummary.overdueTasks
+            )} تسک پروژه عقب است`,
+          ]
         : [];
     const combined = [...overdue, ...backlogPressure, ...projectOverdue];
-    return combined.length ? combined : FALLBACK_RISKS;
   }, [sortedSchedule, pool.length, projectSummary]);
 
   const notifications = useMemo(() => {
     const notes: string[] = [];
     if (todayProgress.total) {
       notes.push(
-        `${formatFaNumber.format(todayProgress.total - todayProgress.done)} مورد برای امروز باقی مانده`
+        `${formatFaNumber.format(
+          todayProgress.total - todayProgress.done
+        )} مورد برای امروز باقی مانده`
       );
     }
     if (pool.length) {
-      notes.push(`${formatFaNumber.format(pool.length)} تسک در بک‌لاگ منتظر است`);
+      notes.push(
+        `${formatFaNumber.format(pool.length)} تسک در بک‌لاگ منتظر است`
+      );
     }
     if (todayProgress.done) {
-      notes.push(`${formatFaNumber.format(todayProgress.done)} تسک امروز تیک خورد`);
+      notes.push(
+        `${formatFaNumber.format(todayProgress.done)} تسک امروز تیک خورد`
+      );
     }
     if (projectSummary) {
       notes.push(
-        `پروژه‌ها: ${formatFaNumber.format(projectSummary.doneTasks)}/${formatFaNumber.format(
+        `پروژه‌ها: ${formatFaNumber.format(
+          projectSummary.doneTasks
+        )}/${formatFaNumber.format(
           projectSummary.totalTasks
         )} (${formatFaNumber.format(projectSummary.percent)}٪)`
       );
@@ -296,7 +350,9 @@ export default function DashboardPage() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
   }, []);
 
-  const welcomeTitle = user?.username ? `خوش آمدی، ${user.username} 👋` : "خوش آمدی 👋";
+  const welcomeTitle = user?.username
+    ? `خوش آمدی، ${user.username} 👋`
+    : "خوش آمدی 👋";
 
   return (
     <div className="goals" dir="rtl">
@@ -311,17 +367,18 @@ export default function DashboardPage() {
         <div className="panel compact panel--centered">
           <p className="eyebrow">{welcomeTitle}</p>
           <p className="light">
-            {hasLiveData ? (
-              `امروز ${formatFaNumber.format(focusTasks.length)} کار مهم داری؛ اولی در ${focusTasks[0]?.slot} است.`
-            ) : (
-              <span className="typing-text">
-                حقیقتی که در ذهن شما شکل میگیرد ، روزی تبدیل به واقعیت خواهد شد ...
-              </span>
-            )}
+            <span className="typing-text">
+              حقیقتی که در ذهن شما شکل میگیرد ، روزی تبدیل به واقعیت خواهد شد
+              ...
+            </span>
           </p>
           <div className="counts">
-            <span>{formatFaNumber.format(scheduleForToday.length)} تسک امروز</span>
-            <span>{formatFaNumber.format(projectSummary?.totalProjects ?? 0)} پروژه</span>
+            <span>
+              {formatFaNumber.format(scheduleForToday.length)} تسک امروز
+            </span>
+            <span>
+              {formatFaNumber.format(projectSummary?.totalProjects ?? 0)} پروژه
+            </span>
           </div>
         </div>
       </section>
@@ -335,7 +392,11 @@ export default function DashboardPage() {
               <div key={item._id} className="stacked-task">
                 <span className="pill">{formatHour(item.hour)}</span>
                 <span className="stacked-task__title">{item.title}</span>
-                <span className={`pill pill--${item.tag === "focus" ? "focus" : "meeting"}`}>
+                <span
+                  className={`pill pill--${
+                    item.tag === "focus" ? "focus" : "meeting"
+                  }`}
+                >
                   {scheduleLabel(item.tag)}
                 </span>
               </div>
@@ -362,7 +423,9 @@ export default function DashboardPage() {
           <div className="stacked-tasks">
             {latestDoneTask ? (
               <div className="stacked-task">
-                <span className="stacked-task__title">{latestDoneTask.title}</span>
+                <span className="stacked-task__title">
+                  {latestDoneTask.title}
+                </span>
                 <span className="pill">{latestDoneTask.meta}</span>
                 <span className="badge badge--done">انجام شد</span>
               </div>
