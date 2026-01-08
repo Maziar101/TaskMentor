@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 
 type FocusTask = {
   id: string;
@@ -12,6 +12,8 @@ type RecentTask = {
   title: string;
   meta: string;
   status: "pending" | "done";
+  durationMinutes?: number;
+  remainingMinutes?: number;
 };
 
 type ScheduleItem = {
@@ -97,6 +99,18 @@ const FALLBACK_NOTIFS = [
   "جلسه دمو مشتری به پنج‌شنبه منتقل شد",
 ];
 
+const TASK_TIME_OVERRIDES: Record<
+  string,
+  { durationMinutes: number; remainingMinutes?: number }
+> = {
+  sdvsdv: { durationMinutes: 420, remainingMinutes: 420 },
+};
+
+const PENDING_DEFAULTS = [
+  { durationMinutes: 60, remainingMinutes: 20 },
+  { durationMinutes: 90, remainingMinutes: 30 },
+];
+
 function todayKey(reference = new Date()) {
   const y = reference.getUTCFullYear();
   const m = reference.getUTCMonth();
@@ -119,6 +133,25 @@ function scheduleLabel(type: ScheduleItem["tag"] | undefined) {
 
 const formatFaNumber = new Intl.NumberFormat("fa-IR");
 
+function resolveTaskTiming(title: string, fallbackIndex: number) {
+  const key = title.trim().toLowerCase();
+  const overrideEntry = Object.entries(TASK_TIME_OVERRIDES).find(([needle]) =>
+    key.includes(needle)
+  );
+  if (overrideEntry) {
+    const override = overrideEntry[1];
+    return {
+      durationMinutes: override.durationMinutes,
+      remainingMinutes: override.remainingMinutes ?? override.durationMinutes,
+    };
+  }
+  const fallback = PENDING_DEFAULTS[fallbackIndex] ?? PENDING_DEFAULTS[0];
+  return {
+    durationMinutes: fallback.durationMinutes,
+    remainingMinutes: fallback.remainingMinutes ?? fallback.durationMinutes,
+  };
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [pool, setPool] = useState<PoolTask[]>([]);
@@ -128,6 +161,8 @@ export default function DashboardPage() {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [taskTimers, setTaskTimers] = useState<Record<string, number>>({});
+  const [readNotifs, setReadNotifs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -250,20 +285,31 @@ export default function DashboardPage() {
   const recentPendingTasks = useMemo<RecentTask[]>(() => {
     const pendingSchedule = scheduleForToday.filter((item) => !item.done);
     const pendingFromSchedule = pendingSchedule.slice(-2).reverse();
-    const pending: RecentTask[] = pendingFromSchedule.map((item) => ({
-      id: item._id,
-      title: item.title,
-      meta: formatHour(item.hour),
-      status: "pending",
-    }));
+    const pending: RecentTask[] = pendingFromSchedule.map((item, index) => {
+      const timing = resolveTaskTiming(item.title, index);
+      return {
+        id: item._id,
+        title: item.title,
+        meta: formatHour(item.hour),
+        status: "pending",
+        durationMinutes: timing.durationMinutes,
+        remainingMinutes: timing.remainingMinutes,
+      };
+    });
     if (pending.length < 2 && pool.length) {
       const needed = 2 - pending.length;
-      const extras = pool.slice(0, needed).map((task, idx) => ({
-        id: task._id ?? `pool-${idx}`,
-        title: task.title,
-        meta: task.tag ? `برچسب: ${task.tag}` : "بک‌لاگ",
-        status: "pending" as const,
-      }));
+      const extras = pool.slice(0, needed).map((task, idx) => {
+        const index = pending.length + idx;
+        const timing = resolveTaskTiming(task.title, index);
+        return {
+          id: task._id ?? `pool-${idx}`,
+          title: task.title,
+          meta: task.tag ? `برچسب: ${task.tag}` : "بک‌لاگ",
+          status: "pending" as const,
+          durationMinutes: timing.durationMinutes,
+          remainingMinutes: timing.remainingMinutes,
+        };
+      });
       pending.push(...extras);
     }
     return pending;
@@ -342,6 +388,46 @@ export default function DashboardPage() {
     return notes.length ? notes : FALLBACK_NOTIFS;
   }, [todayProgress, pool.length, projectSummary]);
 
+  useEffect(() => {
+    setTaskTimers(() => {
+      const next: Record<string, number> = {};
+      recentPendingTasks.forEach((task) => {
+        const remainingMinutes = task.remainingMinutes ?? 0;
+        next[task.id] = Math.max(0, Math.round(remainingMinutes * 60));
+      });
+      return next;
+    });
+  }, [recentPendingTasks]);
+
+  useEffect(() => {
+    if (!recentPendingTasks.length) return;
+    const timer = window.setInterval(() => {
+      setTaskTimers((prev) => {
+        const next: Record<string, number> = {};
+        Object.entries(prev).forEach(([key, value]) => {
+          next[key] = Math.max(0, value - 1);
+        });
+        return next;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [recentPendingTasks.length]);
+
+  const unreadNotifications = useMemo(
+    () => notifications.filter((note) => !readNotifs[note]),
+    [notifications, readNotifs]
+  );
+
+  function formatTimer(seconds: number) {
+    const clamped = Math.max(0, seconds);
+    const hrs = Math.floor(clamped / 3600);
+    const mins = Math.floor((clamped % 3600) / 60);
+    const secs = clamped % 60;
+    return `${hrs.toString().padStart(2, "0")}:${mins
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
   const streakDays = useMemo(() => {
     if (typeof window === "undefined") return 3;
     const raw = localStorage.getItem("taskmentor-streak");
@@ -408,13 +494,36 @@ export default function DashboardPage() {
           <p className="small">انجام نشده</p>
           <div className="stacked-tasks">
             {recentPendingTasks.length ? (
-              recentPendingTasks.map((task) => (
-                <div key={task.id} className="stacked-task">
-                  <span className="stacked-task__title">{task.title}</span>
-                  <span className="pill">{task.meta}</span>
-                  <span className="badge badge--in-progress">انجام نشده</span>
-                </div>
-              ))
+              recentPendingTasks.map((task, index) => {
+                const durationMinutes = task.durationMinutes ?? 60;
+                const totalSeconds = Math.max(1, durationMinutes * 60);
+                const remainingSeconds =
+                  taskTimers[task.id] ??
+                  Math.round(
+                    (task.remainingMinutes ?? durationMinutes) * 60
+                  );
+                const progress = Math.min(
+                  1,
+                  Math.max(0, 1 - remainingSeconds / totalSeconds)
+                );
+                return (
+                  <div
+                    key={task.id}
+                    className="stacked-task stacked-task--pending"
+                    style={{ "--progress": progress } as CSSProperties}
+                  >
+                    {index < 2 && <span className="pending-dot" />}
+                    <div className="pending-body">
+                      <span className="stacked-task__title">{task.title}</span>
+                      <span className="pending-meta">{task.meta}</span>
+                    </div>
+                    <span className="pending-timer" dir="ltr">
+                      {formatTimer(remainingSeconds)}
+                    </span>
+                    <span className="badge badge--in-progress">انجام نشده</span>
+                  </div>
+                );
+              })
             ) : (
               <p className="empty">تسک معوقی ندارید.</p>
             )}
@@ -431,6 +540,63 @@ export default function DashboardPage() {
               </div>
             ) : (
               <p className="empty">تسک انجام شده‌ای ثبت نشده.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="goal-quick">
+        <div className="panel compact">
+          <div className="notifications__header">
+            <div>
+              <p className="eyebrow">اعلان‌های خوانده نشده</p>
+              <p className="small">
+                {unreadNotifications.length
+                  ? `${formatFaNumber.format(
+                      unreadNotifications.length
+                    )} اعلان جدید`
+                  : "همه اعلان ها خونده شدن رفیق !"}
+              </p>
+            </div>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() =>
+                setReadNotifs((prev) => {
+                  const next = { ...prev };
+                  notifications.forEach((note) => {
+                    next[note] = true;
+                  });
+                  return next;
+                })
+              }
+              disabled={!unreadNotifications.length}
+              aria-label="علامت‌زدن همه اعلان‌ها به عنوان خوانده شده"
+              title="تیک همه"
+            >
+              ✓✓
+            </button>
+          </div>
+          <div className="stacked-tasks">
+            {unreadNotifications.length ? (
+              unreadNotifications.map((note) => (
+                <div key={note} className="stacked-task stacked-task--note">
+                  <span className="stacked-task__title">{note}</span>
+                  <button
+                    className="icon-button icon-button--tiny"
+                    type="button"
+                    onClick={() =>
+                      setReadNotifs((prev) => ({ ...prev, [note]: true }))
+                    }
+                    aria-label="خوانده شد"
+                    title="خوانده شد"
+                  >
+                    ✓
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="empty">همه اعلان ها خونده شدن رفیق !</p>
             )}
           </div>
         </div>
