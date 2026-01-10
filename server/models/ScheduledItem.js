@@ -1,4 +1,4 @@
-const { Schema, model, Types } = require("mongoose");
+import { Schema, model, Types } from "mongoose";
 
 const scheduledItemSchema = new Schema(
   {
@@ -20,4 +20,6 @@ const scheduledItemSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = model("ScheduledItem", scheduledItemSchema);
+const ScheduledItem = model("ScheduledItem", scheduledItemSchema);
+
+export default ScheduledItem;
