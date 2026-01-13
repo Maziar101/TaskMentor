@@ -5,7 +5,7 @@ import getToken from "../utils/getToken.js";
 import HandleError from "../utils/HandleError.js";
 
 // TODO
-// YOU CAN CREATE A MIDDLEWARE FOR CHECKING USER EXISTS !
+// YOU DONT NEED TO CHECK THE USER EXIST OR NOT BECAUSE TOKEN CREATED FOR A USER !
 function normalizeDay(day) {
   if (!day) return null;
   return day.trim();
