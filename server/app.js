@@ -8,17 +8,19 @@ import teamGroupRoutes from "./routes/teamGroups.js";
 import teamsRoutes from "./routes/teams.js";
 import teamMembersRoutes from "./routes/teamMembers.js";
 import teamTaskRoutes from "./routes/teamTasks.js";
+import usersRoutes from "./routes/users.js";
 
 const app = express();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/schedule",scheduleRoutes);
-app.use("/api/tasks",taskRoutes);
-app.use("/api/teams",teamsRoutes);
-app.use("/api/teams/audit",teamAuditRoutes);
-app.use("/api/teams/group",teamGroupRoutes);
-app.use("/api/teams/members",teamMembersRoutes);
-app.use("/api/teams/tasks",teamTaskRoutes);
+app.use("/api/schedule", scheduleRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/teams", teamsRoutes);
+app.use("/api/teams/audit", teamAuditRoutes);
+app.use("/api/teams/group", teamGroupRoutes);
+app.use("/api/teams/members", teamMembersRoutes);
+app.use("/api/teams/tasks", teamTaskRoutes);
+app.use("/api/users", usersRoutes);
 
 export default app;
