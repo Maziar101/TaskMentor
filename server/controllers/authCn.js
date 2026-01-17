@@ -31,13 +31,13 @@ export const verify = catchAsync(async (req, res, next) => {
         .status(400)
         .json({ message: "برای ثبت‌نام نام خود را وارد کنید" });
     }
-    user = await User.create({ phone, username: name });
+    user = await Users.create({ phone, username: name });
   }
   if (code !== MAGIC_CODE) {
     return res.status(401).json({ message: "کد نادرست است" });
   }
   const token = jwt.sign(
-    { phone, id: user?.id, subscription: user?.subscription },
+    { phone, id: user?.id, subscription: user?.subscription, role: user?.role },
     process.env.JWT_SECRET
   );
   return res.json({
