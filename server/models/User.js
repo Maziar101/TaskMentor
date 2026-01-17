@@ -19,6 +19,19 @@ const userSchema = new Schema(
       enum: ["free", "pro", "enterprise"],
       default: "free",
     },
+    role: {
+      type: String,
+      enum: ["owner", "admin", "user"],
+      default: "user",
+    },
+    permissions: {
+      type: Object,
+      default: {
+        can_set_plan: true,
+        can_create_team: true,
+        can_create_project: true,
+      },
+    },
   },
   { timestamps: true }
 );
