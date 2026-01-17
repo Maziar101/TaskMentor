@@ -7,6 +7,7 @@ import teamAuditRoutes from "./routes/teamAudit.js";
 import teamGroupRoutes from "./routes/teamGroups.js";
 import teamsRoutes from "./routes/teams.js";
 import teamMembersRoutes from "./routes/teamMembers.js";
+import teamTaskRoutes from "./routes/teamTasks.js";
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.use("/api/teams",teamsRoutes);
 app.use("/api/teams/audit",teamAuditRoutes);
 app.use("/api/teams/group",teamGroupRoutes);
 app.use("/api/teams/members",teamMembersRoutes);
+app.use("/api/teams/tasks",teamTaskRoutes);
 
 export default app;
