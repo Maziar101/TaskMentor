@@ -1,13 +1,21 @@
 import Users from "../models/User.js";
 import catchAsync from "../utils/catchAsync.js";
+import HandleError from "../utils/HandleError.js";
 
 const MAGIC_CODE = "000000";
 
 export const login = catchAsync(async (req, res, next) => {
   const phone = req.body.phone?.trim();
+  const phoneRegex = /^09[0-9]{9}$/;
+
   if (!phone) {
     return res.status(400).json({ message: "phone is required" });
   }
+
+  if (!phoneRegex.test(phone)) {
+    return next(new HandleError("شماره موبایل وارد شده معتبر نیست !", 400));
+  }
+  
   const user = await Users.findOne({ phone });
   res.json({
     success: true,
