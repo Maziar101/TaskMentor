@@ -1,4 +1,4 @@
-const { Schema, model, Types } = require("mongoose");
+import { Schema, model, Types } from "mongoose";
 
 const teamTaskSchema = new Schema(
   {
@@ -14,4 +14,6 @@ const teamTaskSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = model("TeamTask", teamTaskSchema);
+const TeamTask = model("TeamTask", teamTaskSchema);
+
+export default TeamTask;

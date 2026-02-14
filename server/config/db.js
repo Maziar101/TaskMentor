@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 async function connectDB(uri) {
   const resolvedUri = uri || "mongodb://localhost:27017/taskmentor";
@@ -12,4 +12,4 @@ async function connectDB(uri) {
   return mongoose.connection;
 }
 
-module.exports = connectDB;
+export default connectDB;

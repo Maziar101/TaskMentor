@@ -1,4 +1,4 @@
-const { Schema, model, Types } = require("mongoose");
+import { Schema, model, Types } from "mongoose";
 
 const auditLogSchema = new Schema(
   {
@@ -13,4 +13,6 @@ const auditLogSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = model("AuditLog", auditLogSchema);
+const AuditLog = model("AuditLog", auditLogSchema);
+
+export default AuditLog;

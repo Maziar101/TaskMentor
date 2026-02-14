@@ -1,4 +1,4 @@
-const { Schema, model, Types } = require("mongoose");
+import { Schema, model, Types } from "mongoose";
 
 const groupMessageSchema = new Schema(
   {
@@ -21,4 +21,6 @@ const groupMessageSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = model("GroupMessage", groupMessageSchema);
+const GroupMessage = model("GroupMessage", groupMessageSchema);
+
+export default GroupMessage;
