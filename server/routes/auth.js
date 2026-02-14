@@ -1,4 +1,5 @@
 const express = require("express");
+const bcryptjs = require("bcryptjs");
 const User = require("../models/User");
 
 const router = express.Router();
@@ -42,6 +43,7 @@ router.post("/verify", async (req, res, next) => {
     if (code !== MAGIC_CODE) {
       return res.status(401).json({ message: "کد نادرست است" });
     }
+    
     res.json({
       userId: user.id,
       username: user.username,
