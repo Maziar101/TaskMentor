@@ -20,10 +20,10 @@ const useRoutesConfig = () =>
   createBrowserRouter([
     {
       path: "/",
-      element: <AuthLayout />,
+      element: <AuthLayout type="client" />,
       children: [
         { index: true, element: <Navigate to="/planner" replace /> },
-        { path: "login", element: <LoginPage /> },
+
         {
           element: <MainLayout />,
           children: [
@@ -41,6 +41,16 @@ const useRoutesConfig = () =>
             { path: "settings", element: <SettingsPage /> },
             { path: "*", element: <NotFoundPage /> },
           ],
+        },
+      ],
+    },
+    {
+      path: "login",
+      element: <AuthLayout type="login" />,
+      children: [
+        {
+          index: true,
+          element: <LoginPage />,
         },
       ],
     },
