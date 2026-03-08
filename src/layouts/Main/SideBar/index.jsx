@@ -2,19 +2,23 @@ import { FiLogOut, FiMenu, FiUser } from "react-icons/fi";
 import SideBarItem from "../SideBarItem";
 import { menuItems } from "./menuConfig";
 import { useUserStore } from "../../../store/userStore";
+import Stack from "@mui/material/Stack";
 
 export default function SideBar({ collapsed, onToggle }) {
   const { username, logout } = useUserStore();
   const displayName = username?.trim() || "بدون نام";
 
   return (
-    <aside
+    <Stack
       className={["sidebar", collapsed && "sidebar--collapsed"]
         .filter(Boolean)
         .join(" ")}
-      dir="rtl"
+      sx={{ direction: "rtl", overflow: "auto" }}
     >
-      <div className="sidebar__brand profile-card">
+      <Stack
+        sx={{ flexDirection: "row", display: collapsed ? "none" : "flex" }}
+        className="sidebar__brand profile-card"
+      >
         <div className="profile-card__avatar" aria-hidden>
           <FiUser />
         </div>
@@ -33,7 +37,7 @@ export default function SideBar({ collapsed, onToggle }) {
             <FiLogOut />
           </button>
         )}
-      </div>
+      </Stack>
       <nav className="sidebar__nav">
         {menuItems.map((item) => (
           <SideBarItem key={item.to} {...item} />
@@ -51,6 +55,6 @@ export default function SideBar({ collapsed, onToggle }) {
           </span>
         </button>
       </nav>
-    </aside>
+    </Stack>
   );
 }
