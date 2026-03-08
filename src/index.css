@@ -77,3 +77,19 @@ textarea,
 select {
   font-family: inherit;
 }
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141414;
+  border-radius: 10px;
+  
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 10px;
+}
