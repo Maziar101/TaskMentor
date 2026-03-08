@@ -5,7 +5,9 @@ import CustomField from "../../../components/CustomField";
 import { FiUser } from "react-icons/fi";
 import { useUserStore } from "../../../store/userStore";
 
-export default function StepTwo({ formik: { handleSubmit, setFieldValue } }) {
+export default function StepTwo({
+  formik: { handleSubmit, setFieldValue, values },
+}) {
   const {
     tmpData: { newUser },
   } = useUserStore();
@@ -105,20 +107,20 @@ export default function StepTwo({ formik: { handleSubmit, setFieldValue } }) {
           </div>
         </label>
         {newUser && (
-          <label className="auth-label">
-            نام
+          <Stack component="label" className="auth-label" sx={{ gap: "0px" }}>
+            <Typography>نام :</Typography>
             <CustomField
-              value={name}
-              handleChange={(e) => setName(e.target.value)}
-              place="مثلا: مازیار"
+              value={values.name}
+              handleChange={(e) => setFieldValue("name", e.target.value)}
+              place="..."
+              sx={{ direction: "rtl" }}
             />
-          </label>
+          </Stack>
         )}
         <Button
           className="primary"
           type="submit"
           onClick={() => {
-            console.log(otpValues?.join(""));
             setFieldValue("otp", otpValues?.join(""));
             handleSubmit({ otp: otpValues.join("") });
           }}
