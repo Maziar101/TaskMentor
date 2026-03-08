@@ -14,10 +14,15 @@ import { Server } from "socket.io";
 import http from "http";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 const server = http.createServer(app);
-dotenv.config({ path: "./.env" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 app.use(cors());
 app.use(morgan("dev"));
@@ -37,6 +42,7 @@ app.use("/api/teams/group", teamGroupRoutes);
 app.use("/api/teams/members", teamMembersRoutes);
 app.use("/api/teams/tasks", teamTaskRoutes);
 app.use("/api/users", usersRoutes);
+app.use(errorHandler);
 
 const io = new Server(server, {
   cors: {
