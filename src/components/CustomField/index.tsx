@@ -84,7 +84,11 @@ const CustomField = ({
         {...props}
       />
       {error && (
-        <Typography variant="caption" color="error">
+        <Typography
+          variant="caption"
+          color="error"
+          sx={{ fontFamily: "IRANYekanX",fontSize:"15px" }}
+        >
           {error}
         </Typography>
       )}
