@@ -1,16 +1,11 @@
 import { FiLogOut, FiMenu, FiUser } from "react-icons/fi";
-import { useAuth } from "../../../store/authStore";
 import SideBarItem from "../SideBarItem";
 import { menuItems } from "./menuConfig";
+import { useUserStore } from "../../../store/userStore";
 
-type SideBarProps = {
-  collapsed: boolean;
-  onToggle: () => void;
-};
-
-export default function SideBar({ collapsed, onToggle }: SideBarProps) {
-  const { user, logout } = useAuth();
-  const displayName = user?.username?.trim() || "بدون نام";
+export default function SideBar({ collapsed, onToggle }) {
+  const { username, logout } = useUserStore();
+  const displayName = username?.trim() || "بدون نام";
 
   return (
     <aside
@@ -27,7 +22,7 @@ export default function SideBar({ collapsed, onToggle }: SideBarProps) {
           <strong className="profile-card__name">{displayName}</strong>
           <span className="profile-card__role">کاربر</span>
         </div>
-        {user && !collapsed && (
+        {username && !collapsed && (
           <button
             className="profile-card__logout"
             type="button"
@@ -43,7 +38,11 @@ export default function SideBar({ collapsed, onToggle }: SideBarProps) {
         {menuItems.map((item) => (
           <SideBarItem key={item.to} {...item} />
         ))}
-        <button type="button" className="nav-link nav-toggle" onClick={onToggle}>
+        <button
+          type="button"
+          className="nav-link nav-toggle"
+          onClick={onToggle}
+        >
           <span className="nav-link__icon" aria-hidden>
             <FiMenu />
           </span>
