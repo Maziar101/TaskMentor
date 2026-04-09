@@ -49,7 +49,7 @@ export const verify = catchAsync(async (req, res, next) => {
     return res.status(401).json({ message: "کد نادرست است" });
   }
   const token = jwt.sign(
-    { phone, id: user?.id, subscription: user?.subscription, role: user?.role },
+    { phone, id: user?._id, subscription: user?.subscription, role: user?.role },
     jwtSecret,
   );
   return res.json({
