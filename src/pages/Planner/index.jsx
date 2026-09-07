@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import {
-  FiCheck,
-  FiTrash2,
   FiChevronLeft,
   FiChevronRight,
   FiCalendar,
   FiX,
-  FiCopy,
-  FiClipboard,
+  FiEye,
 } from "react-icons/fi";
 import DeleteModal from "../../components/DeleteModal";
 import PriorityDropdown from "../../components/PriorityDropdown/index";
@@ -40,6 +37,10 @@ import {
 import { useFetch } from "../../hooks/useFetch";
 import { HandleReduce } from "../../utils/HandleReducer";
 import { HotToast } from "../../utils/HotToast";
+import AutoGrowTextarea from "./components/AutoGrowTextarea";
+import HourSlot from "./components/HourSlot";
+import TaskDetailsModal from "./components/TaskDetailsModal";
+import useDurationResize from "./hooks/useDurationResize";
 
 function PlannerPage() {
   const [state, dispatch] = useReducer(
@@ -74,8 +75,8 @@ function PlannerPage() {
     deleteModalBusy,
     poolHover,
     calendarModal,
-    copiedTaskId,
-    copiedTask,
+    taskDetails,
+    taskDetailsBusy,
   } = state;
   const { fetchData } = useFetch();
   const handleReducer = HandleReduce(dispatch);
@@ -90,8 +91,6 @@ function PlannerPage() {
       },
     });
   }, []);
-
-  const copyTimeoutRef = useRef();
 
   const loadPool = useCallback(async () => {
     try {
@@ -178,12 +177,6 @@ function PlannerPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [undoToast, schedule]);
 
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
-    };
-  }, []);
-
   const activeDate = useMemo(
     () => new Date(`${activeDay}T00:00:00Z`),
     [activeDay],
@@ -198,6 +191,16 @@ function PlannerPage() {
     () => sortByHour(schedule[activeDay] ?? []),
     [schedule, activeDay],
   );
+
+  const {
+    durationResize,
+    beginDurationResize,
+    previewDurationResize,
+    finishDurationResize,
+    extendDurationByOne,
+    shortenBlockDuration,
+    cancelDurationResize,
+  } = useDurationResize({ daySchedule, fetchData, loadSchedule });
 
   const dayDoneCount = useMemo(
     () => daySchedule.filter((t) => t.done).length,
@@ -237,9 +240,25 @@ function PlannerPage() {
     setField("jalaliMonthView", toJalaliParts(activeDate));
   }, [activeDate, setField]);
 
+  const previewSchedule = useMemo(() => {
+    if (!durationResize || durationResize.day !== activeDay) return daySchedule;
+    const affectedIds = new Set(durationResize.affectedIds);
+    return daySchedule.flatMap((task) => {
+      if (task.id === durationResize.anchorId) {
+        return {
+          ...task,
+          duration: durationResize.valid
+            ? durationResize.duration
+            : durationResize.originalDuration,
+        };
+      }
+      return affectedIds.has(task.id) ? [] : task;
+    });
+  }, [activeDay, daySchedule, durationResize]);
+
   const mergedBlocks = useMemo(
-    () => mergeConsecutive(daySchedule),
-    [daySchedule],
+    () => mergeConsecutive(previewSchedule),
+    [previewSchedule],
   );
 
   const blocksByStart = useMemo(() => {
@@ -257,15 +276,6 @@ function PlannerPage() {
     });
     return map;
   }, [mergedBlocks]);
-
-  const previousDays = useMemo(() => {
-    const keys = Object.keys(schedule);
-    return keys
-      .filter((k) => k !== activeDay)
-      .sort()
-      .slice(-4)
-      .reverse();
-  }, [schedule, activeDay]);
 
   function showUndoToast(payload) {
     if (undoTimer) window.clearTimeout(undoTimer);
@@ -319,66 +329,6 @@ function PlannerPage() {
       }
     } catch (err) {
       console.error("Failed to undo", err);
-    }
-  }
-
-  async function copyLatestDayIntoActive() {
-    const source = previousDays[0];
-    if (!source) return;
-    const sourceTasks = schedule[source] ?? [];
-    if (sourceTasks.length === 0) return;
-    try {
-      await Promise.all(
-        sourceTasks.map((t) =>
-          fetchData("/api/schedule", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: t?.title,
-              tag: t?.tag,
-              priority: t?.priorityId,
-              day: activeDay,
-              hour: t?.hour,
-              duration: t?.duration ?? 1,
-              done: false,
-            }),
-          }),
-        ),
-      );
-      await loadSchedule(activeDay);
-    } catch (err) {
-      console.error("Failed to copy day", err);
-    }
-  }
-
-  async function clearActiveDay() {
-    const tasks = schedule[activeDay] ?? [];
-    if (tasks.length === 0) return;
-    try {
-      await Promise.all(
-        tasks.map((t) =>
-          fetchData(`/api/schedule?id=${t.id}`, {
-            method: "DELETE",
-          }),
-        ),
-      );
-      await Promise.all(
-        tasks.map((t) =>
-          fetchData("/api/tasks", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: t.title,
-              tag: t.tag,
-              priority: t.priorityId,
-              duration: t.duration ?? 1,
-            }),
-          }),
-        ),
-      );
-      await Promise.all([loadSchedule(activeDay), loadPool()]);
-    } catch (err) {
-      console.error("Failed to clear day", err);
     }
   }
 
@@ -644,77 +594,89 @@ function PlannerPage() {
     }
   };
 
-  async function handleCopyTask(task) {
-    const text = task.title?.trim();
-    if (!text) return;
+  function openTaskDetails(task, source, block = null) {
+    setField("taskDetails", { task, source, block });
+  }
+
+  async function handleSaveTaskDetails(values) {
+    if (!taskDetails) return;
+    setField("taskDetailsBusy", true);
+    const payload = {
+      title: values.title,
+      tag: values.tag,
+      priority: values.priorityId,
+    };
+
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
+      if (taskDetails.source === "pool") {
+        const { res, status } = await fetchData(
+          `/api/tasks/${taskDetails.task.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, duration: values.duration }),
+          },
+        );
+        if (status !== 200) throw new Error(res?.message);
+        await loadPool();
       } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+        const sourceDay = taskDetails.task.day;
+        const block = taskDetails.block;
+        const sourceTasks = schedule[sourceDay] ?? [];
+        const affected = block
+          ? sourceTasks.filter((task) => {
+              const sameTitle =
+                task.title.trim().toLowerCase() ===
+                block.task.title.trim().toLowerCase();
+              const sameTag = task.tag === block.task.tag;
+              return sameTitle && sameTag && task.hour >= block.start && task.hour < block.end;
+            })
+          : [taskDetails.task];
+
+        const responses = await Promise.all(
+          affected.map((task) =>
+            fetchData(`/api/schedule?id=${task.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }),
+          ),
+        );
+        const failed = responses.find(({ status }) => status !== 200);
+        if (failed) throw new Error(failed.res?.message);
+        const currentDuration = block
+          ? Math.max(1, block.end - block.start)
+          : 1;
+        if (block && values.duration < currentDuration) {
+          await shortenBlockDuration(block, values.duration);
+        } else {
+          await loadSchedule(sourceDay);
+        }
       }
-      const scheduledTask = "hour" in task ? task : null;
-      setField("copiedTask", {
-        id: task.id,
-        title: text,
-        tag: task.tag,
-        priorityId: task.priorityId,
-        duration: task.duration ?? 1,
-        source: scheduledTask ? "scheduled" : "pool",
-        hour: scheduledTask?.hour,
-        day: scheduledTask?.day,
-      });
-      setField("copiedTaskId", task.id);
-      if (copyTimeoutRef.current) window.clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = window.setTimeout(() => {
-        setField("copiedTaskId", null);
-        copyTimeoutRef.current = null;
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to copy task", err);
+    } catch (error) {
+      throw new Error(error?.message || "ذخیره تغییرات انجام نشد");
+    } finally {
+      setField("taskDetailsBusy", false);
     }
   }
 
-  async function handlePasteToHour(hour) {
-    if (!copiedTask) return;
-    const sameSlot =
-      copiedTask.source === "scheduled" &&
-      copiedTask.day === activeDay &&
-      copiedTask.hour === hour;
-    if (sameSlot) return;
-    try {
-      const { res, status } = await fetchData("/api/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: copiedTask.title,
-          tag: copiedTask.tag,
-          priority: copiedTask.priorityId,
-          day: activeDay,
-          hour,
-          duration: copiedTask.duration ?? 1,
-          done: false,
-        }),
-      });
-      if (status !== 201) {
-        return HotToast("error", res?.message);
-      }
-    } catch (err) {
-      console.error("Failed to paste task", err);
-    }
-  }
-
-  function handleDayShift(delta) {
-    const base = new Date(`${activeDay}T00:00:00Z`);
-    base.setUTCDate(base.getUTCDate() + delta);
-    setField("activeDay", base.toISOString().slice(0, 10));
+  function requestTaskDelete() {
+    if (!taskDetails) return;
+    const { task, source, block } = taskDetails;
+    setField("taskDetails", null);
+    setField("deleteModal", {
+      title: "حذف تسک",
+      description: task.title
+        ? `حذف تسک "${task.title}"؟`
+        : "حذف این تسک؟",
+      confirmLabel: "حذف",
+      onConfirm: () =>
+        source === "pool"
+          ? handleDeletePoolTask(task.id)
+          : block
+            ? handleDeleteBlock(block)
+            : handleDeleteScheduled(task.id, task.day),
+    });
   }
 
   function handleJalaliMonthShift(delta) {
@@ -831,39 +793,6 @@ function PlannerPage() {
           </div>
           <p className="light small">{dayProgress}% از ۲۴ ساعت سپری شده</p>
         </div>
-        <div className="topbar__controls">
-          <button
-            onClick={() => handleDayShift(-1)}
-            className="ghost"
-            type="button"
-          >
-            روز قبل
-          </button>
-          <button
-            onClick={() => setField("activeDay", todayKey())}
-            className="ghost"
-            type="button"
-          >
-            امروز
-          </button>
-          <button
-            onClick={() => handleDayShift(1)}
-            className="ghost"
-            type="button"
-          >
-            روز بعد
-          </button>
-          <button
-            onClick={copyLatestDayIntoActive}
-            className="ghost"
-            type="button"
-          >
-            کپی از روز قبلی
-          </button>
-          <button onClick={clearActiveDay} className="ghost" type="button">
-            خالی کردن روز
-          </button>
-        </div>
       </div>
 
       <div className="planner__body">
@@ -889,14 +818,11 @@ function PlannerPage() {
               </div>
             </header>
             <div className="add-form">
-              <input
+              <AutoGrowTextarea
                 placeholder="می‌خوای چه کاری انجام بدی؟ بنویس…"
                 value={newTaskTitle}
                 onChange={(e) => setField("newTaskTitle", e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddTask();
-                }}
-                style={{ outline: "none" }}
+                onSubmit={handleAddTask}
               />
               <div className="tag-choices">
                 {allTags.map((tag) => (
@@ -998,34 +924,13 @@ function PlannerPage() {
                     </div>
                     <div className="task__meta-actions">
                       <button
-                        className={[
-                          "icon-btn",
-                          copiedTaskId === task.id && "icon-btn--copied",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
+                        className="icon-btn"
                         type="button"
-                        aria-label="کپی کردن"
-                        onClick={() => handleCopyTask(task)}
+                        aria-label="مشاهده و ویرایش تسک"
+                        title="مشاهده و ویرایش"
+                        onClick={() => openTaskDetails(task, "pool")}
                       >
-                        <FiCopy aria-hidden />
-                      </button>
-                      <button
-                        className="icon-btn icon-btn--danger"
-                        type="button"
-                        aria-label="حذف"
-                        onClick={() =>
-                          setField("deleteModal", {
-                            title: "حذف تسک",
-                            description: task.title
-                              ? `حذف تسک "${task.title}"؟`
-                              : "حذف این تسک؟",
-                            confirmLabel: "حذف",
-                            onConfirm: () => handleDeletePoolTask(task.id),
-                          })
-                        }
-                      >
-                        <FiTrash2 aria-hidden />
+                        <FiEye aria-hidden />
                       </button>
                     </div>
                   </div>
@@ -1125,346 +1030,29 @@ function PlannerPage() {
         <section className="planner__board">
           <section className="grid" aria-label="24 hour grid">
             {hours.map((hour) => {
-              const blockStart = blocksByStart.get(hour);
-              const covered = coveringBlocks.get(hour);
-              const isPastHour =
-                dayPosition === "past" ||
-                (dayPosition === "today" && hour < now.getHours());
-              const isCurrentHour =
-                dayPosition === "today" && hour === now.getHours();
-              const hourTasks = daySchedule.filter((t) => t.hour === hour);
-              const hasOverlap = hourTasks.length > 1;
-              const hasTasks = hourTasks.length > 0;
-              const allDone = hasTasks && hourTasks.every((t) => t.done);
-              const canPaste =
-                Boolean(copiedTask) &&
-                (!copiedTask?.day ||
-                  copiedTask.day !== activeDay ||
-                  copiedTask.hour !== hour);
-              const pasteLabel = copiedTask
-                ? `پیست: ${copiedTask.title}`
-                : "پیست";
-              let chipLabel = null;
-              let chipClassName = "slot__chip";
-
-              if (hasTasks) {
-                if (allDone) {
-                  chipLabel = "انجام شد";
-                  chipClassName += " slot__chip--done";
-                } else if (isCurrentHour) {
-                  chipLabel = "در حال انجام";
-                  chipClassName += " slot__chip--now";
-                } else if (isPastHour) {
-                  chipLabel = "تمام شده";
-                } else {
-                  chipLabel = "در حال انتظار";
-                  chipClassName += " slot__chip--pending";
-                }
-              } else if (isCurrentHour) {
-                chipLabel = "الان";
-                chipClassName += " slot__chip--now";
-              } else if (isPastHour) {
-                chipLabel = "تمام شده";
-              }
               return (
-                <div
+                <HourSlot
                   key={hour}
-                  className={[
-                    "slot",
-                    hoverHour === hour && "slot--hover",
-                    covered && "slot--covered",
-                    isPastHour && "slot--past",
-                    isCurrentHour && "slot--current",
-                    hasOverlap && "slot--crowded",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setField("hoverHour", hour);
-                  }}
-                  onDragLeave={() =>
-                    setField("hoverHour", (prev) =>
-                      prev === hour ? null : prev,
-                    )
-                  }
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const data = e.dataTransfer.getData("application/json");
-                    handleDrop(hour, data);
-                    setField("hoverHour", null);
-                  }}
-                >
-                  <div className="slot__label-row">
-                    <div className="slot__label">{formatHour(hour)}</div>
-                    {(chipLabel || canPaste) && (
-                      <div className="slot__actions">
-                        {chipLabel && (
-                          <span className={chipClassName}>{chipLabel}</span>
-                        )}
-                        {canPaste && (
-                          <button
-                            className="icon-btn slot__paste"
-                            type="button"
-                            aria-label={pasteLabel}
-                            title={pasteLabel}
-                            onClick={() => handlePasteToHour(hour)}
-                          >
-                            <FiClipboard aria-hidden />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="slot__content">
-                    {hasOverlap && (
-                      <div className="stacked-tasks">
-                        {hourTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className={[
-                              "stacked-task",
-                              task.done && "task--done",
-                              !task.done && isPastHour && "task--stale",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            title={task.title}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData(
-                                "application/json",
-                                JSON.stringify({
-                                  type: "scheduled",
-                                  id: task.id,
-                                  day: task.day,
-                                }),
-                              );
-                              e.dataTransfer.effectAllowed = "move";
-                            }}
-                          >
-                            <span className="stacked-task__title task__title--with-dot">
-                              <span
-                                className="priority-dot"
-                                style={{
-                                  backgroundColor: getPriorityColor(
-                                    task.priorityId,
-                                    priorities,
-                                  ),
-                                }}
-                              />
-                              <span className="task__title-text">
-                                {task.title}
-                              </span>
-                            </span>
-                            <div className="task__meta-actions">
-                              <button
-                                className={[
-                                  "icon-btn",
-                                  copiedTaskId === task.id &&
-                                    "icon-btn--copied",
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ")}
-                                type="button"
-                                aria-label="کپی کردن"
-                                onClick={() => handleCopyTask(task)}
-                              >
-                                <FiCopy aria-hidden />
-                              </button>
-                              <button
-                                className="icon-btn"
-                                type="button"
-                                aria-label="علامت انجام شده"
-                                onClick={() =>
-                                  toggleDoneForTask(task.id, task.day)
-                                }
-                              >
-                                <FiCheck aria-hidden />
-                              </button>
-                              <button
-                                className="icon-btn icon-btn--danger"
-                                type="button"
-                                aria-label="حذف"
-                                onClick={() =>
-                                  setField("deleteModal", {
-                                    title: "حذف تسک",
-                                    description: task.title
-                                      ? `حذف تسک "${task.title}"؟`
-                                      : "حذف این تسک؟",
-                                    confirmLabel: "حذف",
-                                    onConfirm: () =>
-                                      handleDeleteScheduled(task.id, task.day),
-                                  })
-                                }
-                              >
-                                <FiTrash2 aria-hidden />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {!hasOverlap && !blockStart && !covered && (
-                      <span className="hint">درگ کنید</span>
-                    )}
-                    {!hasOverlap && blockStart && (
-                      <article
-                        className={[
-                          "task",
-                          "task--scheduled",
-                          "task--merged",
-                          blockStart.task.done && "task--done",
-                          !blockStart.task.done && isPastHour && "task--stale",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        title={blockStart.task.title}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData(
-                            "application/json",
-                            JSON.stringify({
-                              type: "scheduled",
-                              id: blockStart.task.id,
-                              day: blockStart.task.day,
-                            }),
-                          );
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                      >
-                        <div className="task__title task__title--with-dot">
-                          <span
-                            className="priority-dot"
-                            style={{
-                              backgroundColor: getPriorityColor(
-                                blockStart.task.priorityId,
-                                priorities,
-                              ),
-                            }}
-                          />
-                          <span className="task__title-text">
-                            {blockStart.task.title}
-                          </span>
-                        </div>
-                        <div className="task__meta">
-                          <div className="task__meta-left">
-                            {blockStart.task.tag && (
-                              <span
-                                className={[
-                                  "pill",
-                                  getTagClass(blockStart.task.tag),
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ")}
-                              >
-                                {getTagLabel(blockStart.task.tag)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="task__meta-actions">
-                            <button
-                              className={[
-                                "icon-btn",
-                                copiedTaskId === blockStart.task.id &&
-                                  "icon-btn--copied",
-                              ]
-                                .filter(Boolean)
-                                .join(" ")}
-                              type="button"
-                              aria-label="کپی کردن"
-                              onClick={() => handleCopyTask(blockStart.task)}
-                            >
-                              <FiCopy aria-hidden />
-                            </button>
-                            <button
-                              className="icon-btn"
-                              type="button"
-                              aria-label="علامت انجام شده"
-                              onClick={() => toggleDoneForBlock(blockStart)}
-                            >
-                              <FiCheck aria-hidden />
-                            </button>
-                            <button
-                              className="icon-btn icon-btn--danger"
-                              type="button"
-                              aria-label="حذف"
-                              onClick={() =>
-                                setField("deleteModal", {
-                                  title: "حذف تسک",
-                                  description: blockStart.task.title
-                                    ? `حذف تسک "${blockStart.task.title}"؟`
-                                    : "حذف این تسک؟",
-                                  confirmLabel: "حذف",
-                                  onConfirm: () =>
-                                    handleDeleteBlock(blockStart),
-                                })
-                              }
-                            >
-                              <FiTrash2 aria-hidden />
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    )}
-                    {!hasOverlap && covered && !blockStart && (
-                      <div
-                        className={[
-                          "continuation",
-                          "continuation--card",
-                          covered.task.done && "task--done",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        <span className="continuation__text hint">
-                          {`ادامه تسک ${covered.task.title}`}
-                        </span>
-                        <div className="task__meta-actions">
-                          <button
-                            className={[
-                              "icon-btn",
-                              copiedTaskId === covered.task.id &&
-                                "icon-btn--copied",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            type="button"
-                            aria-label="کپی کردن"
-                            onClick={() => handleCopyTask(covered.task)}
-                          >
-                            <FiCopy aria-hidden />
-                          </button>
-                          <button
-                            className="icon-btn"
-                            type="button"
-                            aria-label="علامت انجام شده"
-                            onClick={() => toggleDoneForBlock(covered)}
-                          >
-                            <FiCheck aria-hidden />
-                          </button>
-                          <button
-                            className="icon-btn icon-btn--danger"
-                            type="button"
-                            aria-label="حذف"
-                            onClick={() =>
-                              setField("deleteModal", {
-                                title: "حذف تسک",
-                                description: covered.task.title
-                                  ? `حذف تسک "${covered.task.title}"؟`
-                                  : "حذف این تسک؟",
-                                confirmLabel: "حذف",
-                                onConfirm: () => handleDeleteBlock(covered),
-                              })
-                            }
-                          >
-                            <FiTrash2 aria-hidden />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  hour={hour}
+                  blocksByStart={blocksByStart}
+                  coveringBlocks={coveringBlocks}
+                  dayPosition={dayPosition}
+                  now={now}
+                  daySchedule={daySchedule}
+                  durationResize={durationResize}
+                  hoverHour={hoverHour}
+                  priorities={priorities}
+                  setField={setField}
+                  previewDurationResize={previewDurationResize}
+                  finishDurationResize={finishDurationResize}
+                  handleDrop={handleDrop}
+                  toggleDoneForTask={toggleDoneForTask}
+                  openTaskDetails={openTaskDetails}
+                  toggleDoneForBlock={toggleDoneForBlock}
+                  extendDurationByOne={extendDurationByOne}
+                  beginDurationResize={beginDurationResize}
+                  cancelDurationResize={cancelDurationResize}
+                />
               );
             })}
           </section>
@@ -1507,6 +1095,17 @@ function PlannerPage() {
             </div>
           </div>
         </div>
+      )}
+      {taskDetails && (
+        <TaskDetailsModal
+          details={taskDetails}
+          tags={allTags}
+          priorities={priorities}
+          busy={taskDetailsBusy}
+          onClose={() => setField("taskDetails", null)}
+          onSave={handleSaveTaskDetails}
+          onRequestDelete={requestTaskDelete}
+        />
       )}
       <DeleteModal
         open={Boolean(deleteModal)}

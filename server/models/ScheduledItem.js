@@ -15,6 +15,7 @@ const scheduledItemSchema = new Schema(
       },
     },
     hour: { type: Number, required: true, min: 0, max: 23 },
+    duration: { type: Number, default: 1, min: 1, max: 24 },
     done: { type: Boolean, default: false },
   },
   { timestamps: true }

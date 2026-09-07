@@ -6,6 +6,16 @@ const taskSchema = new Schema(
     title: { type: String, required: true, trim: true },
     tag: { type: String, trim: true },
     priority: { type: String, trim: true },
+    day: {
+      type: String,
+      validate: {
+        validator: (v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v),
+        message: "day must be in YYYY-MM-DD format",
+      },
+    },
+    hour: { type: Number, min: 0, max: 23 },
+    duration: { type: Number, default: 1, min: 1, max: 24 },
+    done: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
