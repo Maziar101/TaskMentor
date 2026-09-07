@@ -19,6 +19,34 @@
 }
 
 :root {
+  --tm-page-base: #0c0a18;
+  --tm-page-glow-primary: rgba(107, 75, 255, 0.32);
+  --tm-page-glow-secondary: rgba(255, 193, 78, 0.22);
+  --tm-surface-deep: #110b24;
+  --tm-surface-solid: #120c27;
+  --tm-surface-1: rgba(27, 18, 50, 0.95);
+  --tm-surface-2: rgba(18, 12, 36, 0.98);
+  --tm-surface-elevated: rgba(17, 12, 32, 0.82);
+  --tm-surface-elevated-strong: rgba(17, 12, 32, 0.94);
+  --tm-primary: #a16bff;
+  --tm-primary-strong: #6f4bff;
+  --tm-accent: #f7d046;
+  --tm-accent-strong: #f0a63c;
+  --tm-accent-tint: rgba(247, 208, 70, 0.08);
+  --tm-accent-soft: rgba(247, 208, 70, 0.17);
+  --tm-accent-border: rgba(247, 208, 70, 0.58);
+  --tm-accent-glow: rgba(247, 208, 70, 0.3);
+  --tm-on-accent: #1a132f;
+  --tm-text: #f4edff;
+  --tm-text-muted: #cbbde6;
+  --tm-text-accent: #d6b6ff;
+  --tm-border-subtle: rgba(153, 126, 255, 0.18);
+  --tm-border-soft: rgba(153, 126, 255, 0.25);
+  --tm-border: rgba(153, 126, 255, 0.35);
+  --tm-border-strong: rgba(153, 126, 255, 0.62);
+  --tm-primary-soft: rgba(149, 118, 255, 0.2);
+  --tm-primary-tint: rgba(161, 107, 255, 0.12);
+  --tm-primary-glow: rgba(120, 85, 255, 0.28);
   font-family:
     "IRANYekanX",
     system-ui,
@@ -28,19 +56,19 @@
     sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #f4edff;
+  color: var(--tm-text);
   background:
     radial-gradient(
       circle at 20% 20%,
-      rgba(107, 75, 255, 0.32),
+      var(--tm-page-glow-primary),
       transparent 30%
     ),
     radial-gradient(
       circle at 80% 10%,
-      rgba(255, 193, 78, 0.22),
+      var(--tm-page-glow-secondary),
       transparent 30%
     ),
-    #0c0a18;
+    var(--tm-page-base);
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -60,6 +88,9 @@ body {
   min-height: 100vh;
   direction: rtl;
   text-align: right;
+  background: transparent;
+  color: var(--tm-text);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1,

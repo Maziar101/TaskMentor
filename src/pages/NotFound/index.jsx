@@ -1,11 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FiAlertTriangle, FiArrowRight, FiHome } from "react-icons/fi";
-
 export default function NotFoundPage() {
-  const navigate = useNavigate();
-
-  return (
-    <div className="not-found" dir="rtl">
+    const navigate = useNavigate();
+    return (<div className="not-found" dir="rtl">
       <div className="panel not-found__card">
         <div className="not-found__badge">
           <FiAlertTriangle />
@@ -29,6 +26,5 @@ export default function NotFoundPage() {
       <p className="not-found__hint light small">
         اگر فکر می‌کنید این خطا اشتباه است، مسیر را دوباره بررسی کنید.
       </p>
-    </div>
-  );
+    </div>);
 }

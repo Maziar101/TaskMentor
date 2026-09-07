@@ -1,31 +1,8 @@
 import { Stack, TextField, Typography, InputAdornment } from "@mui/material";
-import React from "react";
-
-type props = {
-  place: string;
-  name: string;
-  error: string;
-  touched: any;
-  handleBlur: any;
-  type: string;
-  handleChange: any;
-  value: any;
-  onClick: any;
-  sx: any;
-  onInput: any;
-  readOnly: boolean;
-  children: any;
-  start: any;
-  end: any;
-  maxLength: any;
-};
-
 const CustomField = ({
   place,
   name,
   error,
-  touched,
-  handleBlur,
   type = "text",
   handleChange,
   value,
@@ -38,10 +15,12 @@ const CustomField = ({
   end,
   maxLength,
   ...props
-}: props) => {
+}) => {
   return (
     <Stack gap={1} sx={{ width: "100%", ...sx }}>
-      <Typography sx={{ color: "txt.white" }}>{children}</Typography>
+      {children && (
+        <Typography sx={{ color: "txt.white" }}>{children}</Typography>
+      )}
       <TextField
         fullWidth
         name={name}
@@ -71,15 +50,11 @@ const CustomField = ({
         sx={{
           fieldset: { border: "none" },
           borderRadius: "4px",
-          direction: "ltr",
           transition: "all 0.3s ease",
-          //   "& .MuiInputBase-root": {
-          //     direction: "rtl",
-          //   },
           "& .MuiInputBase-input": {
             color: "txt.primary",
           },
-          ...sx,
+          direction: "rtl",
         }}
         {...props}
       />
@@ -87,7 +62,7 @@ const CustomField = ({
         <Typography
           variant="caption"
           color="error"
-          sx={{ fontFamily: "IRANYekanX",fontSize:"15px" }}
+          sx={{ fontFamily: "IRANYekanX", fontSize: "15px" }}
         >
           {error}
         </Typography>
@@ -95,5 +70,4 @@ const CustomField = ({
     </Stack>
   );
 };
-
 export default CustomField;

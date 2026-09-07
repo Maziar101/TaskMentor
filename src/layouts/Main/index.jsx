@@ -1,14 +1,8 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import SideBar from "./SideBar/index.jsx";
-
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const location = useLocation();
-  const isProjectsPage = location.pathname.startsWith("/projects");
-  const isTeamsBoard = location.pathname === "/teams";
-  const isEdgeToEdge = isProjectsPage || isTeamsBoard;
-
   return (
     <div
       className={["shell", sidebarCollapsed && "shell--collapsed"]
@@ -21,9 +15,7 @@ export default function MainLayout() {
       />
 
       <main
-        className={["route-area", isEdgeToEdge && "route-area--projects"]
-          .filter(Boolean)
-          .join(" ")}
+        className="route-area"
       >
         <Outlet />
       </main>

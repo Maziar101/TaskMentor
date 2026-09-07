@@ -1,12 +1,14 @@
 import { FiLogOut, FiMenu, FiUser } from "react-icons/fi";
 import SideBarItem from "../SideBarItem";
 import { menuItems } from "./menuConfig";
-import { useUserStore } from "../../../store/userStore";
 import Stack from "@mui/material/Stack";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../../store/authSlice";
 
 export default function SideBar({ collapsed, onToggle }) {
-  const { username, logout } = useUserStore();
-  const displayName = username?.trim() || "بدون نام";
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  const displayName = user?.username?.trim() || "بدون نام";
 
   return (
     <Stack
@@ -26,12 +28,12 @@ export default function SideBar({ collapsed, onToggle }) {
           <strong className="profile-card__name">{displayName}</strong>
           <span className="profile-card__role">کاربر</span>
         </div>
-        {username && !collapsed && (
+        {user && !collapsed && (
           <button
             className="profile-card__logout"
             type="button"
             aria-label="خروج"
-            onClick={logout}
+            onClick={() => dispatch(logout())}
             title="خروج"
           >
             <FiLogOut />
