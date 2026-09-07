@@ -1,7 +1,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { FiPhone } from "react-icons/fi";
+import { FiArrowRight, FiEye, FiEyeOff, FiPhone } from "react-icons/fi";
 import Loading from "../../components/Loading";
 import { HotToast } from "../../utils/HotToast";
 import { authApi } from "../../services/api";
@@ -13,7 +13,10 @@ export default function LoginPage() {
   const [step, setStep] = useState("phone");
   const [phone, setPhone] = useState("");
   const [isNewUser, setIsNewUser] = useState(false);
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [isPending, startPending] = useTransition();
   const otpRefs = useRef([]);
@@ -35,11 +38,8 @@ export default function LoginPage() {
       try {
         const data = await authApi.sendCode({ phone });
         setIsNewUser(data.newUser);
+        setNeedsPasswordSetup(data.needsPasswordSetup);
         setStep("otp");
-        setTimeout(() => {
-          if (data.newUser) return;
-          otpRefs.current[0]?.focus();
-        }, 50);
       } catch (err) {
         HotToast("error", err.message);
       }
@@ -94,9 +94,13 @@ export default function LoginPage() {
       HotToast("error", "لطفاً نام خود را وارد کنید");
       return;
     }
+    if (password.length < 6) {
+      HotToast("error", "رمز عبور باید حداقل ۶ کاراکتر باشد");
+      return;
+    }
     startPending(async () => {
       try {
-        const payload = { phone, code };
+        const payload = { phone, code, password };
         if (isNewUser) payload.name = name.trim();
         const data = await authApi.verify(payload);
         dispatch(setCredentials({ token: data.token, user: data.user }));
@@ -111,6 +115,9 @@ export default function LoginPage() {
     setStep("phone");
     setOtp(Array(OTP_LENGTH).fill(""));
     setName("");
+    setPassword("");
+    setShowPassword(false);
+    setNeedsPasswordSetup(false);
   }
 
   if (isPending) return <Loading />;
@@ -119,15 +126,19 @@ export default function LoginPage() {
     <div className="auth-page" dir="rtl">
       {step === "phone" ? (
         <form className="auth-card" onSubmit={handleSendCode}>
-          <div className="auth-card__icon">
-            <FiPhone />
+          <div className="auth-card__header">
+            <div className="auth-card__icon" aria-hidden="true">
+              <FiPhone />
+            </div>
+            <div className="auth-card__title-group">
+              <h1 className="auth-card__title">Task Mentor</h1>
+              <p className="auth-card__subtitle">
+                برای ورود یا ثبت‌نام، شماره موبایل خود را وارد کنید.
+              </p>
+            </div>
           </div>
-          <h2 style={{ fontSize: 28, textAlign: "center" }}>Task Mentor</h2>
-          <p className="auth-card__subtitle">
-            برای ورود یا ثبت‌نام، شماره موبایل خود را وارد کنید
-          </p>
           <label className="auth-label">
-            شماره موبایل
+            <span>شماره موبایل</span>
             <input
               type="tel"
               inputMode="numeric"
@@ -149,23 +160,31 @@ export default function LoginPage() {
         </form>
       ) : (
         <form className="auth-card" onSubmit={handleVerify}>
-          <div className="auth-card__icon">
-            <FiPhone />
+          <div className="auth-card__header">
+            <div className="auth-card__icon" aria-hidden="true">
+              <FiPhone />
+            </div>
+            <div className="auth-card__title-group">
+              <h1 className="auth-card__title">
+                {isNewUser
+                  ? "تکمیل ثبت‌نام"
+                  : needsPasswordSetup
+                    ? "تعریف رمز عبور"
+                    : "ورود به حساب"}
+              </h1>
+              <p className="auth-card__subtitle">
+                رمز عبور و کد تایید شماره{" "}
+                <span className="auth-card__phone" dir="ltr">
+                  {phone}
+                </span>{" "}
+                را وارد کنید. کد فعلی ۰۰۰۰۰ است.
+              </p>
+            </div>
           </div>
-          <h2 style={{ fontSize: 28, textAlign: "center" }}>
-            {isNewUser ? "ثبت‌نام" : "ورود"}
-          </h2>
-          <p className="auth-card__subtitle">
-            کد ارسال شده به{" "}
-            <span className="auth-card__phone" dir="ltr">
-              {phone}
-            </span>{" "}
-            را وارد کنید
-          </p>
 
           {isNewUser && (
             <label className="auth-label">
-              نام
+              <span>نام</span>
               <input
                 type="text"
                 placeholder="نام خود را وارد کنید"
@@ -175,6 +194,39 @@ export default function LoginPage() {
               />
             </label>
           )}
+
+          <label className="auth-label">
+            <span>
+              {isNewUser || needsPasswordSetup
+                ? "ساخت رمز عبور"
+                : "رمز عبور"}
+            </span>
+            <span className="auth-password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="حداقل ۶ کاراکتر"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                autoComplete={
+                  isNewUser || needsPasswordSetup
+                    ? "new-password"
+                    : "current-password"
+                }
+                autoFocus={!isNewUser}
+                dir="ltr"
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور"}
+                title={showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور"}
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </span>
+          </label>
 
           <div className="otp-inputs" onPaste={handleOtpPaste}>
             {otp.map((digit, idx) => (
@@ -195,7 +247,6 @@ export default function LoginPage() {
                 value={digit}
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                autoFocus={!isNewUser && idx === 0}
               />
             ))}
           </div>
@@ -208,6 +259,7 @@ export default function LoginPage() {
             className="auth-card__back"
             onClick={handleBack}
           >
+            <FiArrowRight aria-hidden="true" />
             تغییر شماره
           </button>
         </form>
