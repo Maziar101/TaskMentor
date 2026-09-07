@@ -17,6 +17,12 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import errorHandler from "./middleware/errorHandler.js";
+import profileRoutes from "./routes/profile.js";
+import notesRoutes from "./modules/notes/notes.routes.js";
+import tagsRoutes from "./modules/tags/tags.routes.js";
+import reportsRoutes from "./routes/reports.js";
+
+import chatRoutes from "./modules/chat/chat.routes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +48,11 @@ app.use("/api/teams/group", teamGroupRoutes);
 app.use("/api/teams/members", teamMembersRoutes);
 app.use("/api/teams/tasks", teamTaskRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/reports", reportsRoutes);
+app.use("/api/notes", notesRoutes);
+app.use("/api/tags", tagsRoutes);
+app.use("/api/chat", chatRoutes);
 app.use(errorHandler);
 
 const io = new Server(server, {
