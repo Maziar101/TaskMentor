@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+server/uploads/chat/*
+!server/uploads/chat/.gitkeep
 *.local
 
 # Editor directories and files

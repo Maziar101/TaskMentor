@@ -3,18 +3,24 @@ import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { app } from "../../app.js";
 import Users from "../../models/User.js";
-import { ChatConversation, ChatMessage } from "./chat.model.js";
+import { ChatContact, ChatConversation, ChatMessage } from "./chat.model.js";
 
 test("chat persists in MongoDB, isolates users, and deduplicates retries", async () => {
   const dbName = `taskmentor_chat_test_${randomUUID().replaceAll("-", "")}`;
   const uri = "mongodb://127.0.0.1:27017";
   let listener;
+  let uploadedImagePath;
   try {
     await mongoose.connect(uri, { dbName, serverSelectionTimeoutMS: 5000 });
-    await Promise.all([ChatConversation.init(), ChatMessage.init()]);
-    const [first, second] = await Users.create([{ username: "chat-test-a" }, { username: "chat-test-b" }]);
+    await Promise.all([ChatConversation.init(), ChatMessage.init(), ChatContact.init()]);
+    const [first, second] = await Users.create([
+      { username: "chat-test-a", phone: "09120000001" },
+      { username: "chat-test-b", phone: "09120000002" },
+    ]);
     const tokenFor = (user) => jwt.sign({ id: user.id }, process.env.JWT_SECRET || "isolated-test-secret");
     process.env.JWT_SECRET = process.env.JWT_SECRET || "isolated-test-secret";
     listener = app.listen(0, "127.0.0.1");
@@ -100,8 +106,62 @@ test("chat persists in MongoDB, isolates users, and deduplicates retries", async
     assert.deepEqual(cleared.data.conversations.map((item) => item.id), ["saved"]);
     assert.equal((await request(first, "/saved/messages", { id: randomUUID(), text: "after clearing" })).status, 201);
     assert.equal((await request(first)).data.messages.length, 1);
+    const imageForm = new FormData();
+    imageForm.append("image", new Blob([Buffer.from([0xff, 0xd8, 0xff, 0xd9])], { type: "image/jpeg" }), "preview.jpg");
+    const imageUpload = await fetch(`${base}/uploads/images`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokenFor(first)}` },
+      body: imageForm,
+    });
+    assert.equal(imageUpload.status, 201);
+    const uploaded = await imageUpload.json();
+    uploadedImagePath = path.resolve("uploads/chat", path.basename(uploaded.image.url));
+    const publicImage = await fetch(new URL(uploaded.image.url, base));
+    assert.equal(publicImage.status, 200);
+    assert.equal(publicImage.headers.get("content-type"), "image/jpeg");
+    const imageMessage = await request(first, "/saved/messages", {
+      id: randomUUID(),
+      type: "file",
+      fileName: "preview.jpg",
+      fileMeta: "4 KB",
+      imageUrl: uploaded.image.url,
+      imageMime: uploaded.image.mime,
+    });
+    assert.equal(imageMessage.status, 201);
+    assert.equal(imageMessage.data.message.imageUrl, uploaded.image.url);
+    assert.equal(imageMessage.data.message.imageMime, "image/jpeg");
+    assert.equal((await request(first, "/contacts", { phone: "0912" })).status, 400);
+    assert.equal((await request(first, "/contacts", { phone: "09129999999" })).status, 404);
+    assert.equal((await request(first, "/contacts", { phone: first.phone })).status, 400);
+    const addedContact = await request(first, "/contacts", { phone: "۰۹۱۲۰۰۰۰۰۰۲" });
+    assert.equal(addedContact.status, 201);
+    assert.equal(addedContact.data.contact.id, second.id);
+    assert.equal((await request(first, "/contacts", { phone: second.phone })).status, 409);
+    const directConversation = await request(first, `/contacts/${second.id}/conversation`, {});
+    assert.equal(directConversation.status, 201);
+    const directId = directConversation.data.conversation.id;
+    assert.ok(directId.startsWith("dm-"));
+    const directMessage = { id: randomUUID(), text: "سلام از کاربر اول" };
+    assert.equal((await request(first, `/${directId}/messages`, directMessage)).status, 201);
+    const secondInbox = await request(second);
+    assert.equal(secondInbox.data.conversations.some((item) => item.id === directId && item.name === first.username), true);
+    assert.equal(secondInbox.data.messages.some((item) => item.id === directMessage.id
+      && item.text === directMessage.text && item.side === "theirs"), true);
+    assert.equal(secondInbox.data.messages.find((item) => item.id === directMessage.id).seen, false);
+    const readReceipt = await request(second, `/${directId}/read`, undefined, "PATCH");
+    assert.equal(readReceipt.status, 200);
+    assert.equal(readReceipt.data.read, 1);
+    const seenByFirst = await request(first);
+    assert.equal(seenByFirst.data.messages.find((item) => item.id === directMessage.id).seen, true);
+    const directReply = { id: randomUUID(), text: "سلام، پیام رسید" };
+    assert.equal((await request(second, `/${directId}/messages`, directReply)).status, 201);
+    const firstInbox = await request(first);
+    assert.equal(firstInbox.data.contacts.some((item) => item.id === second.id), true);
+    assert.equal(firstInbox.data.messages.some((item) => item.id === directReply.id
+      && item.text === directReply.text && item.side === "theirs"), true);
   } finally {
     if (listener) await new Promise((resolve) => listener.close(resolve));
+    if (uploadedImagePath) await unlink(uploadedImagePath).catch(() => {});
     if (mongoose.connection.readyState === 1 && mongoose.connection.name === dbName) {
       await mongoose.connection.dropDatabase();
     }

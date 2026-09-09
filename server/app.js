@@ -33,6 +33,11 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+app.use("/uploads/chat", express.static(path.join(__dirname, "uploads", "chat"), {
+  fallthrough: false,
+  immutable: true,
+  maxAge: "30d",
+}));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
