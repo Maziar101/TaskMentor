@@ -22,7 +22,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-for command_name in npm tar ssh scp; do
+for command_name in flock npm tar ssh scp; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "خطا: دستور $command_name روی سیستم نصب نیست." >&2
     exit 1
@@ -96,6 +96,13 @@ remote_project_dir="$1"
 remote_archive="$2"
 frontend_service="taskmentor-frontend.service"
 server_service="taskmentor-server.service"
+deploy_lock="$HOME/.taskmentor-deploy.lock"
+
+exec 9>"$deploy_lock"
+if ! flock -n 9; then
+  echo "یک استقرار دیگر TaskMentor روی سرور در حال اجراست." >&2
+  exit 1
+fi
 
 restart_services() {
   systemctl --user restart "$frontend_service" "$server_service" || true
@@ -103,15 +110,19 @@ restart_services() {
 
 trap restart_services ERR
 
-systemctl --user stop "$frontend_service" "$server_service"
+export PATH="$HOME/.nvm/versions/node/v22.20.0/bin:$PATH"
+if ! timeout 20 npm ping --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+  echo "دسترسی سرور به npm registry برقرار نیست؛ نسخه در حال اجرا متوقف نشد." >&2
+  exit 1
+fi
+
 tar -xzf "$remote_archive" -C "$remote_project_dir"
 unlink "$remote_archive"
 
-export PATH="$HOME/.nvm/versions/node/v22.20.0/bin:$PATH"
 cd "$remote_project_dir"
-npm install --no-audit --no-fund
+timeout 180 npm install --no-audit --no-fund --prefer-offline
 cd "$remote_project_dir/server"
-npm install --no-audit --no-fund
+timeout 180 npm install --no-audit --no-fund --prefer-offline
 
 systemctl --user restart "$frontend_service" "$server_service"
 trap - ERR
