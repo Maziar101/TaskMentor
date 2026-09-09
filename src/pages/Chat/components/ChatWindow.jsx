@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   FiPaperclip,
   FiSearch,
@@ -11,6 +11,7 @@ import ChatAvatar from "./ChatAvatar";
 import MessageBubble from "./MessageBubble";
 import ChatHeaderMenu from "./ChatHeaderMenu";
 import MessageContextMenu from "./MessageContextMenu";
+import ImagePreviewModal from "./ImagePreviewModal";
 
 export default function ChatWindow({
   conversation,
@@ -29,11 +30,16 @@ export default function ChatWindow({
   const inputRef = useRef(null);
   const searchInputRef = useRef(null);
   const messageMenuSequence = useRef(0);
+  const shouldStickToBottom = useRef(true);
+  const previousConversationId = useRef(null);
+  const previousMessagesKey = useRef("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
   const [messageMenu, setMessageMenu] = useState(null);
   const [replyTarget, setReplyTarget] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const closeImagePreview = useCallback(() => setPreviewImage(null), []);
 
   const filteredMessages = useMemo(() => {
     const query = messageSearch.trim().toLocaleLowerCase("fa-IR");
@@ -55,9 +61,18 @@ export default function ChatWindow({
     });
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = messagesRef.current;
-    if (element) element.scrollTop = element.scrollHeight;
+    if (!element) return;
+    const messagesKey = `${messages.length}:${messages.at(-1)?.id ?? ""}`;
+    const conversationChanged = previousConversationId.current !== conversation.id;
+    const messagesChanged = previousMessagesKey.current !== messagesKey;
+    if (conversationChanged || (messagesChanged && shouldStickToBottom.current)) {
+      element.scrollTop = element.scrollHeight;
+      shouldStickToBottom.current = true;
+    }
+    previousConversationId.current = conversation.id;
+    previousMessagesKey.current = messagesKey;
   }, [conversation.id, messages]);
 
   useEffect(() => {
@@ -66,6 +81,7 @@ export default function ChatWindow({
     setMessageMenu(null);
     setReplyTarget(null);
     setEditTarget(null);
+    setPreviewImage(null);
   }, [conversation.id]);
 
   useEffect(() => {
@@ -79,10 +95,14 @@ export default function ChatWindow({
       if (await onMessageAction(editTarget.id, { text })) {
         onDraftChange("");
         setEditTarget(null);
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
       return;
     }
-    if (await onSend(replyTarget ? { replyToId: replyTarget.id } : {})) setReplyTarget(null);
+    if (await onSend(replyTarget ? { replyToId: replyTarget.id } : {})) {
+      setReplyTarget(null);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
   };
 
   const handleSubmit = (event) => {
@@ -151,7 +171,15 @@ export default function ChatWindow({
         </div>
       </header>
 
-      <div className="messenger-chat__messages" ref={messagesRef} aria-live="polite">
+      <div
+        className="messenger-chat__messages"
+        ref={messagesRef}
+        aria-live="polite"
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          shouldStickToBottom.current = element.scrollHeight - element.clientHeight - element.scrollTop <= 80;
+        }}
+      >
         {error && <p role="alert" className="messenger-chat__error">{error}</p>}
         {filteredMessages.length > 0 ? (
           filteredMessages.map((message, index) => (
@@ -161,6 +189,7 @@ export default function ChatWindow({
               previous={filteredMessages[index - 1]}
               messages={messages}
               onContextMenu={openMessageMenu}
+              onPreviewImage={setPreviewImage}
             />
           ))
         ) : messageSearch.trim() ? (
@@ -218,6 +247,9 @@ export default function ChatWindow({
           onEdit={(message) => { setReplyTarget(null); setEditTarget(message); onDraftChange(message.text); requestAnimationFrame(() => inputRef.current?.focus()); }}
         />
       )}
+      {previewImage && (
+        <ImagePreviewModal image={previewImage} onClose={closeImagePreview} />
+      )}
     </section>
   );
 }
@@ -230,7 +262,7 @@ function IconButton({ children, label, ...props }) {
   );
 }
 
-function MessageWithDate({ message, previous, messages, onContextMenu }) {
+function MessageWithDate({ message, previous, messages, onContextMenu, onPreviewImage }) {
   const formatDate = (value) => new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(new Date(value));
   const date = formatDate(message.createdAt);
   return (
@@ -242,6 +274,7 @@ function MessageWithDate({ message, previous, messages, onContextMenu }) {
         message={message}
         replyMessage={message.replyToId ? messages.find((item) => item.id === message.replyToId) : null}
         onContextMenu={onContextMenu}
+        onPreviewImage={onPreviewImage}
       />
     </>
   );

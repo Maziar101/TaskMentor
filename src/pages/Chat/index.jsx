@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ChatWindow from "./components/ChatWindow";
 import ConversationList from "./components/ConversationList";
 import { useSelector } from "react-redux";
@@ -11,7 +11,11 @@ export default function ChatPage() {
 }
 
 function ChatContent() {
-  const { conversations, messagesByConversation, loading, saving, error, saveMessage, createConversation, changeConversation, changeMessage, retry } = useChat();
+  const {
+    conversations, contacts, messagesByConversation, loading, saving, error,
+    saveMessage, uploadImage, createConversation, addContact, openContactConversation,
+    changeConversation, changeMessage, markConversationRead, retry,
+  } = useChat();
   const [selectedId, setSelectedId] = useState("saved");
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -19,6 +23,18 @@ function ChatContent() {
 
   const selectedConversation =
     conversations.find((conversation) => conversation.id === selectedId) ?? conversations[0];
+  const selectedMessages = selectedConversation
+    ? messagesByConversation[selectedConversation.id] ?? []
+    : [];
+  const unreadIncomingKey = selectedMessages
+    .filter((message) => message.side === "theirs" && !message.seen)
+    .map((message) => message.id)
+    .join(",");
+
+  useEffect(() => {
+    if (!selectedConversation || !unreadIncomingKey || document.visibilityState !== "visible") return;
+    markConversationRead(selectedConversation.id);
+  }, [markConversationRead, selectedConversation, unreadIncomingKey]);
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fa");
@@ -51,8 +67,11 @@ function ChatContent() {
     const input = event.target;
     const file = input.files?.[0];
     if (!file || saving || !selectedConversation) return;
+    const image = file.type.startsWith("image/") ? await uploadImage(file) : null;
+    if (file.type.startsWith("image/") && !image) return;
     if (await saveMessage(selectedConversation.id, {
       type: "file", fileName: file.name, fileMeta: formatFileSize(file.size),
+      ...(image ? { imageUrl: image.url, imageMime: image.mime } : {}),
     })) input.value = "";
   };
 
@@ -83,7 +102,14 @@ function ChatContent() {
           return success;
         }}
         activeFilter={activeFilter}
+        contacts={contacts}
         conversations={filteredConversations}
+        onAddContact={addContact}
+        onContactSelect={async (contactId) => {
+          const id = await openContactConversation(contactId);
+          if (id) handleSelect(id);
+          return Boolean(id);
+        }}
         onFilterChange={setActiveFilter}
         onNewConversation={handleNewConversation}
         onSearchChange={setSearch}
@@ -96,7 +122,7 @@ function ChatContent() {
         error={error}
         conversation={selectedConversation}
         draft={draft}
-        messages={messagesByConversation[selectedConversation.id] ?? []}
+        messages={selectedMessages}
         onAttach={handleAttach}
         onClearHistory={() => changeConversation(selectedConversation.id, "clear")}
         onDeleteConversation={async () => {

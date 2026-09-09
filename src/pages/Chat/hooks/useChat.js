@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest } from "../../../services/api";
 import { INITIAL_CONVERSATIONS } from "../data";
 
@@ -16,6 +16,7 @@ const decorateConversation = (conversation) => ({
 
 export default function useChat() {
   const [conversations, setConversations] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [messagesByConversation, setMessages] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,7 +27,7 @@ export default function useChat() {
 
   useEffect(() => {
     let active = true;
-    apiRequest("/api/chat").then((data) => {
+    const loadChat = () => apiRequest("/api/chat").then((data) => {
       if (!active) return;
       const grouped = {};
       for (const message of data.messages) {
@@ -34,6 +35,7 @@ export default function useChat() {
         grouped[message.conversationId].push(decorateMessage(message));
       }
       setMessages(grouped);
+      setContacts(data.contacts ?? []);
       setConversations(data.conversations.map((item) => {
         const last = grouped[item.id]?.at(-1);
         return {
@@ -47,7 +49,12 @@ export default function useChat() {
     }).finally(() => {
       if (active) setLoading(false);
     });
-    return () => { active = false; };
+    loadChat();
+    const interval = window.setInterval(loadChat, 4000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [reload]);
 
   const saveMessage = async (conversationId, payload) => {
@@ -81,6 +88,43 @@ export default function useChat() {
     }
   };
 
+  const uploadImage = async (file) => {
+    if (busy.current || loading) return null;
+    busy.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("image", file);
+      const { image } = await apiRequest("/api/chat/uploads/images", { method: "POST", body });
+      return image;
+    } catch (err) {
+      setError(`تصویر ارسال نشد: ${err.message || "دوباره تلاش کنید"}`);
+      return null;
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
+  const markConversationRead = useCallback(async (conversationId) => {
+    try {
+      const result = await apiRequest(`/api/chat/${encodeURIComponent(conversationId)}/read`, {
+        method: "PATCH",
+      });
+      if (!result.messageIds?.length) return true;
+      const seenIds = new Set(result.messageIds);
+      setMessages((current) => ({
+        ...current,
+        [conversationId]: (current[conversationId] ?? []).map((message) =>
+          seenIds.has(message.id) ? { ...message, seen: true } : message),
+      }));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const createConversation = async () => {
     if (busy.current || loading) return null;
     busy.current = true;
@@ -94,6 +138,47 @@ export default function useChat() {
       return conversation.id;
     } catch (err) {
       setError(`گفتگو ذخیره نشد: ${err.message || "دوباره تلاش کنید"}`);
+      return null;
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
+  const addContact = async (phone) => {
+    if (busy.current || loading) return { success: false, error: "لطفاً کمی صبر کنید" };
+    busy.current = true;
+    setSaving(true);
+    try {
+      const { contact } = await apiRequest("/api/chat/contacts", {
+        method: "POST", body: JSON.stringify({ phone }),
+      });
+      setContacts((current) => [...current, contact]);
+      return { success: true, contact };
+    } catch (err) {
+      return { success: false, error: err.message || "افزودن مخاطب ناموفق بود" };
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
+  const openContactConversation = async (contactId) => {
+    if (busy.current || loading) return null;
+    busy.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      const { conversation } = await apiRequest(`/api/chat/contacts/${encodeURIComponent(contactId)}/conversation`, {
+        method: "POST",
+      });
+      const decorated = decorateConversation(conversation);
+      setConversations((current) => current.some((item) => item.id === decorated.id)
+        ? current.map((item) => item.id === decorated.id ? { ...item, ...decorated } : item)
+        : [...current, decorated]);
+      return decorated.id;
+    } catch (err) {
+      setError(`باز کردن گفتگو ناموفق بود: ${err.message || "دوباره تلاش کنید"}`);
       return null;
     } finally {
       busy.current = false;
@@ -174,7 +259,8 @@ export default function useChat() {
   };
 
   return {
-    conversations, messagesByConversation, loading, saving, error, saveMessage, createConversation, changeConversation, changeMessage,
+    conversations, contacts, messagesByConversation, loading, saving, error, saveMessage, uploadImage, createConversation,
+    addContact, openContactConversation, changeConversation, changeMessage, markConversationRead,
     retry: () => { setLoading(true); setReload((value) => value + 1); },
   };
 }

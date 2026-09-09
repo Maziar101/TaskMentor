@@ -109,7 +109,12 @@ const MessageInput = forwardRef(function MessageInput({ value, onChange, onSend,
     onKeyDown={(event) => {
       if (event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
-        if (!disabled) onSend();
+        if (disabled) return;
+        if (event.shiftKey) {
+          insertText("\n");
+          return;
+        }
+        onSend();
       }
     }}
     onPaste={(event) => {
