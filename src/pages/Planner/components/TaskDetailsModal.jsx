@@ -12,7 +12,7 @@ function buildForm(details) {
     title: task?.title ?? "",
     tag: task?.tag ?? "",
     priorityId: task?.priorityId ?? "",
-    duration: blockDuration ?? task?.duration ?? 1,
+    duration: task?.duration ?? blockDuration ?? 1,
   };
 }
 
@@ -183,7 +183,7 @@ export default function TaskDetailsModal({
                 </div>
               </div>
             </div>
-            <small>مدت تسک از این بخش فقط قابل کاهش است.</small>
+            <small>مدت تسک از این بخش قابل افزایش یا کاهش است.</small>
           </section>
         )}
 

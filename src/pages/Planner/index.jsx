@@ -198,6 +198,8 @@ function PlannerPage() {
     previewDurationResize,
     finishDurationResize,
     extendDurationByOne,
+    extendIndividualDurationByOne,
+    shortenIndividualDurationByOne,
     shortenBlockDuration,
     cancelDurationResize,
   } = useDurationResize({ daySchedule, fetchData, loadSchedule });
@@ -366,7 +368,7 @@ function PlannerPage() {
     }
   }
 
-  async function handleDrop(hour, data) {
+  async function handleDrop(hour, data, targetDuration = 1) {
     let parsed = {
       type: "pool" | "scheduled",
       id: "",
@@ -378,6 +380,10 @@ function PlannerPage() {
       return;
     }
     if (!parsed) return;
+    const droppedDuration = Math.max(
+      1,
+      Math.min(24 - hour, Number(targetDuration) || 1),
+    );
 
     if (parsed.type === "pool") {
       const task = pool.find((t) => t.id === parsed?.id);
@@ -392,7 +398,7 @@ function PlannerPage() {
             priority: task.priorityId,
             day: activeDay,
             hour,
-            duration: task.duration ?? 1,
+            duration: droppedDuration,
             done: false,
           }),
         });
@@ -426,7 +432,11 @@ function PlannerPage() {
         const { res, status } = await fetchData(`/api/schedule?id=${task.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ day: activeDay, hour }),
+          body: JSON.stringify({
+            day: activeDay,
+            hour,
+            duration: droppedDuration,
+          }),
         });
         if (status !== 200) {
           return HotToast("error", res?.message);
@@ -623,7 +633,9 @@ function PlannerPage() {
         const sourceDay = taskDetails.task.day;
         const block = taskDetails.block;
         const sourceTasks = schedule[sourceDay] ?? [];
-        const affected = block
+        const affected = block?.individual
+          ? [taskDetails.task]
+          : block
           ? sourceTasks.filter((task) => {
               const sameTitle =
                 task.title.trim().toLowerCase() ===
@@ -638,7 +650,11 @@ function PlannerPage() {
             fetchData(`/api/schedule?id=${task.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
+              body: JSON.stringify(
+                block?.individual
+                  ? { ...payload, duration: values.duration }
+                  : payload,
+              ),
             }),
           ),
         );
@@ -647,7 +663,9 @@ function PlannerPage() {
         const currentDuration = block
           ? Math.max(1, block.end - block.start)
           : 1;
-        if (block && values.duration < currentDuration) {
+        if (block?.individual) {
+          await loadSchedule(sourceDay);
+        } else if (block && values.duration < currentDuration) {
           await shortenBlockDuration(block, values.duration);
         } else {
           await loadSchedule(sourceDay);
@@ -1050,6 +1068,12 @@ function PlannerPage() {
                   openTaskDetails={openTaskDetails}
                   toggleDoneForBlock={toggleDoneForBlock}
                   extendDurationByOne={extendDurationByOne}
+                  extendIndividualDurationByOne={
+                    extendIndividualDurationByOne
+                  }
+                  shortenIndividualDurationByOne={
+                    shortenIndividualDurationByOne
+                  }
                   beginDurationResize={beginDurationResize}
                   cancelDurationResize={cancelDurationResize}
                 />

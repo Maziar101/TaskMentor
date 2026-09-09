@@ -22,6 +22,8 @@ export default function HourSlot({
   openTaskDetails,
   toggleDoneForBlock,
   extendDurationByOne,
+  extendIndividualDurationByOne,
+  shortenIndividualDurationByOne,
   beginDurationResize,
   cancelDurationResize,
 }) {
@@ -31,8 +33,7 @@ export default function HourSlot({
   const {
     hidden,
     displayBlock,
-    duration: blockDuration,
-    isMultiHourBlock,
+    duration: displayDuration,
   } = getPlannerBlockSegment({
     hour,
     blockStart,
@@ -40,17 +41,43 @@ export default function HourSlot({
     hourTasks,
   });
   if (hidden) return null;
+  const continuingTasks =
+    hour % 4 === 0
+      ? daySchedule.filter((task) => {
+          const taskDuration = Math.max(1, Number(task.duration) || 1);
+          return task.hour < hour && task.hour + taskDuration > hour;
+        })
+      : [];
+  const stackedTasks =
+    hourTasks.length > 1
+      ? hourTasks
+      : continuingTasks.length > 1
+        ? continuingTasks
+        : [];
+  const hasOverlap = stackedTasks.length > 1;
+  const blockDuration = hasOverlap
+    ? Math.max(
+        ...stackedTasks.map((task) =>
+          Math.min(
+            4 - (hour % 4),
+            24 - hour,
+            task.hour + Math.max(1, Number(task.duration) || 1) - hour,
+          ),
+        ),
+      )
+    : displayDuration;
   const { isPastHour, isCurrentHour } = getSlotTimeState({
     dayPosition,
     now,
     start: displayBlock?.start ?? hour,
-    end: displayBlock?.end ?? hour + 1,
+    end: hasOverlap ? hour + blockDuration : displayBlock?.end ?? hour + 1,
   });
-  const hasOverlap = hourTasks.length > 1;
   const hasTasks = hourTasks.length > 0 || Boolean(displayBlock);
-  const allDone = displayBlock
-    ? Boolean(displayBlock.task.done)
-    : hasTasks && hourTasks.every((t) => t.done);
+  const allDone = hasOverlap
+    ? stackedTasks.every((task) => task.done)
+    : displayBlock
+      ? Boolean(displayBlock.task.done)
+      : hasTasks && hourTasks.every((task) => task.done);
   const isResizePreview = Boolean(
     durationResize?.valid &&
       hour >= durationResize.start &&
@@ -96,7 +123,7 @@ export default function HourSlot({
         "slot",
         hoverHour === hour && "slot--hover",
         covered && "slot--covered",
-        isMultiHourBlock && "slot--multi-hour",
+        blockDuration > 1 && "slot--multi-hour",
         isResizePreview && "slot--resize-preview",
         isResizeBlocked && "slot--resize-blocked",
         isPastHour && "slot--past",
@@ -127,7 +154,7 @@ export default function HourSlot({
           finishDurationResize(hour);
         } else {
           const data = e.dataTransfer.getData("application/json");
-          handleDrop(hour, data);
+          handleDrop(hour, data, blockDuration);
         }
         setField("hoverHour", null);
       }}
@@ -147,69 +174,117 @@ export default function HourSlot({
       <div className="slot__content">
         {hasOverlap && (
           <div className="stacked-tasks">
-            {hourTasks.map((task) => (
-              <div
-                key={task.id}
-                className={[
-                  "stacked-task",
-                  task.done && "task--done",
-                  !task.done && isPastHour && "task--stale",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                title={task.title}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData(
-                    "application/json",
-                    JSON.stringify({
-                      type: "scheduled",
-                      id: task.id,
-                      day: task.day,
-                    }),
-                  );
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-              >
-                <span className="stacked-task__title task__title--with-dot">
-                  <span
-                    className="priority-dot"
-                    style={{
-                      backgroundColor: getPriorityColor(
-                        task.priorityId,
-                        priorities,
-                      ),
+            {stackedTasks.map((task) => {
+              const totalTaskDuration = Math.max(
+                1,
+                Number(task.duration) || 1,
+              );
+              const taskDuration = Math.min(
+                blockDuration,
+                task.hour + totalTaskDuration - hour,
+              );
+              const widthRatio = taskDuration / blockDuration;
+              return (
+                <div
+                  key={task.id}
+                  className="stacked-task-group"
+                  style={{
+                    width: `calc(${widthRatio * 100}% - ${(1 - widthRatio) * 10}px)`,
+                  }}
+                >
+                  <div
+                    className={[
+                      "stacked-task",
+                      task.done && "task--done",
+                      !task.done && isPastHour && "task--stale",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    title={task.title}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(
+                        "application/json",
+                        JSON.stringify({
+                          type: "scheduled",
+                          id: task.id,
+                          day: task.day,
+                        }),
+                      );
+                      e.dataTransfer.effectAllowed = "move";
                     }}
-                  />
-                  <span className="task__title-text">
-                    {task.title}
-                  </span>
-                </span>
-                <div className="task__meta-actions">
-                  <button
-                    className="icon-btn"
-                    type="button"
-                    aria-label="علامت انجام شده"
-                    onClick={() =>
-                      toggleDoneForTask(task.id, task.day)
-                    }
                   >
-                    <FiCheck aria-hidden />
-                  </button>
-                  <button
-                    className="icon-btn"
-                    type="button"
-                    aria-label="مشاهده و ویرایش تسک"
-                    title="مشاهده و ویرایش"
-                    onClick={() =>
-                      openTaskDetails(task, "scheduled")
-                    }
-                  >
-                    <FiEye aria-hidden />
-                  </button>
+                    <span className="stacked-task__title task__title--with-dot">
+                      <span
+                        className="priority-dot"
+                        style={{
+                          backgroundColor: getPriorityColor(
+                            task.priorityId,
+                            priorities,
+                          ),
+                        }}
+                      />
+                      <span className="task__title-text">{task.title}</span>
+                    </span>
+                    <div className="task__meta-actions">
+                      <button
+                        className="icon-btn"
+                        type="button"
+                        aria-label="علامت انجام شده"
+                        onClick={() => toggleDoneForTask(task.id, task.day)}
+                      >
+                        <FiCheck aria-hidden />
+                      </button>
+                      <button
+                        className="icon-btn"
+                        type="button"
+                        aria-label="مشاهده و ویرایش تسک"
+                        title="مشاهده و ویرایش"
+                        onClick={() =>
+                          openTaskDetails(task, "scheduled", {
+                            task,
+                            start: task.hour,
+                            end: Math.min(
+                              24,
+                              task.hour +
+                                Math.max(1, Number(task.duration) || 1),
+                            ),
+                            individual: true,
+                          })
+                        }
+                      >
+                        <FiEye aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                  {!task.done && (
+                    <div className="stacked-task__duration-actions">
+                      <button
+                        className="task__resize-handle stacked-task__resize-handle"
+                        type="button"
+                        aria-label={`افزودن یک ساعت به ${task.title}`}
+                        title="افزودن یک ساعت"
+                        onClick={() => extendIndividualDurationByOne(task)}
+                      >
+                        <span aria-hidden>＋</span>
+                        <span>یک ساعت</span>
+                      </button>
+                      <button
+                        className="task__resize-handle stacked-task__resize-handle"
+                        type="button"
+                        disabled={totalTaskDuration <= 1}
+                        aria-label={`کم کردن یک ساعت از ${task.title}`}
+                        title="کم کردن یک ساعت"
+                        onClick={() => shortenIndividualDurationByOne(task)}
+                      >
+                        <span aria-hidden>−</span>
+                        <span>یک ساعت</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {!hasOverlap && !blockStart && !covered && (

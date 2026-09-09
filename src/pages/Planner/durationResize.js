@@ -30,13 +30,16 @@ export function planDurationResize(resize, targetHour, list) {
   );
   const candidateEnd = resize.start + duration;
   const affectedIds = new Set(resize.affectedIds);
-  const conflict = list.find((task) => {
-    if (affectedIds.has(task.id)) return false;
-    const taskStart = task.hour;
-    const taskDuration = Math.max(1, Number(task.duration) || 1);
-    const taskEnd = Math.min(24, taskStart + taskDuration);
-    return resize.start < taskEnd && candidateEnd > taskStart;
-  });
+  const isExpanding = duration > resize.originalDuration;
+  const conflict = isExpanding
+    ? list.find((task) => {
+        if (affectedIds.has(task.id)) return false;
+        const taskStart = task.hour;
+        const taskDuration = Math.max(1, Number(task.duration) || 1);
+        const taskEnd = Math.min(24, taskStart + taskDuration);
+        return resize.start < taskEnd && candidateEnd > taskStart;
+      })
+    : null;
 
   return {
     ...resize,

@@ -94,6 +94,51 @@ export default function useDurationResize({
     }
   }
 
+  async function extendIndividualDurationByOne(task) {
+    const currentDuration = Math.max(1, Number(task.duration) || 1);
+    if (task.hour + currentDuration >= 24) {
+      HotToast("error", "بعد از ساعت ۲۴ زمانی برای افزایش وجود ندارد");
+      return;
+    }
+
+    try {
+      const { res, status } = await fetchData(
+        `/api/schedule?id=${task.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration: currentDuration + 1 }),
+        },
+      );
+      if (status !== 200) throw new Error(res?.message);
+      await loadSchedule(task.day);
+    } catch (error) {
+      HotToast("error", error?.message || "افزایش مدت تسک انجام نشد");
+      await loadSchedule(task.day);
+    }
+  }
+
+  async function shortenIndividualDurationByOne(task) {
+    const currentDuration = Math.max(1, Number(task.duration) || 1);
+    if (currentDuration <= 1) return;
+
+    try {
+      const { res, status } = await fetchData(
+        `/api/schedule?id=${task.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration: currentDuration - 1 }),
+        },
+      );
+      if (status !== 200) throw new Error(res?.message);
+      await loadSchedule(task.day);
+    } catch (error) {
+      HotToast("error", error?.message || "کاهش مدت تسک انجام نشد");
+      await loadSchedule(task.day);
+    }
+  }
+
   async function shortenBlockDuration(block, duration) {
     const resize = createDurationResize(block, daySchedule);
     const nextDuration = Math.max(
@@ -114,6 +159,8 @@ export default function useDurationResize({
     previewDurationResize,
     finishDurationResize,
     extendDurationByOne,
+    extendIndividualDurationByOne,
+    shortenIndividualDurationByOne,
     shortenBlockDuration,
     cancelDurationResize: () => setDurationResize(null),
   };

@@ -1508,6 +1508,7 @@ html[data-accent-theme="green"] .slot__chip--done {
 .stacked-tasks {
   display: grid;
   gap: 6px;
+  justify-items: start;
 }
 
 .stacked-task {
@@ -1522,6 +1523,27 @@ html[data-accent-theme="green"] .slot__chip--done {
   min-height: 36px;
   min-width: 0;
   cursor: grab;
+}
+
+.stacked-task-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stacked-task-group .stacked-task {
+  width: 100%;
+}
+
+.stacked-task__duration-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.stacked-task__resize-handle:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .stacked-task--pending {
@@ -1703,7 +1725,6 @@ html[data-accent-theme="green"] .slot__chip--done {
     var(--tm-accent-soft),
     var(--tm-accent-soft)
   );
-  box-shadow: 0 0 18px var(--tm-accent-glow);
   border-color: var(--tm-accent-border);
   backdrop-filter: blur(2px);
 }
