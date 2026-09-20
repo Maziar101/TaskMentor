@@ -1,27 +1,14 @@
 import { useCallback, useEffect, useMemo, useReducer } from "react";
-import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiCalendar,
-  FiX,
-  FiEye,
-} from "react-icons/fi";
+import { FiEye } from "react-icons/fi";
 import DeleteModal from "../../components/DeleteModal";
 import PriorityDropdown from "../../components/PriorityDropdown/index";
 import { loadPriorities } from "../../utils/priorities/index";
 import {
-  JALALI_MONTHS,
-  PERSIAN_NUMBER,
   PRIORITY_LEVELS,
   STORAGE_KEY,
   baseTags,
-  buildJalaliMonthDays,
-  buildYearOptions,
   createPlannerInitialState,
-  dateKeyFromJalali,
-  formatGregorianSpanForJalaliMonth,
   formatHour,
-  formatJalaliMonthName,
   generateId,
   getPriorityColor,
   getTagClass,
@@ -32,7 +19,6 @@ import {
   retagSchedule,
   sortByHour,
   todayKey,
-  toJalaliParts,
 } from "./utils";
 import { useFetch } from "../../hooks/useFetch";
 import { HandleReduce } from "../../utils/HandleReducer";
@@ -40,7 +26,13 @@ import { HotToast } from "../../utils/HotToast";
 import AutoGrowTextarea from "./components/AutoGrowTextarea";
 import HourSlot from "./components/HourSlot";
 import TaskDetailsModal from "./components/TaskDetailsModal";
+import PlannerCalendar from "./components/PlannerCalendar";
 import useDurationResize from "./hooks/useDurationResize";
+import {
+  getLanguage,
+  getLocale,
+  getPersianCalendarLocale,
+} from "../../i18n/runtime";
 
 function PlannerPage() {
   const [state, dispatch] = useReducer(
@@ -60,7 +52,6 @@ function PlannerPage() {
     search,
     hoverHour,
     now,
-    jalaliMonthView,
     tagModalOpen,
     tagModalValue,
     editingTag,
@@ -74,7 +65,6 @@ function PlannerPage() {
     deleteModal,
     deleteModalBusy,
     poolHover,
-    calendarModal,
     taskDetails,
     taskDetailsBusy,
   } = state;
@@ -221,26 +211,10 @@ function PlannerPage() {
     return Math.max(0, Math.min(100, Math.round(ratio * 100)));
   }, [dayPosition, now]);
 
-  const jalaliActiveDate = useMemo(
-    () => toJalaliParts(activeDate),
-    [activeDate],
-  );
-  const jalaliToday = useMemo(() => toJalaliParts(now), [now]);
-  const jalaliMonthName = useMemo(
-    () => formatJalaliMonthName(jalaliMonthView),
-    [jalaliMonthView],
-  );
-  const jalaliMonthDays = useMemo(() => {
-    return buildJalaliMonthDays(jalaliMonthView.jy, jalaliMonthView.jm);
-  }, [jalaliMonthView]);
   const allTags = useMemo(() => {
     const merged = [...baseTags, ...customTags];
     return Array.from(new Set(merged));
   }, [customTags]);
-
-  useEffect(() => {
-    setField("jalaliMonthView", toJalaliParts(activeDate));
-  }, [activeDate, setField]);
 
   const previewSchedule = useMemo(() => {
     if (!durationResize || durationResize.day !== activeDay) return daySchedule;
@@ -697,28 +671,6 @@ function PlannerPage() {
     });
   }
 
-  function handleJalaliMonthShift(delta) {
-    setField("jalaliMonthView", (prev) => {
-      let jy = prev.jy;
-      let jm = prev.jm + delta;
-      while (jm > 12) {
-        jm -= 12;
-        jy += 1;
-      }
-      while (jm < 1) {
-        jm += 12;
-        jy -= 1;
-      }
-      return { ...prev, jy, jm };
-    });
-  }
-
-  function handleSelectJalaliDay(day) {
-    if (!day) return;
-    const key = dateKeyFromJalali(jalaliMonthView.jy, jalaliMonthView.jm, day);
-    setField("activeDay", key);
-  }
-
   function openTagModal(tag) {
     setField("editingTag", tag ?? null);
     setField("tagModalValue", tag ?? "");
@@ -770,19 +722,27 @@ function PlannerPage() {
   }
 
   const dayLabel = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    const language = getLanguage();
+    const formatter = new Intl.DateTimeFormat(
+      language === "en"
+        ? getLocale(language)
+        : getPersianCalendarLocale(language),
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      },
+    );
     const parts = formatter.formatToParts(activeDate);
     const lookup = (type) => parts.find((p) => p.type === type)?.value ?? "";
     const weekday = lookup("weekday");
     const datePart = [lookup("day"), lookup("month"), lookup("year")]
       .filter(Boolean)
       .join(" ");
-    return [weekday, datePart].filter(Boolean).join("، ");
+    return [weekday, datePart]
+      .filter(Boolean)
+      .join(language === "en" ? ", " : "، ");
   }, [activeDate]);
 
   const filteredPool = useMemo(() => {
@@ -820,7 +780,6 @@ function PlannerPage() {
             display: "flex",
             gap: "10px",
             flexDirection: "column",
-            justifyContent: "space-between",
             height: "100%",
           }}
         >
@@ -956,93 +915,11 @@ function PlannerPage() {
               ))}
             </div>
           </div>
-          <div className="panel calendar-strip" aria-label="انتخاب زمان">
-            <div className="calendar-strip__head">
-              <button
-                className="calendar-strip__btn"
-                type="button"
-                aria-label="ماه قبل"
-                onClick={() => handleJalaliMonthShift(-1)}
-              >
-                <FiChevronRight />
-              </button>
-              <div className="calendar-strip__title">
-                <button
-                  className="calendar-strip__title-btn"
-                  type="button"
-                  onClick={() => setField("calendarModal", "month")}
-                >
-                  <span>{jalaliMonthName}</span>
-                  <span className="calendar-strip__caret">▾</span>
-                </button>
-                <button
-                  className="calendar-strip__year-btn"
-                  type="button"
-                  onClick={() => setField("calendarModal", "year")}
-                >
-                  {jalaliMonthView.jy}
-                </button>
-                <p className="calendar-strip__sub">
-                  {formatGregorianSpanForJalaliMonth(
-                    jalaliMonthView.jy,
-                    jalaliMonthView.jm,
-                  )}
-                </p>
-              </div>
-              <button
-                className="calendar-strip__btn"
-                type="button"
-                aria-label="ماه بعد"
-                onClick={() => handleJalaliMonthShift(1)}
-              >
-                <FiChevronLeft />
-              </button>
-            </div>
-            <div className="calendar-strip__weekdays">
-              {["ش", "ی", "د", "س", "چ", "پ", "ج"].map((label) => (
-                <span key={label} className="calendar-strip__weekday">
-                  {label}
-                </span>
-              ))}
-            </div>
-            <div className="calendar-strip__days">
-              {jalaliMonthDays.map((d, idx) => {
-                if (d === null) {
-                  return (
-                    <span
-                      key={`empty-${idx}`}
-                      className="calendar-strip__day calendar-strip__day--ghost"
-                      aria-hidden
-                    />
-                  );
-                }
-                const isSelected =
-                  jalaliMonthView.jy === jalaliActiveDate.jy &&
-                  jalaliMonthView.jm === jalaliActiveDate.jm &&
-                  d === jalaliActiveDate.jd;
-                const isToday =
-                  jalaliMonthView.jy === jalaliToday.jy &&
-                  jalaliMonthView.jm === jalaliToday.jm &&
-                  d === jalaliToday.jd;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    className={[
-                      "calendar-strip__day",
-                      isSelected && "calendar-strip__day--active",
-                      isToday && "calendar-strip__day--today",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => handleSelectJalaliDay(d)}
-                  >
-                    <span>{PERSIAN_NUMBER.format(d)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <PlannerCalendar
+            activeDay={activeDay}
+            now={now}
+            onSelectDay={(day) => setField("activeDay", day)}
+          />
         </section>
 
         <section className="planner__board">
@@ -1156,110 +1033,6 @@ function PlannerPage() {
             <div className="toast__bar">
               <span key={toastKey} />
             </div>
-          </div>
-        </div>
-      )}
-      {calendarModal && (
-        <div className="modal">
-          <div
-            className="modal__backdrop"
-            onClick={() => setField("calendarModal", null)}
-            aria-hidden
-          />
-          <div
-            className="modal__card calendar-modal__card"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="calendar-modal__header">
-              <div className="calendar-modal__title">
-                <span className="calendar-picker__icon" aria-hidden>
-                  <FiCalendar />
-                </span>
-                <div>
-                  <p className="eyebrow">
-                    انتخاب {calendarModal === "month" ? "ماه" : "سال"}
-                  </p>
-                  <p className="light small">
-                    {calendarModal === "month"
-                      ? "یکی از ماه‌ها را انتخاب کن"
-                      : "یک سال از لیست انتخاب کن"}
-                  </p>
-                </div>
-              </div>
-              <button
-                className="calendar-modal__close"
-                type="button"
-                aria-label="بستن"
-                onClick={() => setField("calendarModal", null)}
-              >
-                <FiX />
-              </button>
-            </div>
-            {calendarModal === "month" ? (
-              <div className="calendar-modal__body">
-                <div className="calendar-modal__section">
-                  <div className="calendar-modal__grid">
-                    {JALALI_MONTHS.map((name, idx) => {
-                      const month = idx + 1;
-                      const active = month === jalaliMonthView.jm;
-                      return (
-                        <button
-                          key={name}
-                          className={[
-                            "calendar-modal__option",
-                            active && "calendar-modal__option--active",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          type="button"
-                          onClick={() => {
-                            setField("jalaliMonthView", (prev) => ({
-                              ...prev,
-                              jm: month,
-                            }));
-                            setField("calendarModal", null);
-                          }}
-                        >
-                          {name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="calendar-modal__body">
-                <div className="calendar-modal__section">
-                  <div className="calendar-modal__grid calendar-modal__grid--years">
-                    {buildYearOptions(jalaliMonthView.jy).map((year) => {
-                      const active = year === jalaliMonthView.jy;
-                      return (
-                        <button
-                          key={year}
-                          className={[
-                            "calendar-modal__option",
-                            active && "calendar-modal__option--active",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          type="button"
-                          onClick={() => {
-                            setField("jalaliMonthView", (prev) => ({
-                              ...prev,
-                              jy: year,
-                            }));
-                            setField("calendarModal", null);
-                          }}
-                        >
-                          {year}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

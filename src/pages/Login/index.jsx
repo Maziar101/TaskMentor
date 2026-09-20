@@ -6,6 +6,7 @@ import Loading from "../../components/Loading";
 import { HotToast } from "../../utils/HotToast";
 import { authApi } from "../../services/api";
 import { setCredentials } from "../../store/authSlice";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
 
 const OTP_LENGTH = 5;
 
@@ -124,6 +125,7 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page" dir="rtl">
+      <LanguageSwitcher floating />
       {step === "phone" ? (
         <form className="auth-card" onSubmit={handleSendCode}>
           <div className="auth-card__header">

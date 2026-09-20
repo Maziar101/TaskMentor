@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiTrash2, FiX } from "react-icons/fi";
 import PriorityDropdown from "../../../components/PriorityDropdown";
+import { PRIORITY_LEVELS } from "../utils";
 import TaskTagDropdown from "./TaskTagDropdown";
+import { getLocale } from "../../../i18n/runtime";
 
 function buildForm(details) {
   const task = details?.task;
@@ -155,14 +157,14 @@ export default function TaskDetailsModal({
             <span id="task-duration-label">مدت زمان تسک</span>
             <div className="task-details-modal__duration-control">
               <div className="task-details-modal__duration-value">
-                <strong>{durationValue.toLocaleString("fa-IR")}</strong>
+                <strong>{durationValue.toLocaleString(getLocale())}</strong>
                 <span>ساعت</span>
               </div>
               <div className="task-details-modal__duration-slider">
                 <output
                   style={{ "--duration-progress": `${durationProgress}%` }}
                 >
-                  {durationValue.toLocaleString("fa-IR")} ساعت
+                  {durationValue.toLocaleString(getLocale())} ساعت
                 </output>
                 <input
                   type="range"
@@ -172,14 +174,14 @@ export default function TaskDetailsModal({
                   value={durationValue}
                   disabled={busy}
                   aria-label="مدت زمان تسک"
-                  aria-valuetext={`${durationValue.toLocaleString("fa-IR")} ساعت`}
+                  aria-valuetext={`${durationValue.toLocaleString(getLocale())} ساعت`}
                   onChange={(event) =>
                     updateField("duration", Number(event.target.value))
                   }
                 />
                 <div className="task-details-modal__duration-limits">
                   <span>۱ ساعت</span>
-                  <span>{scheduledDuration.toLocaleString("fa-IR")} ساعت</span>
+                  <span>{scheduledDuration.toLocaleString(getLocale())} ساعت</span>
                 </div>
               </div>
             </div>
@@ -201,7 +203,7 @@ export default function TaskDetailsModal({
             <span>اولویت</span>
             <PriorityDropdown
               value={form.priorityId || undefined}
-              options={priorities}
+              options={priorities.length ? priorities : PRIORITY_LEVELS}
               onChange={(value) => updateField("priorityId", value ?? "")}
             />
           </div>

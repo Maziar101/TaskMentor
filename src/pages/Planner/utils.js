@@ -1,4 +1,5 @@
 import { loadPriorities } from "../../utils/priorities/index";
+import { getLocale, getPersianCalendarLocale } from "../../i18n/runtime";
 export const PRIORITY_LEVELS = [
     { id: undefined, label: "بدون اولویت", color: "var(--priority-none, #555a65)" },
     { id: "low", label: "پایین", color: "#2ecc71" },
@@ -13,7 +14,7 @@ export const tagLabels = {
 export const baseTags = ["focus", "meeting", "errand"];
 export const hours = Array.from({ length: 24 }, (_, i) => i);
 export const STORAGE_KEY = "taskmentor-data";
-export const PERSIAN_NUMBER = new Intl.NumberFormat("fa-IR");
+export const PERSIAN_NUMBER = new Intl.NumberFormat(getLocale());
 const FALLBACK_HEX = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
 export const JALALI_MONTHS = [
     "فروردین",
@@ -59,7 +60,6 @@ export function createPlannerInitialState() {
         search: "",
         hoverHour: null,
         now,
-        jalaliMonthView: toJalaliParts(now),
         tagModalOpen: false,
         tagModalValue: "",
         editingTag: null,
@@ -73,7 +73,6 @@ export function createPlannerInitialState() {
         deleteModal: null,
         deleteModalBusy: false,
         poolHover: false,
-        calendarModal: null,
         taskDetails: null,
         taskDetailsBusy: false,
     };
@@ -237,7 +236,7 @@ export function toJalaliParts(date) {
 export function formatJalaliMonthName(date) {
     const { gy, gm, gd } = jalaliToGregorian(date.jy, date.jm, 1);
     const anchor = new Date(Date.UTC(gy, gm - 1, gd));
-    return anchor.toLocaleDateString("fa-IR-u-ca-persian", { month: "long" });
+    return anchor.toLocaleDateString(getPersianCalendarLocale(), { month: "long" });
 }
 export function formatGregorianSpanForJalaliMonth(jy, jm) {
     const start = jalaliToGregorian(jy, jm, 1);

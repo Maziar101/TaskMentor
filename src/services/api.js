@@ -1,5 +1,6 @@
 import { store } from "../store";
 import { logout } from "../store/authSlice";
+import { translate } from "../i18n/runtime";
 
 export async function apiRequest(path, options = {}) {
   const token = store.getState().auth.token;
@@ -18,7 +19,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!response.ok) {
-    const message = data?.message || "درخواست ناموفق بود";
+    const message = translate(data?.message || "درخواست ناموفق بود");
     throw new Error(message);
   }
 
@@ -72,11 +73,17 @@ export const scheduleApi = {
 
 export const profileApi = {
   get: () => apiRequest("/api/profile"),
+  getAvatars: () => apiRequest("/api/profile/avatars"),
   update: (payload) =>
     apiRequest("/api/profile", {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  uploadAvatar: (file) => {
+    const body = new FormData();
+    body.append("avatar", file);
+    return apiRequest("/api/profile/avatar", { method: "POST", body });
+  },
 };
 
 export const reportsApi = {

@@ -12,9 +12,10 @@ import { Stack, Typography } from "@mui/material";
 import Loading from "../../components/Loading";
 import { reportsApi } from "../../services/api";
 import { HotToast } from "../../utils/HotToast";
+import { getLocale, getPersianCalendarLocale, translate } from "../../i18n/runtime";
 
-const number = new Intl.NumberFormat("fa-IR");
-const dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+const number = new Intl.NumberFormat(getLocale());
+const dateFormatter = new Intl.DateTimeFormat(getPersianCalendarLocale(), {
   weekday: "short",
 });
 
@@ -25,7 +26,7 @@ const tagLabels = {
 };
 
 function formatTag(tag) {
-  return tagLabels[tag] || tag;
+  return tagLabels[tag] || translate(tag);
 }
 
 export default function DashboardPage() {

@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import persian_en from "react-date-object/locales/persian_en";
 import { FiCalendar } from "react-icons/fi";
+import { getLanguage } from "../../i18n/runtime";
 export default function Calender({ place, value, onChange, setFieldValue, setTimestamps, }) {
     const [selectedDate, setSelectedDate] = useState(value ?? null);
     useEffect(() => {
@@ -25,7 +27,7 @@ export default function Calender({ place, value, onChange, setFieldValue, setTim
     };
     const placeholder = place || "انتخاب تاریخ";
     return (<div className="date-picker">
-      <DatePicker value={selectedDate} onChange={handleDateChange} calendar={persian} locale={persian_fa} format="YYYY-MM-DD" calendarPosition="bottom-center" editable={false} containerClassName="date-picker__container" className="date-picker__picker" portal={typeof document !== "undefined"} render={(val, openCalendar) => (<button type="button" className="date-field" onClick={openCalendar}>
+      <DatePicker value={selectedDate} onChange={handleDateChange} calendar={persian} locale={getLanguage() === "en" ? persian_en : persian_fa} format="YYYY-MM-DD" calendarPosition="bottom-center" editable={false} containerClassName="date-picker__container" className="date-picker__picker" portal={typeof document !== "undefined"} render={(val, openCalendar) => (<button type="button" className="date-field" onClick={openCalendar}>
             <span className={val ? "date-field__value" : "date-field__placeholder"}>
               {val || placeholder}
             </span>

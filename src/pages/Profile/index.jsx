@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiCamera, FiLogOut, FiMoon, FiSave } from "react-icons/fi";
+import { FiCamera, FiLogOut } from "react-icons/fi";
 import Loading from "../../components/Loading";
 import { profileApi, reportsApi } from "../../services/api";
 import { HotToast } from "../../utils/HotToast";
@@ -8,15 +8,15 @@ import {
   logout,
   setAccentTheme,
   setUser,
-  toggleTheme,
 } from "../../store/authSlice";
 import { ACCENT_THEMES } from "../../utils/accentThemes";
+import AvatarPickerModal from "./AvatarPickerModal";
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
-  const { accentTheme, user, themeMode } = useSelector((state) => state.auth);
-  const [name, setName] = useState(user?.username || "");
+  const { accentTheme, user } = useSelector((state) => state.auth);
   const [reports, setReports] = useState(null);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [isPending, startPending] = useTransition();
 
   useEffect(() => {
@@ -27,26 +27,12 @@ export default function ProfilePage() {
           reportsApi.get(),
         ]);
         dispatch(setUser(profileResponse.data));
-        setName(profileResponse.data.username || "");
         setReports(reportsResponse.data);
       } catch (err) {
         HotToast("error", err.message);
       }
     });
   }, [dispatch]);
-
-  const saveProfile = (event) => {
-    event.preventDefault();
-    startPending(async () => {
-      try {
-        const response = await profileApi.update({ username: name });
-        dispatch(setUser(response.data));
-        HotToast("success", "پروفایل ذخیره شد");
-      } catch (err) {
-        HotToast("error", err.message);
-      }
-    });
-  };
 
   if (isPending && !user) return <Loading />;
 
@@ -58,7 +44,6 @@ export default function ProfilePage() {
     0;
   const inProgress = reports?.summary?.remainingTasks ?? 0;
   const streak = reports?.streak ?? 0;
-  const isDark = themeMode === "dark";
 
   return (
     <div className="profile" dir="rtl">
@@ -66,11 +51,16 @@ export default function ProfilePage() {
         <div className="profile-hero__top">
           <div className="profile-hero__identity">
             <div className="profile-avatar" aria-label={displayName}>
-              <span>{initials}</span>
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={`تصویر پروفایل ${displayName}`} />
+              ) : (
+                <span>{initials}</span>
+              )}
               <button
                 className="profile-avatar__camera"
                 type="button"
                 aria-label="تغییر تصویر پروفایل"
+                onClick={() => setAvatarPickerOpen(true)}
               >
                 <FiCamera aria-hidden />
               </button>
@@ -110,50 +100,10 @@ export default function ProfilePage() {
       </section>
 
       <section className="profile__grid">
-        <form className="profile-panel profile-panel--info" onSubmit={saveProfile}>
-          <div className="profile-panel__head">
-            <h2>اطلاعات کاربر</h2>
-            <p>نام نمایشی و ایمیل خود را ویرایش کنید.</p>
-          </div>
-          <label className="profile-field">
-            <span>نام</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <label className="profile-field">
-            <span>ایمیل</span>
-            <input type="email" value={user?.email || ""} disabled />
-          </label>
-          <button className="profile-save" type="submit" disabled={isPending}>
-            <FiSave aria-hidden />
-            ذخیره تغییرات
-          </button>
-        </form>
-
         <section className="profile-panel profile-panel--appearance">
           <div className="profile-panel__head">
             <h2>ظاهر</h2>
-            <p>حالت نمایش برنامه را انتخاب کنید.</p>
-          </div>
-          <div className="profile-theme-control">
-            <label className="profile-switch">
-              <input
-                type="checkbox"
-                checked={isDark}
-                onChange={() => dispatch(toggleTheme())}
-              />
-              <span aria-hidden />
-            </label>
-            <div>
-              <strong>{isDark ? "تم تیره" : "تم روشن"}</strong>
-              <small>{isDark ? "فعال" : "فعال"}</small>
-            </div>
-            <div className="profile-theme-icon" aria-hidden>
-              <FiMoon />
-            </div>
+            <p>رنگ تاکیدی برنامه را انتخاب کنید.</p>
           </div>
           <div className="profile-accent">
             <span>رنگ تاکیدی</span>
@@ -179,6 +129,17 @@ export default function ProfilePage() {
           </div>
         </section>
       </section>
+      <AvatarPickerModal
+        open={avatarPickerOpen}
+        currentAvatar={user?.avatarUrl || ""}
+        displayName={displayName}
+        onClose={() => setAvatarPickerOpen(false)}
+        onSaved={(updatedUser) => {
+          dispatch(setUser(updatedUser));
+          setAvatarPickerOpen(false);
+          HotToast("success", "تصویر پروفایل ذخیره شد");
+        }}
+      />
     </div>
   );
 }

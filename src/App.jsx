@@ -6,11 +6,13 @@ import { Provider, useSelector } from "react-redux";
 import { store } from "./store";
 import { useLayoutEffect, useMemo } from "react";
 import { ACCENT_THEMES, applyAccentTheme } from "./utils/accentThemes";
+import { getDirection, getLanguage } from "./i18n/runtime";
 
 function AppShell() {
   const routes = useRoutesConfig();
   const { accentTheme, themeMode } = useSelector((state) => state.auth);
   const colors = ACCENT_THEMES[accentTheme] ?? ACCENT_THEMES.purple;
+  const language = getLanguage();
 
   useLayoutEffect(() => {
     applyAccentTheme(accentTheme);
@@ -19,6 +21,7 @@ function AppShell() {
   const theme = useMemo(
     () =>
       createTheme({
+        direction: getDirection(language),
         palette: {
           mode: themeMode,
           primary: { main: colors.primary },
@@ -52,8 +55,14 @@ function AppShell() {
             white: colors.text,
           },
         },
+        typography: {
+          fontFamily:
+            language === "fa"
+              ? '"IRANYekanX", system-ui, sans-serif'
+              : '"NotionInter", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+        },
       }),
-    [colors, themeMode],
+    [colors, language, themeMode],
   );
 
   return (

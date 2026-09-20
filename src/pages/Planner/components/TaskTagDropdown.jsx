@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { getTagLabel } from "../utils";
+import FloatingDropdownMenu from "../../../components/FloatingDropdownMenu";
 
 export default function TaskTagDropdown({ value, tags, onChange }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!containerRef.current?.contains(event.target)) setOpen(false);
+      if (!containerRef.current?.contains(event.target) && !menuRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -21,6 +26,7 @@ export default function TaskTagDropdown({ value, tags, onChange }) {
   return (
     <div ref={containerRef} className="task-tag-dropdown">
       <button
+        ref={buttonRef}
         type="button"
         className="priority-dropdown__button"
         aria-haspopup="listbox"
@@ -36,7 +42,12 @@ export default function TaskTagDropdown({ value, tags, onChange }) {
       </button>
 
       {open && (
-        <div className="priority-dropdown__menu" role="listbox">
+        <FloatingDropdownMenu
+          anchorRef={buttonRef}
+          menuRef={menuRef}
+          className="priority-dropdown__menu"
+          role="listbox"
+        >
           <button
             type="button"
             className={[
@@ -64,7 +75,7 @@ export default function TaskTagDropdown({ value, tags, onChange }) {
               {getTagLabel(tag)}
             </button>
           ))}
-        </div>
+        </FloatingDropdownMenu>
       )}
     </div>
   );
