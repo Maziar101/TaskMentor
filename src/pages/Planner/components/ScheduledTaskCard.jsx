@@ -19,6 +19,7 @@ export default function ScheduledTaskCard({
   onResizeDragEnd,
   checkIcon,
   detailsIcon,
+  forwardButton,
 }) {
   const { task, start, end } = block;
   const duration = Math.max(1, end - start);
@@ -77,6 +78,7 @@ export default function ScheduledTaskCard({
           >
             {checkIcon}
           </button>
+          {forwardButton}
           <button
             className="icon-btn"
             type="button"

@@ -1,9 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import ChatWindow from "./components/ChatWindow";
 import ConversationList from "./components/ConversationList";
 import { useSelector } from "react-redux";
 import useChat from "./hooks/useChat";
+import { sortConversationsByActivity } from "./conversationOrdering";
+import { HandleReduce } from "../../utils/HandleReducer";
 import "./styles.css";
+import { getLocale } from "../../i18n/runtime";
+
+const initialChatPageState = {
+  selectedId: "saved",
+  activeFilter: "all",
+  search: "",
+  draft: "",
+  conversationWidth: 390,
+};
+
+const MIN_CONVERSATION_WIDTH = 88;
+const MAX_CONVERSATION_WIDTH = 390;
+
+const chatPageReducer = (state, action) => {
+  if (!Object.hasOwn(state, action.type)) return state;
+  const currentValue = state[action.type];
+  const nextValue = typeof action.payload === "function"
+    ? action.payload(currentValue)
+    : action.payload;
+  return Object.is(currentValue, nextValue) ? state : { ...state, [action.type]: nextValue };
+};
 
 export default function ChatPage() {
   const userId = useSelector((state) => state.auth.user?.id || state.auth.user?._id);
@@ -13,13 +36,17 @@ export default function ChatPage() {
 function ChatContent() {
   const {
     conversations, contacts, messagesByConversation, loading, saving, error,
-    saveMessage, uploadImage, createConversation, addContact, openContactConversation,
-    changeConversation, changeMessage, markConversationRead, retry,
+    saveMessage, uploadImage, createGroup, addContact, openContactConversation, blockUser,
+    changeConversation, changeMessage, respondToTaskForward, markConversationRead, retry,
   } = useChat();
-  const [selectedId, setSelectedId] = useState("saved");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState("");
+  const [state, dispatch] = useReducer(chatPageReducer, initialChatPageState);
+  const handleReducer = useMemo(() => HandleReduce(dispatch), []);
+  const { selectedId, activeFilter, search, draft, conversationWidth } = state;
+  const setSelectedId = (payload) => handleReducer("selectedId", payload);
+  const setActiveFilter = (payload) => handleReducer("activeFilter", payload);
+  const setSearch = (payload) => handleReducer("search", payload);
+  const setDraft = (payload) => handleReducer("draft", payload);
+  const setConversationWidth = (payload) => handleReducer("conversationWidth", payload);
 
   const selectedConversation =
     conversations.find((conversation) => conversation.id === selectedId) ?? conversations[0];
@@ -37,12 +64,12 @@ function ChatContent() {
   }, [markConversationRead, selectedConversation, unreadIncomingKey]);
 
   const filteredConversations = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("fa");
-    return conversations.filter((conversation) => {
+    const query = search.trim().toLocaleLowerCase(getLocale());
+    const visibleConversations = conversations.filter((conversation) => {
       const matchesSearch =
         !query ||
-        conversation.name.toLocaleLowerCase("fa").includes(query) ||
-        conversation.preview.toLocaleLowerCase("fa").includes(query);
+        conversation.name.toLocaleLowerCase(getLocale()).includes(query) ||
+        conversation.preview.toLocaleLowerCase(getLocale()).includes(query);
       const matchesFilter =
         activeFilter === "archive"
           ? conversation.archived
@@ -52,8 +79,9 @@ function ChatContent() {
             conversation.category === activeFilter
           );
       return matchesSearch && matchesFilter;
-    }).sort((a, b) => Number(b.pinned) - Number(a.pinned));
-  }, [activeFilter, conversations, search]);
+    });
+    return sortConversationsByActivity(visibleConversations, messagesByConversation);
+  }, [activeFilter, conversations, messagesByConversation, search]);
 
   const handleSend = async (extra = {}) => {
     const text = draft.trim();
@@ -81,16 +109,67 @@ function ChatContent() {
     setDraft("");
   };
 
-  const handleNewConversation = async () => {
-    const id = await createConversation();
-    if (!id) return;
-    setSelectedId(id);
-    setDraft("");
-    setActiveFilter("all");
+  const updateConversationWidth = (event) => {
+    const page = event.currentTarget.closest(".messenger-page");
+    if (!page) return;
+    const rect = page.getBoundingClientRect();
+    const isLtr = getComputedStyle(page).direction === "ltr";
+    const pointerWidth = isLtr
+      ? event.clientX - rect.left
+      : rect.right - event.clientX;
+    const availableMaximum = Math.max(
+      MIN_CONVERSATION_WIDTH,
+      Math.min(MAX_CONVERSATION_WIDTH, rect.width - 320),
+    );
+    setConversationWidth(
+      Math.round(
+        Math.max(
+          MIN_CONVERSATION_WIDTH,
+          Math.min(availableMaximum, pointerWidth),
+        ),
+      ),
+    );
+  };
+
+  const startConversationResize = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    document.body.classList.add("is-resizing-conversations");
+    updateConversationWidth(event);
+  };
+
+  const stopConversationResize = (event) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    document.body.classList.remove("is-resizing-conversations");
+  };
+
+  const resizeConversationWithKeyboard = (event) => {
+    const page = event.currentTarget.closest(".messenger-page");
+    const isLtr = page ? getComputedStyle(page).direction === "ltr" : true;
+    let nextWidth = conversationWidth;
+    if (event.key === "Home") nextWidth = MIN_CONVERSATION_WIDTH;
+    if (event.key === "End") nextWidth = MAX_CONVERSATION_WIDTH;
+    if (event.key === "ArrowLeft") nextWidth += isLtr ? -16 : 16;
+    if (event.key === "ArrowRight") nextWidth += isLtr ? 16 : -16;
+    if (nextWidth === conversationWidth) return;
+    event.preventDefault();
+    setConversationWidth(
+      Math.max(
+        MIN_CONVERSATION_WIDTH,
+        Math.min(MAX_CONVERSATION_WIDTH, nextWidth),
+      ),
+    );
   };
 
   return (
-    <div className="messenger-page" dir="rtl">
+    <div
+      className="messenger-page"
+      dir="rtl"
+      style={{ "--messenger-conversations-width": `${conversationWidth}px` }}
+    >
       <ConversationList
         saving={saving}
         onConversationAction={async (id, changes) => {
@@ -110,12 +189,43 @@ function ChatContent() {
           if (id) handleSelect(id);
           return Boolean(id);
         }}
+        onCreateGroup={async (payload) => {
+          const result = await createGroup(payload);
+          if (result.success) {
+            setSelectedId(result.conversation.id);
+            setDraft("");
+            setActiveFilter("all");
+          }
+          return result;
+        }}
         onFilterChange={setActiveFilter}
-        onNewConversation={handleNewConversation}
         onSearchChange={setSearch}
         onSelect={handleSelect}
         search={search}
         selectedId={selectedId}
+      />
+      <div
+        className="messenger-resize-handle"
+        role="separator"
+        aria-label="تغییر اندازه لیست گفتگوها"
+        aria-orientation="vertical"
+        aria-valuemin={MIN_CONVERSATION_WIDTH}
+        aria-valuemax={MAX_CONVERSATION_WIDTH}
+        aria-valuenow={conversationWidth}
+        tabIndex={0}
+        onDoubleClick={() => setConversationWidth(MAX_CONVERSATION_WIDTH)}
+        onKeyDown={resizeConversationWithKeyboard}
+        onPointerDown={startConversationResize}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            updateConversationWidth(event);
+          }
+        }}
+        onPointerUp={stopConversationResize}
+        onPointerCancel={stopConversationResize}
+        onLostPointerCapture={() => {
+          document.body.classList.remove("is-resizing-conversations");
+        }}
       />
       {selectedConversation ? <ChatWindow
         saving={saving}
@@ -135,7 +245,9 @@ function ChatContent() {
           return success;
         }}
         onDraftChange={setDraft}
+        onBlockUser={() => blockUser(selectedConversation.id)}
         onMessageAction={(messageId, changes) => changeMessage(selectedConversation.id, messageId, changes)}
+        onTaskForwardResponse={respondToTaskForward}
         onSend={handleSend}
       /> : (
         <section className="messenger-chat">

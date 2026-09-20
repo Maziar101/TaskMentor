@@ -12,7 +12,9 @@ export default function ChatAvatar({ conversation, size = "normal" }) {
         .join(" ")}
       aria-hidden
     >
-      {Icon ? <Icon /> : conversation.avatar || conversation.name.slice(0, 1)}
+      {conversation.avatarUrl ? (
+        <img src={conversation.avatarUrl} alt="" />
+      ) : Icon ? <Icon /> : conversation.avatar || conversation.name.slice(0, 1)}
       {conversation.online && <i className="messenger-avatar__online" />}
     </span>
   );

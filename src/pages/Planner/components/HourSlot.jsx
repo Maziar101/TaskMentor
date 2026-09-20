@@ -3,6 +3,7 @@ import { formatHour, getPriorityColor } from "../utils";
 import { getPlannerBlockSegment } from "../durationResize";
 import { getSlotTimeState } from "../slotTime";
 import ScheduledTaskCard from "./ScheduledTaskCard";
+import ForwardTaskMenu from "./ForwardTaskMenu";
 
 export default function HourSlot({
   hour,
@@ -235,6 +236,11 @@ export default function HourSlot({
                       >
                         <FiCheck aria-hidden />
                       </button>
+                      <ForwardTaskMenu
+                        task={task}
+                        hour={task.hour}
+                        duration={totalTaskDuration}
+                      />
                       <button
                         className="icon-btn"
                         type="button"
@@ -322,6 +328,13 @@ export default function HourSlot({
             onResizeDragEnd={cancelDurationResize}
             checkIcon={<FiCheck aria-hidden />}
             detailsIcon={<FiEye aria-hidden />}
+            forwardButton={(
+              <ForwardTaskMenu
+                task={displayBlock.task}
+                hour={displayBlock.start}
+                duration={displayBlock.end - displayBlock.start}
+              />
+            )}
           />
         )}
       </div>

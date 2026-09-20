@@ -1,29 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { apiRequest } from "../../../services/api";
+import { HandleReduce } from "../../../utils/HandleReducer";
 import { INITIAL_CONVERSATIONS } from "../data";
-
-const newClientId = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-
-const timeFormat = new Intl.DateTimeFormat("fa-IR", { hour: "2-digit", minute: "2-digit" });
-const decorateMessage = (message) => ({ ...message, time: timeFormat.format(new Date(message.createdAt)) });
-const decorateConversation = (conversation) => ({
-  ...(conversation.id === "saved" ? INITIAL_CONVERSATIONS[0] : {
-    preview: "هنوز پیامی ارسال نشده", time: "", unread: 0,
-    category: "all", avatar: "+", avatarTone: "violet",
-  }),
-  ...conversation,
-});
+import { chatReducer, initialChatState } from "./chatState";
+import { decorateConversation, decorateMessage, newClientId } from "./chatUtils";
 
 export default function useChat() {
-  const [conversations, setConversations] = useState([]);
-  const [contacts, setContacts] = useState([]);
-  const [messagesByConversation, setMessages] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [state, dispatch] = useReducer(chatReducer, initialChatState);
+  const handleReducer = useMemo(() => HandleReduce(dispatch), []);
+  const { conversations, contacts, messagesByConversation, loading, error, saving, reload } = state;
+  const setConversations = useCallback((payload) => handleReducer("conversations", payload), [handleReducer]);
+  const setContacts = useCallback((payload) => handleReducer("contacts", payload), [handleReducer]);
+  const setMessages = useCallback((payload) => handleReducer("messagesByConversation", payload), [handleReducer]);
+  const setLoading = useCallback((payload) => handleReducer("loading", payload), [handleReducer]);
+  const setError = useCallback((payload) => handleReducer("error", payload), [handleReducer]);
+  const setSaving = useCallback((payload) => handleReducer("saving", payload), [handleReducer]);
+  const setReload = useCallback((payload) => handleReducer("reload", payload), [handleReducer]);
   const busy = useRef(false);
   const pending = useRef(null);
-  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -43,6 +37,11 @@ export default function useChat() {
           ...(last ? { preview: last.text || last.fileName, time: last.time } : {}),
         };
       }));
+      window.dispatchEvent(new CustomEvent("taskmentor:chat-unread-changed", {
+        detail: {
+          conversationCount: data.conversations.filter((conversation) => conversation.unread > 0).length,
+        },
+      }));
       setError("");
     }).catch((err) => {
       if (active) setError(err.message || "دریافت گفتگوها ناموفق بود");
@@ -55,7 +54,7 @@ export default function useChat() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [reload]);
+  }, [reload, setContacts, setConversations, setError, setLoading, setMessages]);
 
   const saveMessage = async (conversationId, payload) => {
     if (busy.current || loading) return false;
@@ -112,18 +111,22 @@ export default function useChat() {
       const result = await apiRequest(`/api/chat/${encodeURIComponent(conversationId)}/read`, {
         method: "PATCH",
       });
-      if (!result.messageIds?.length) return true;
-      const seenIds = new Set(result.messageIds);
-      setMessages((current) => ({
-        ...current,
-        [conversationId]: (current[conversationId] ?? []).map((message) =>
-          seenIds.has(message.id) ? { ...message, seen: true } : message),
-      }));
+      if (result.messageIds?.length) {
+        const seenIds = new Set(result.messageIds);
+        setMessages((current) => ({
+          ...current,
+          [conversationId]: (current[conversationId] ?? []).map((message) =>
+            seenIds.has(message.id) ? { ...message, seen: true } : message),
+        }));
+      }
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === conversationId ? { ...conversation, unread: 0 } : conversation));
+      window.dispatchEvent(new Event("taskmentor:chat-unread-changed"));
       return true;
     } catch {
       return false;
     }
-  }, []);
+  }, [setConversations, setMessages]);
 
   const createConversation = async () => {
     if (busy.current || loading) return null;
@@ -139,6 +142,31 @@ export default function useChat() {
     } catch (err) {
       setError(`گفتگو ذخیره نشد: ${err.message || "دوباره تلاش کنید"}`);
       return null;
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
+  const createGroup = async ({ name, imageFile, memberIds }) => {
+    if (busy.current || loading) return { success: false, error: "لطفاً کمی صبر کنید" };
+    busy.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("name", name);
+      body.append("memberIds", JSON.stringify(memberIds));
+      if (imageFile) body.append("image", imageFile);
+      const { conversation } = await apiRequest("/api/chat/groups", { method: "POST", body });
+      const decorated = decorateConversation(conversation);
+      setConversations((current) => [...current, decorated]);
+      setMessages((current) => ({ ...current, [decorated.id]: [] }));
+      return { success: true, conversation: decorated };
+    } catch (err) {
+      const message = err.message || "ساخت گروه ناموفق بود";
+      setError(`گروه ساخته نشد: ${message}`);
+      return { success: false, error: message };
     } finally {
       busy.current = false;
       setSaving(false);
@@ -186,6 +214,26 @@ export default function useChat() {
     }
   };
 
+  const blockUser = async (conversationId) => {
+    if (busy.current || loading) return { success: false, error: "لطفاً کمی صبر کنید" };
+    busy.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest(`/api/chat/${encodeURIComponent(conversationId)}/block`, { method: "PUT" });
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === conversationId ? { ...conversation, blockedByMe: true } : conversation));
+      return { success: true };
+    } catch (err) {
+      const message = err.message || "بلاک کردن کاربر ناموفق بود";
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
   const changeMessage = async (conversationId, messageId, changes) => {
     if (busy.current || loading) return false;
     busy.current = true;
@@ -225,6 +273,34 @@ export default function useChat() {
     }
   };
 
+  const respondToTaskForward = async (requestId, decision) => {
+    if (busy.current || loading) return false;
+    busy.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      const { taskForward } = await apiRequest(`/api/chat/task-forwards/${encodeURIComponent(requestId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision }),
+      });
+      setMessages((current) => Object.fromEntries(
+        Object.entries(current).map(([conversationId, messages]) => [
+          conversationId,
+          messages.map((message) => message.taskForward?.id === requestId
+            ? { ...message, taskForward }
+            : message),
+        ]),
+      ));
+      return true;
+    } catch (err) {
+      setError(`پاسخ درخواست ثبت نشد: ${err.message || "دوباره تلاش کنید"}`);
+      return false;
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
   const changeConversation = async (id, changes) => {
     if (busy.current || loading) return false;
     busy.current = true;
@@ -248,6 +324,9 @@ export default function useChat() {
           } : {}),
         } : item));
       if (deleting || clearing) setMessages((current) => ({ ...current, [id]: [] }));
+      if (deleting || clearing) {
+        window.dispatchEvent(new Event("taskmentor:chat-unread-changed"));
+      }
       return true;
     } catch (err) {
       setError(`تغییر گفتگو ذخیره نشد: ${err.message || "دوباره تلاش کنید"}`);
@@ -259,8 +338,8 @@ export default function useChat() {
   };
 
   return {
-    conversations, contacts, messagesByConversation, loading, saving, error, saveMessage, uploadImage, createConversation,
-    addContact, openContactConversation, changeConversation, changeMessage, markConversationRead,
+    conversations, contacts, messagesByConversation, loading, saving, error, saveMessage, uploadImage, createConversation, createGroup,
+    addContact, openContactConversation, blockUser, changeConversation, changeMessage, respondToTaskForward, markConversationRead,
     retry: () => { setLoading(true); setReload((value) => value + 1); },
   };
 }

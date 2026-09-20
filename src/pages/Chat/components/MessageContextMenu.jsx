@@ -2,8 +2,18 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { BsPinAngle, BsPinAngleFill, BsReply } from "react-icons/bs";
 import { FiCopy, FiEdit3, FiTrash2 } from "react-icons/fi";
+import EmojiText from "./EmojiText";
 
 const CLOSE_DELAY = 150;
+const REACTIONS = [
+  { emoji: "👍", label: "پسندیدم" },
+  { emoji: "👎", label: "نپسندیدم" },
+  { emoji: "❤️", label: "قلب" },
+  { emoji: "🔥", label: "عالی" },
+  { emoji: "🥰", label: "دوست‌داشتنی" },
+  { emoji: "👏", label: "آفرین" },
+  { emoji: "😇", label: "خوشحال" },
+];
 
 export default function MessageContextMenu({ message, position, busy, onAction, onClose, onEdit, onReply }) {
   const menuRef = useRef(null);
@@ -99,28 +109,49 @@ export default function MessageContextMenu({ message, position, busy, onAction, 
       onKeyDown={handleKeyDown}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {confirmAction ? (
-        <>
-          <p>{confirmAction === "delete" ? "این پیام حذف شود؟ این کار قابل بازگشت نیست." : message.pinned ? "پین این پیام برداشته شود؟" : "این پیام پین شود؟"}</p>
-          <button type="button" disabled={busy} className={confirmAction === "delete" ? "is-danger" : "is-primary"}
-            onClick={() => apply(confirmAction === "delete" ? "delete" : { pinned: !message.pinned })}>
-            {confirmAction === "delete" ? <FiTrash2 /> : <BsPinAngleFill />}
-            {confirmAction === "delete" ? "حذف پیام" : message.pinned ? "برداشتن پین" : "پین پیام"}
-          </button>
-          <button type="button" disabled={busy} onClick={() => setConfirmAction(null)}>انصراف</button>
-        </>
-      ) : (
-        <>
-          <button type="button" role="menuitem" disabled={busy} onClick={() => { onReply(message); requestClose(); }}><BsReply />ریپلای</button>
-          <button type="button" role="menuitem" disabled={busy || !textMessage} onClick={() => { onEdit(message); requestClose(); }}><FiEdit3 />ویرایش</button>
-          <button type="button" role="menuitem" disabled={busy} onClick={() => setConfirmAction("pin")}>
-            {message.pinned ? <BsPinAngle /> : <BsPinAngleFill />}{message.pinned ? "برداشتن پین" : "پین"}
-          </button>
-          <button type="button" role="menuitem" disabled={busy || !textMessage} onClick={copyText}><FiCopy />کپی متن</button>
-          <button type="button" role="menuitem" disabled={busy} className="is-danger" onClick={() => setConfirmAction("delete")}><FiTrash2 />حذف</button>
-        </>
+      {!confirmAction && (
+        <div className="message-context-menu__reactions" aria-label="انتخاب ری‌اکشن">
+          {REACTIONS.map(({ emoji, label }) => (
+            <button
+              key={emoji}
+              type="button"
+              role="menuitemradio"
+              aria-checked={message.myReaction === emoji}
+              aria-label={label}
+              title={label}
+              disabled={busy}
+              className={message.myReaction === emoji ? "is-selected" : ""}
+              onClick={() => apply({ reaction: message.myReaction === emoji ? null : emoji })}
+            >
+              <EmojiText text={emoji} />
+            </button>
+          ))}
+        </div>
       )}
-      {error && <p role="alert" className="is-danger">{error}</p>}
+      <div className="message-context-menu__panel">
+        {confirmAction ? (
+          <>
+            <p>{confirmAction === "delete" ? "این پیام حذف شود؟ این کار قابل بازگشت نیست." : message.pinned ? "پین این پیام برداشته شود؟" : "این پیام پین شود؟"}</p>
+            <button type="button" disabled={busy} className={confirmAction === "delete" ? "is-danger" : "is-primary"}
+              onClick={() => apply(confirmAction === "delete" ? "delete" : { pinned: !message.pinned })}>
+              {confirmAction === "delete" ? <FiTrash2 /> : <BsPinAngleFill />}
+              {confirmAction === "delete" ? "حذف پیام" : message.pinned ? "برداشتن پین" : "پین پیام"}
+            </button>
+            <button type="button" disabled={busy} onClick={() => setConfirmAction(null)}>انصراف</button>
+          </>
+        ) : (
+          <>
+            <button type="button" role="menuitem" disabled={busy} onClick={() => { onReply(message); requestClose(); }}><BsReply />ریپلای</button>
+            <button type="button" role="menuitem" disabled={busy || !textMessage} onClick={() => { onEdit(message); requestClose(); }}><FiEdit3 />ویرایش</button>
+            <button type="button" role="menuitem" disabled={busy} onClick={() => setConfirmAction("pin")}>
+              {message.pinned ? <BsPinAngle /> : <BsPinAngleFill />}{message.pinned ? "برداشتن پین" : "پین"}
+            </button>
+            <button type="button" role="menuitem" disabled={busy || !textMessage} onClick={copyText}><FiCopy />کپی متن</button>
+            <button type="button" role="menuitem" disabled={busy} className="is-danger" onClick={() => setConfirmAction("delete")}><FiTrash2 />حذف</button>
+          </>
+        )}
+        {error && <p role="alert" className="is-danger">{error}</p>}
+      </div>
     </div>,
     document.body,
   );

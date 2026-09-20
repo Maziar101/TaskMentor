@@ -3,16 +3,32 @@ import { FiEdit2, FiFileText } from "react-icons/fi";
 import { BsPinAngleFill } from "react-icons/bs";
 import { IoCheckmarkDone } from "react-icons/io5";
 import { MdDone } from "react-icons/md";
+import TaskForwardMessage from "./TaskForwardMessage";
+import { getLocale } from "../../../i18n/runtime";
 
-export default function MessageBubble({ message, replyMessage, onContextMenu, onPreviewImage }) {
+export default function MessageBubble({ message, replyMessage, highlighted, busy, onContextMenu, onPreviewImage, onTaskForwardResponse, showSender }) {
   const className = [
     "messenger-message",
     message.side === "mine" ? "messenger-message--mine" : "messenger-message--theirs",
-  ].join(" ");
+    highlighted && "is-pinned-target",
+  ].filter(Boolean).join(" ");
+
+  if (message.type === "task-forward") {
+    return (
+      <div data-message-id={message.id} className={`${className} messenger-message--task-forward`} onContextMenu={(event) => onContextMenu(event, message)}>
+        <MessageSender message={message} visible={showSender} />
+        <MessageReply message={replyMessage} />
+        <TaskForwardMessage message={message} busy={busy} onRespond={onTaskForwardResponse} />
+        <MessageMeta message={message} />
+        <MessageReactions reactions={message.reactions} />
+      </div>
+    );
+  }
 
   if (message.type === "file") {
     return (
-      <div className={`${className}${message.imageUrl ? " messenger-message--image" : ""}`} onContextMenu={(event) => onContextMenu(event, message)}>
+      <div data-message-id={message.id} className={`${className}${message.imageUrl ? " messenger-message--image" : ""}`} onContextMenu={(event) => onContextMenu(event, message)}>
+        <MessageSender message={message} visible={showSender} />
         <MessageReply message={replyMessage} />
         {message.imageUrl ? (
           <button
@@ -35,16 +51,38 @@ export default function MessageBubble({ message, replyMessage, onContextMenu, on
           </div>
         )}
         <MessageMeta message={message} />
+        <MessageReactions reactions={message.reactions} />
       </div>
     );
   }
 
   return (
-    <div className={className} onContextMenu={(event) => onContextMenu(event, message)}>
+    <div data-message-id={message.id} className={className} onContextMenu={(event) => onContextMenu(event, message)}>
+      <MessageSender message={message} visible={showSender} />
       <MessageReply message={replyMessage} />
       <p><EmojiText text={message.text} /></p>
       <MessageMeta message={message} />
+      <MessageReactions reactions={message.reactions} />
     </div>
+  );
+}
+
+function MessageSender({ message, visible }) {
+  if (!visible || message.side === "mine" || !message.senderName) return null;
+  return <strong className="messenger-message__sender">{message.senderName}</strong>;
+}
+
+function MessageReactions({ reactions }) {
+  if (!reactions?.length) return null;
+  return (
+    <span className="messenger-message__reactions" aria-label="ری‌اکشن‌های پیام">
+      {reactions.map(({ emoji, count }) => (
+        <span key={emoji} title={`${count.toLocaleString(getLocale())} ری‌اکشن`}>
+          <span aria-hidden><EmojiText text={emoji} /></span>
+          {count > 1 && <small>{count.toLocaleString(getLocale())}</small>}
+        </span>
+      ))}
+    </span>
   );
 }
 

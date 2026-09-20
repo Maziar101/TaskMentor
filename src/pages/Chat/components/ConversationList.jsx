@@ -6,6 +6,8 @@ import { CHAT_FILTERS } from "../data";
 import EmojiText from "./EmojiText";
 import ChatAvatar from "./ChatAvatar";
 import AddContactDialog from "./AddContactDialog";
+import NewChatActions from "./NewChatActions";
+import { getLocale } from "../../../i18n/runtime";
 
 export default function ConversationList({
   saving,
@@ -15,8 +17,8 @@ export default function ConversationList({
   conversations,
   onAddContact,
   onContactSelect,
+  onCreateGroup,
   onFilterChange,
-  onNewConversation,
   onSearchChange,
   onSelect,
   search,
@@ -29,8 +31,8 @@ export default function ConversationList({
   const [sidebarElement, setSidebarElement] = useState(null);
   const triggerRef = useRef(null);
   const visibleContacts = contacts.filter((contact) => {
-    const query = contactSearch.trim().toLocaleLowerCase("fa");
-    return !query || contact.name.toLocaleLowerCase("fa").includes(query) || contact.phone.includes(query);
+    const query = contactSearch.trim().toLocaleLowerCase(getLocale());
+    return !query || contact.name.toLocaleLowerCase(getLocale()).includes(query) || contact.phone.includes(query);
   });
   const closeMenu = useCallback(() => {
     setContext(null);
@@ -61,15 +63,13 @@ export default function ConversationList({
         <header className="messenger-conversations__header">
           <h1>{showContacts ? "مخاطبین" : "گفتگوها"}</h1>
           {!showContacts && (
-            <button
-              className="messenger-new-button"
-              type="button"
-              onClick={onNewConversation}
-              aria-label="گفتگوی جدید"
-              title="گفتگوی جدید"
-            >
-              <FiPlus />
-            </button>
+            <NewChatActions
+              busy={saving}
+              contacts={contacts}
+              container={sidebarElement}
+              onCreateGroup={onCreateGroup}
+              onGroupCreated={onSelect}
+            />
           )}
         </header>
 
@@ -156,15 +156,17 @@ export default function ConversationList({
                 <span className="messenger-conversation__content">
                   <span className="messenger-conversation__title-row">
                     <strong>{conversation.name}</strong>
-                    <time>{conversation.time}</time>
+                    <span className="messenger-conversation__activity">
+                      <time>{conversation.time}</time>
+                      {conversation.unread > 0 && (
+                        <b aria-label={`${conversation.unread} پیام خوانده‌نشده`}>
+                          {conversation.unread.toLocaleString(getLocale())}
+                        </b>
+                      )}
+                    </span>
                   </span>
                   <span className="messenger-conversation__preview-row">
                     <span><EmojiText text={conversation.preview} /></span>
-                    {conversation.unread > 0 && (
-                      <b aria-label={`${conversation.unread} پیام خوانده‌نشده`}>
-                        {conversation.unread.toLocaleString("fa-IR")}
-                      </b>
-                    )}
                   </span>
                 </span>
               </button>
