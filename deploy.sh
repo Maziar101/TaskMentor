@@ -111,18 +111,48 @@ restart_services() {
 trap restart_services ERR
 
 export PATH="$HOME/.nvm/versions/node/v22.20.0/bin:$PATH"
-if ! timeout 20 npm ping --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-  echo "دسترسی سرور به npm registry برقرار نیست؛ نسخه در حال اجرا متوقف نشد." >&2
-  exit 1
+
+root_dependencies_changed=1
+server_dependencies_changed=1
+
+if tar -xOf "$remote_archive" ./package-lock.json 2>/dev/null | cmp -s - "$remote_project_dir/package-lock.json" \
+  && [[ -d "$remote_project_dir/node_modules" ]]; then
+  root_dependencies_changed=0
+fi
+
+if tar -xOf "$remote_archive" ./server/package-lock.json 2>/dev/null | cmp -s - "$remote_project_dir/server/package-lock.json" \
+  && [[ -d "$remote_project_dir/server/node_modules" ]]; then
+  server_dependencies_changed=0
 fi
 
 tar -xzf "$remote_archive" -C "$remote_project_dir"
 unlink "$remote_archive"
 
-cd "$remote_project_dir"
-timeout 180 npm install --no-audit --no-fund --prefer-offline
-cd "$remote_project_dir/server"
-timeout 180 npm install --no-audit --no-fund --prefer-offline
+install_dependencies() {
+  local directory="$1"
+  local label="$2"
+
+  echo "نصب وابستگی‌های $label..."
+  cd "$directory"
+  if timeout 180 npm ci --no-audit --no-fund --offline; then
+    return
+  fi
+
+  echo "کش npm برای $label کامل نیست؛ تلاش از registry..."
+  timeout 180 npm ci --no-audit --no-fund --prefer-offline
+}
+
+if (( root_dependencies_changed )); then
+  install_dependencies "$remote_project_dir" "فرانت‌اند"
+else
+  echo "وابستگی‌های فرانت‌اند تغییری نکرده‌اند؛ استفاده از node_modules موجود."
+fi
+
+if (( server_dependencies_changed )); then
+  install_dependencies "$remote_project_dir/server" "بک‌اند"
+else
+  echo "وابستگی‌های بک‌اند تغییری نکرده‌اند؛ استفاده از node_modules موجود."
+fi
 
 systemctl --user restart "$frontend_service" "$server_service"
 trap - ERR
