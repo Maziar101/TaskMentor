@@ -17,6 +17,12 @@ const scheduledItemSchema = new Schema(
     hour: { type: Number, required: true, min: 0, max: 23 },
     duration: { type: Number, default: 1, min: 1, max: 24 },
     done: { type: Boolean, default: false },
+    forwardRequest: {
+      type: Types.ObjectId,
+      ref: "TaskForward",
+      unique: true,
+      sparse: true,
+    },
   },
   { timestamps: true }
 );
