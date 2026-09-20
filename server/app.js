@@ -38,6 +38,11 @@ app.use("/uploads/chat", express.static(path.join(__dirname, "uploads", "chat"),
   immutable: true,
   maxAge: "30d",
 }));
+app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads", "profiles"), {
+  fallthrough: false,
+  immutable: true,
+  maxAge: "30d",
+}));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });

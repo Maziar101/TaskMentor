@@ -12,6 +12,8 @@ dist
 dist-ssr
 server/uploads/chat/*
 !server/uploads/chat/.gitkeep
+server/uploads/profiles/*
+!server/uploads/profiles/.gitkeep
 *.local
 
 # Editor directories and files

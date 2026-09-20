@@ -4,6 +4,7 @@ const userSchema = new Schema(
   {
     username: { type: String, required: true, trim: true },
     email: { type: String, trim: true, lowercase: true },
+    avatarUrl: { type: String, trim: true, maxlength: 500, default: "" },
     phone: { type: String, unique: true, sparse: true, trim: true },
     password: { type: String, select: false },
     age: { type: Number, min: 0, max: 120 },

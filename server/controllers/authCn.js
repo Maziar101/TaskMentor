@@ -19,6 +19,7 @@ const signToken = (user) => {
 const publicUser = (user) => ({
   id: user._id,
   username: user.username,
+  avatarUrl: user.avatarUrl || "",
   phone: user.phone,
   role: user.role,
 });
