@@ -27,6 +27,7 @@ import {
 import { FiPlus } from "react-icons/fi";
 import { HandleReduce } from "../../../utils/HandleReducer";
 import { getLocale } from "../../../i18n/runtime";
+import { primaryButtonSx, textFieldSx } from "./NewChatActions.styles";
 const initialState = {
   step: 1,
   name: "",
@@ -326,24 +327,3 @@ function CreateGroupDialog({ busy, contacts, open, onClose, onCreate, onCreated 
     </Dialog>
   );
 }
-
-const textFieldSx = {
-  width: "100%",
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "14px",
-    bgcolor: "rgba(255, 255, 255, 0.035)",
-    "& fieldset": { borderColor: "rgba(255, 255, 255, 0.11)" },
-    "&:hover fieldset": { borderColor: "var(--tm-accent-border)" },
-    "&.Mui-focused fieldset": { borderColor: "var(--tm-accent)" },
-  },
-  "& .MuiInputBase-input, & .MuiInputLabel-root, & .MuiInputAdornment-root": { color: "var(--tm-text)" },
-};
-
-const primaryButtonSx = {
-  width: "100%",
-  minHeight: 46,
-  bgcolor: "var(--tm-accent)",
-  color: "var(--tm-on-accent)",
-  boxShadow: "0 10px 24px var(--tm-accent-glow)",
-  "&:hover": { bgcolor: "var(--tm-primary)" },
-};

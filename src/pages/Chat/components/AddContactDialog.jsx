@@ -12,6 +12,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { primaryButtonSx, textFieldSx } from "./NewChatActions.styles";
 
 export default function AddContactDialog({ busy, open, onAdd, onClose }) {
   const [phone, setPhone] = useState("");
@@ -104,29 +105,16 @@ export default function AddContactDialog({ busy, open, onAdd, onClose }) {
             onChange={(event) => setPhone(event.target.value)}
             placeholder="09xxxxxxxxx"
             inputProps={{ inputMode: "numeric", maxLength: 11, "aria-label": "شماره موبایل مخاطب" }}
-            sx={{
-              width: "100%",
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "14px",
-                bgcolor: "rgba(255, 255, 255, 0.035)",
-                "& fieldset": { borderColor: "rgba(255, 255, 255, 0.11)" },
-                "&:hover fieldset": { borderColor: "var(--tm-accent-border)" },
-                "&.Mui-focused fieldset": { borderColor: "var(--tm-accent)" },
-              },
-              "& input": { direction: "ltr", textAlign: "left", color: "var(--tm-text)" },
-            }}
+            sx={[
+              textFieldSx,
+              { "& input": { direction: "ltr", textAlign: "left" } },
+            ]}
           />
           {error && <Alert severity="error" sx={{ borderRadius: "12px" }}>{error}</Alert>}
           <Button
             type="submit"
             disabled={busy || !phone.trim()}
-            sx={{
-              minHeight: 46,
-              bgcolor: "var(--tm-accent)",
-              color: "var(--tm-on-accent)",
-              boxShadow: "0 10px 24px var(--tm-accent-glow)",
-              "&:hover": { bgcolor: "var(--tm-primary)" },
-            }}
+            sx={primaryButtonSx}
           >
             {busy ? "در حال افزودن…" : "افزودن به مخاطبین"}
           </Button>

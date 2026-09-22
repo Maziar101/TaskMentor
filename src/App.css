@@ -3530,6 +3530,29 @@ html[data-accent-theme="green"] .slot__chip--done {
   min-height: 360px;
 }
 
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-bar-rectangle path {
+  fill: rgba(255, 255, 255, 0.78);
+}
+
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-cartesian-grid line,
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-cartesian-axis-line,
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-cartesian-axis-tick-line {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-cartesian-axis-tick-value {
+  fill: rgba(255, 255, 255, 0.68);
+}
+
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-tooltip-cursor {
+  fill: #181818;
+}
+
+html[data-accent-theme="monochrome"] .dashboard-chart .recharts-default-tooltip {
+  border-color: var(--tm-border-soft) !important;
+  background: #0f0f0f !important;
+}
+
 .dashboard-side {
   gap: 16px;
 }

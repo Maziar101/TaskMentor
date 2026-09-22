@@ -18,10 +18,10 @@ import ChatAvatar from "./ChatAvatar";
 const dialogPaperSx = {
   width: "min(430px, calc(100vw - 32px))",
   m: 2,
-  border: "1px solid rgba(153, 126, 255, 0.28)",
+  border: "1px solid var(--tm-border)",
   borderRadius: 4,
-  bgcolor: "#17102d",
-  backgroundImage: "linear-gradient(155deg, rgba(32, 20, 58, 0.98), rgba(15, 9, 29, 0.98))",
+  bgcolor: "var(--tm-surface-solid)",
+  backgroundImage: "linear-gradient(155deg, var(--tm-surface-elevated), var(--tm-surface-deep))",
   color: "text.primary",
   boxShadow: "0 28px 80px rgba(0, 0, 0, 0.52)",
 };
@@ -55,7 +55,7 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
         aria-labelledby="contact-profile-title"
         slotProps={{
           paper: { sx: dialogPaperSx },
-          backdrop: { sx: { bgcolor: "rgba(4, 2, 10, 0.72)", backdropFilter: "blur(5px)" } },
+          backdrop: { sx: { bgcolor: "rgba(0, 0, 0, 0.78)", backdropFilter: "blur(5px)" } },
         }}
       >
         <DialogTitle id="contact-profile-title" sx={{ p: 2.5 }}>
@@ -74,7 +74,7 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
           </Stack>
         </DialogTitle>
 
-        <Divider sx={{ borderColor: "rgba(153, 126, 255, 0.18)" }} />
+        <Divider sx={{ borderColor: "var(--tm-border-soft)" }} />
 
         <DialogContent sx={{ p: 2.5 }}>
           <Stack sx={{ alignItems: "center", gap: 2.5 }}>
@@ -90,9 +90,9 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 1.25,
-                  border: "1px solid rgba(153, 126, 255, 0.2)",
+                  border: "1px solid var(--tm-border-soft)",
                   borderRadius: 2.5,
-                  bgcolor: "rgba(255,255,255,0.035)",
+                  bgcolor: "var(--tm-surface-elevated)",
                 }}
               >
                 <FiUser aria-hidden />
@@ -109,9 +109,9 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 1.25,
-                  border: "1px solid rgba(153, 126, 255, 0.2)",
+                  border: "1px solid var(--tm-border-soft)",
                   borderRadius: 2.5,
-                  bgcolor: "rgba(255,255,255,0.035)",
+                  bgcolor: "var(--tm-surface-elevated)",
                 }}
               >
                 <FiPhone aria-hidden />
@@ -138,6 +138,12 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
                 borderColor: "rgba(255, 99, 132, 0.55)",
                 color: "#ff7893",
                 "&:hover": { borderColor: "#ff7893", bgcolor: "rgba(255, 99, 132, 0.08)" },
+                'html[data-accent-theme="monochrome"] &': {
+                  borderColor: "var(--tm-border-strong)",
+                  bgcolor: "#0f0f0f",
+                  color: "var(--tm-text)",
+                  "&:hover": { borderColor: "#ffffff", bgcolor: "#181818" },
+                },
               }}
             >
               <FiUserX aria-hidden />
@@ -153,7 +159,7 @@ export default function ContactProfileDialog({ open, conversation, busy, onBlock
         aria-labelledby="block-confirm-title"
         slotProps={{
           paper: { sx: { ...dialogPaperSx, width: "min(390px, calc(100vw - 32px))" } },
-          backdrop: { sx: { bgcolor: "rgba(4, 2, 10, 0.82)", backdropFilter: "blur(7px)" } },
+          backdrop: { sx: { bgcolor: "rgba(0, 0, 0, 0.86)", backdropFilter: "blur(7px)" } },
         }}
       >
         <DialogTitle id="block-confirm-title" sx={{ pt: 3, textAlign: "center" }}>

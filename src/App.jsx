@@ -23,7 +23,7 @@ function AppShell() {
       createTheme({
         direction: getDirection(language),
         palette: {
-          mode: themeMode,
+          mode: accentTheme === "monochrome" ? "dark" : themeMode,
           primary: { main: colors.primary },
           secondary: { main: colors.secondary },
           background: {
@@ -62,7 +62,7 @@ function AppShell() {
               : '"NotionInter", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
         },
       }),
-    [colors, language, themeMode],
+    [accentTheme, colors, language, themeMode],
   );
 
   return (
