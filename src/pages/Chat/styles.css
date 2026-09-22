@@ -1407,6 +1407,10 @@ body.is-resizing-conversations * {
   font-size: 1.4rem;
 }
 
+.messenger-send svg {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 1120px) {
   .messenger-page {
     grid-template-columns:

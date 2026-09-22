@@ -2,10 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import {
   FiPaperclip,
   FiSearch,
-  FiSend,
   FiSlash,
   FiX,
 } from "react-icons/fi";
+import { IoSend } from "react-icons/io5";
 import MessageInput from "./MessageInput";
 import EmojiPickerButton from "./EmojiPickerButton";
 import ChatAvatar from "./ChatAvatar";
@@ -304,7 +304,7 @@ export default function ChatWindow({
             </label>
           </div>
           <button className="messenger-send" type="submit" disabled={saving || !draft.trim()} aria-label={saving ? "در حال ذخیره پیام" : "ارسال پیام"}>
-            <FiSend />
+            <IoSend />
           </button>
         </form>
       )}
