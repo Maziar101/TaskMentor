@@ -113,7 +113,7 @@ function ChatContent() {
     const page = event.currentTarget.closest(".messenger-page");
     if (!page) return;
     const rect = page.getBoundingClientRect();
-    const isLtr = getComputedStyle(page).direction === "ltr";
+    const isLtr = getComputedStyle(document.documentElement).direction === "ltr";
     const pointerWidth = isLtr
       ? event.clientX - rect.left
       : rect.right - event.clientX;
@@ -121,13 +121,11 @@ function ChatContent() {
       MIN_CONVERSATION_WIDTH,
       Math.min(MAX_CONVERSATION_WIDTH, rect.width - 320),
     );
+    const snapThreshold = (MIN_CONVERSATION_WIDTH + availableMaximum) / 2;
     setConversationWidth(
-      Math.round(
-        Math.max(
-          MIN_CONVERSATION_WIDTH,
-          Math.min(availableMaximum, pointerWidth),
-        ),
-      ),
+      pointerWidth >= snapThreshold
+        ? MAX_CONVERSATION_WIDTH
+        : MIN_CONVERSATION_WIDTH,
     );
   };
 
@@ -147,21 +145,19 @@ function ChatContent() {
   };
 
   const resizeConversationWithKeyboard = (event) => {
-    const page = event.currentTarget.closest(".messenger-page");
-    const isLtr = page ? getComputedStyle(page).direction === "ltr" : true;
+    const isLtr = getComputedStyle(document.documentElement).direction === "ltr";
     let nextWidth = conversationWidth;
     if (event.key === "Home") nextWidth = MIN_CONVERSATION_WIDTH;
     if (event.key === "End") nextWidth = MAX_CONVERSATION_WIDTH;
-    if (event.key === "ArrowLeft") nextWidth += isLtr ? -16 : 16;
-    if (event.key === "ArrowRight") nextWidth += isLtr ? 16 : -16;
+    if (event.key === "ArrowLeft") {
+      nextWidth = isLtr ? MIN_CONVERSATION_WIDTH : MAX_CONVERSATION_WIDTH;
+    }
+    if (event.key === "ArrowRight") {
+      nextWidth = isLtr ? MAX_CONVERSATION_WIDTH : MIN_CONVERSATION_WIDTH;
+    }
     if (nextWidth === conversationWidth) return;
     event.preventDefault();
-    setConversationWidth(
-      Math.max(
-        MIN_CONVERSATION_WIDTH,
-        Math.min(MAX_CONVERSATION_WIDTH, nextWidth),
-      ),
-    );
+    setConversationWidth(nextWidth);
   };
 
   return (

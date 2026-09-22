@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function AddContactDialog({ busy, container, open, onAdd, onClose }) {
+export default function AddContactDialog({ busy, open, onAdd, onClose }) {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
 
@@ -35,10 +35,9 @@ export default function AddContactDialog({ busy, container, open, onAdd, onClose
     <Dialog
       open={open}
       onClose={busy ? undefined : closeDialog}
-      container={container}
       aria-labelledby="add-contact-title"
       sx={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         "& .MuiDialog-container": {
           p: 1.5,
@@ -48,7 +47,7 @@ export default function AddContactDialog({ busy, container, open, onAdd, onClose
       PaperProps={{
         sx: {
           width: "calc(100% - 24px)",
-          maxWidth: "none",
+          maxWidth: 460,
           m: 0,
           border: "1px solid var(--tm-accent-border)",
           borderRadius: "18px",
@@ -61,7 +60,7 @@ export default function AddContactDialog({ busy, container, open, onAdd, onClose
       slotProps={{
         backdrop: {
           sx: {
-            position: "absolute",
+            position: "fixed",
             backgroundColor: "rgba(4, 2, 12, 0.72)",
             backdropFilter: "blur(7px)",
           },

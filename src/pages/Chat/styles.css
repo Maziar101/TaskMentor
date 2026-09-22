@@ -90,9 +90,9 @@ html[dir="ltr"] .messenger-page {
 .messenger-resize-handle:hover::after,
 .messenger-resize-handle:focus-visible::after,
 body.is-resizing-conversations .messenger-resize-handle::after {
-  width: 3px;
-  background: var(--tm-accent);
-  box-shadow: 0 0 12px var(--tm-accent-glow);
+  width: 2px;
+  background: color-mix(in srgb, var(--tm-primary) 42%, var(--messenger-line));
+  box-shadow: 0 0 7px color-mix(in srgb, var(--tm-primary) 16%, transparent);
 }
 
 body.is-resizing-conversations,
@@ -397,10 +397,10 @@ body.is-resizing-conversations * {
 }
 
 .messenger-conversation.is-active {
-  background:
-    linear-gradient(90deg, transparent, var(--tm-primary-tint)),
-    var(--tm-accent-tint);
-  box-shadow: inset 3px 0 0 var(--tm-accent), inset 0 0 0 1px var(--tm-accent-border);
+  background: color-mix(in srgb, var(--tm-primary) 6%, transparent);
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--tm-primary) 44%, transparent),
+    inset 0 0 0 1px var(--messenger-line);
 }
 
 .messenger-conversation__select {

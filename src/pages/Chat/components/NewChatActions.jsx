@@ -40,7 +40,7 @@ function reducer(state, action) {
   if (action.type === "reset") return initialState;
   return { ...state, [action.type]: action.payload };
 }
-export default function NewChatActions({ busy, contacts, container, onCreateGroup, onGroupCreated }) {
+export default function NewChatActions({ busy, contacts, onCreateGroup, onGroupCreated }) {
   const [anchorElement, setAnchorElement] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   return (
@@ -91,7 +91,6 @@ export default function NewChatActions({ busy, contacts, container, onCreateGrou
       <CreateGroupDialog
         busy={busy}
         contacts={contacts}
-        container={container}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onCreate={onCreateGroup}
@@ -101,7 +100,7 @@ export default function NewChatActions({ busy, contacts, container, onCreateGrou
   );
 }
 
-function CreateGroupDialog({ busy, contacts, container, open, onClose, onCreate, onCreated }) {
+function CreateGroupDialog({ busy, contacts, open, onClose, onCreate, onCreated }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const handleReducer = HandleReduce(dispatch);
   const query = state.search.trim().toLocaleLowerCase(getLocale());
@@ -159,17 +158,16 @@ function CreateGroupDialog({ busy, contacts, container, open, onClose, onCreate,
     <Dialog
       open={open}
       onClose={closeDialog}
-      container={container}
       aria-labelledby="create-group-title"
       sx={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         "& .MuiDialog-container": { p: 1.5, alignItems: "center" },
       }}
       slotProps={{
         backdrop: {
           sx: {
-            position: "absolute",
+            position: "fixed",
             bgcolor: "rgba(4, 2, 12, 0.76)",
             backdropFilter: "blur(8px)",
           },
@@ -177,8 +175,8 @@ function CreateGroupDialog({ busy, contacts, container, open, onClose, onCreate,
         paper: {
           sx: {
             width: "calc(100% - 24px)",
-            maxWidth: "none",
-            maxHeight: "calc(100% - 36px)",
+            maxWidth: 520,
+            maxHeight: "calc(100dvh - 36px)",
             m: 0,
             border: "1px solid var(--tm-accent-border)",
             borderRadius: "20px",
@@ -255,7 +253,7 @@ function CreateGroupDialog({ busy, contacts, container, open, onClose, onCreate,
               autoFocus
               value={state.name}
               onChange={(event) => handleReducer("name", event.target.value)}
-              label="نام گروه"
+              placeholder="نام گروه"
               inputProps={{ maxLength: 120 }}
               sx={textFieldSx}
             />

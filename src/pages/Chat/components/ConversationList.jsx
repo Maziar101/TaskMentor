@@ -28,7 +28,6 @@ export default function ConversationList({
   const [showContacts, setShowContacts] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
-  const [sidebarElement, setSidebarElement] = useState(null);
   const triggerRef = useRef(null);
   const visibleContacts = contacts.filter((contact) => {
     const query = contactSearch.trim().toLocaleLowerCase(getLocale());
@@ -50,7 +49,6 @@ export default function ConversationList({
   };
   return (
     <aside
-      ref={setSidebarElement}
       className="messenger-conversations"
       aria-label={showContacts ? "فهرست مخاطبین" : "فهرست گفتگوها"}
     >
@@ -66,7 +64,6 @@ export default function ConversationList({
             <NewChatActions
               busy={saving}
               contacts={contacts}
-              container={sidebarElement}
               onCreateGroup={onCreateGroup}
               onGroupCreated={onSelect}
             />
@@ -206,7 +203,6 @@ export default function ConversationList({
       </button>
       <AddContactDialog
         busy={saving}
-        container={sidebarElement}
         open={showAddContact}
         onAdd={onAddContact}
         onClose={() => setShowAddContact(false)}
