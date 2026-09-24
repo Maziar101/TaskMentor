@@ -9,6 +9,7 @@ const initialState = {
   editTarget: null,
   previewImage: null,
   pinnedJump: null,
+  pinnedListOpen: false,
   profileOpen: false,
 };
 

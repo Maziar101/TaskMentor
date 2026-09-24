@@ -9,10 +9,11 @@ import { IoSend } from "react-icons/io5";
 import MessageInput from "./MessageInput";
 import EmojiPickerButton from "./EmojiPickerButton";
 import ChatAvatar from "./ChatAvatar";
-import ChatHeaderMenu from "./ChatHeaderMenu";
+import ChatWindowHeader from "./ChatWindowHeader";
 import MessageContextMenu from "./MessageContextMenu";
 import ImagePreviewModal from "./ImagePreviewModal";
 import PinnedMessagesBar from "./PinnedMessagesBar";
+import PinnedMessagesView from "./PinnedMessagesView";
 import ContactProfileDialog from "./ContactProfileDialog";
 import MessageWithDate from "./MessageWithDate";
 import useChatWindowState from "../hooks/useChatWindowState";
@@ -50,6 +51,7 @@ export default function ChatWindow({
     editTarget,
     previewImage,
     pinnedJump,
+    pinnedListOpen,
     profileOpen,
   } = state;
   const closeImagePreview = useCallback(() => update("previewImage", null), [update]);
@@ -105,17 +107,18 @@ export default function ChatWindow({
       + targetRect.top
       - containerRect.top
       - (container.clientHeight - targetRect.height) / 2;
-    container.classList.add("is-instant-scroll");
-    container.scrollTop = Math.max(0, centeredTop);
-    requestAnimationFrame(() => container.classList.remove("is-instant-scroll"));
+    container.scrollTo({
+      top: Math.max(0, centeredTop),
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
     window.clearTimeout(highlightTimer.current);
     highlightTimer.current = window.setTimeout(() => update("pinnedJump", null), 1800);
   }, [filteredMessages, pinnedJump, update]);
 
   useEffect(() => {
     update(
-      ["searchOpen", "messageSearch", "messageMenu", "replyTarget", "editTarget", "previewImage", "pinnedJump", "profileOpen"],
-      [false, "", null, null, null, null, null, false],
+      ["searchOpen", "messageSearch", "messageMenu", "replyTarget", "editTarget", "previewImage", "pinnedJump", "pinnedListOpen", "profileOpen"],
+      [false, "", null, null, null, null, null, false, false],
     );
   }, [conversation.id, update]);
 
@@ -159,8 +162,8 @@ export default function ChatWindow({
 
   const jumpToPinnedMessage = (messageId) => {
     update(
-      ["searchOpen", "messageSearch", "pinnedJump"],
-      [false, "", { id: messageId, sequence: performance.now() }],
+      ["searchOpen", "messageSearch", "pinnedListOpen", "pinnedJump"],
+      [false, "", false, { id: messageId, sequence: performance.now() }],
     );
   };
 
@@ -169,67 +172,29 @@ export default function ChatWindow({
       className={`messenger-chat${pinnedMessages.length ? " has-pinned-messages" : ""}`}
       aria-label={`گفتگو با ${conversation.name}`}
     >
-      <header className="messenger-chat__header">
-        <button
-          type="button"
-          className="messenger-chat__identity"
-          disabled={conversation.id === "saved" || conversation.isGroup}
-          onClick={() => update("profileOpen", true)}
-          aria-label={conversation.id === "saved" || conversation.isGroup
-            ? undefined
-            : `نمایش پروفایل ${conversation.name}`}
-          aria-haspopup={conversation.id === "saved" || conversation.isGroup ? undefined : "dialog"}
-        >
-          <ChatAvatar conversation={conversation} size="large" />
-          <span>
-            <strong>{conversation.name}</strong>
-            <small className={conversation.online ? "is-online" : ""}>
-              {conversation.id === "saved"
-                ? "پیام‌های ذخیره‌شده"
-                : conversation.isGroup
-                  ? `${conversation.memberCount.toLocaleString(getLocale())} عضو`
-                : conversation.online ? "آنلاین" : "آخرین بازدید اخیراً"}
-              </small>
-          </span>
-        </button>
-        <div className="messenger-chat__actions">
-          <div className={`messenger-message-search${searchOpen ? " is-open" : ""}`}>
-            <FiSearch aria-hidden />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={messageSearch}
-              disabled={!searchOpen}
-              tabIndex={searchOpen ? 0 : -1}
-              onChange={(event) => update("messageSearch", event.target.value)}
-              placeholder="جستجو در پیام‌ها..."
-              aria-label="جستجو در پیام‌های این گفتگو"
-            />
-            {messageSearch && <span>{filteredMessages.length.toLocaleString(getLocale())}</span>}
-            <button type="button" tabIndex={searchOpen ? 0 : -1} onClick={() => update(["messageSearch", "searchOpen"], ["", false])} aria-label="بستن جستجو" title="بستن جستجو">
-              <FiX />
-            </button>
-          </div>
-          <IconButton
-            label={searchOpen ? "بستن جستجو" : "جستجو در پیام‌ها"}
-            aria-expanded={searchOpen}
-            onClick={() => {
-              update("searchOpen", (value) => !value);
-              if (searchOpen) update("messageSearch", "");
-            }}
-          >
-            <FiSearch />
-          </IconButton>
-          <ChatHeaderMenu
-            conversation={conversation}
-            busy={saving}
-            onClearHistory={onClearHistory}
-            onDeleteChat={onDeleteConversation}
-          />
-        </div>
-      </header>
+      <ChatWindowHeader
+        conversation={conversation}
+        filteredCount={filteredMessages.length}
+        messageSearch={messageSearch}
+        onClearHistory={onClearHistory}
+        onCloseSearch={() => update(["messageSearch", "searchOpen"], ["", false])}
+        onDeleteConversation={onDeleteConversation}
+        onMessageSearchChange={(value) => update("messageSearch", value)}
+        onOpenProfile={() => update("profileOpen", true)}
+        onToggleSearch={() => {
+          update("searchOpen", (value) => !value);
+          if (searchOpen) update("messageSearch", "");
+        }}
+        searchInputRef={searchInputRef}
+        searchOpen={searchOpen}
+        saving={saving}
+      />
 
-      <PinnedMessagesBar messages={pinnedMessages} onSelect={jumpToPinnedMessage} />
+      <PinnedMessagesBar
+        messages={pinnedMessages}
+        onOpenList={() => update("pinnedListOpen", true)}
+        onSelect={jumpToPinnedMessage}
+      />
 
       <div
         className="messenger-chat__messages"
@@ -330,14 +295,20 @@ export default function ChatWindow({
         onBlock={onBlockUser}
         onClose={() => update("profileOpen", false)}
       />
+      {pinnedListOpen && (
+        <PinnedMessagesView
+          busy={saving}
+          messages={pinnedMessages}
+          allMessages={messages}
+          onBack={() => update("pinnedListOpen", false)}
+          onContextMenu={openMessageMenu}
+          onMessageAction={onMessageAction}
+          onPreviewImage={(image) => update("previewImage", image)}
+          onSelect={jumpToPinnedMessage}
+          onTaskForwardResponse={onTaskForwardResponse}
+          showSender={conversation.isGroup}
+        />
+      )}
     </section>
-  );
-}
-
-function IconButton({ children, label, ...props }) {
-  return (
-    <button className="messenger-icon-button" type="button" aria-label={label} title={label} {...props}>
-      {children}
-    </button>
   );
 }
