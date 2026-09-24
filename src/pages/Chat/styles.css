@@ -436,7 +436,7 @@ body.is-resizing-conversations * {
   position: relative;
   width: 50px;
   height: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -444,7 +444,31 @@ body.is-resizing-conversations * {
   color: var(--tm-text);
   font-weight: 800;
   font-size: 1.08rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.3),
+    0 0 14px rgba(255, 255, 255, 0.05);
+}
+
+.messenger-avatar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.2) 38%,
+    rgba(255, 255, 255, 0.05) 68%,
+    rgba(255, 255, 255, 0.34)
+  );
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
 
 .messenger-avatar svg {
@@ -470,7 +494,6 @@ body.is-resizing-conversations * {
 }
 
 html[data-accent-theme="monochrome"] .messenger-avatar--violet {
-  border-color: var(--tm-border-strong);
   background: linear-gradient(145deg, #181818, #080808);
   color: #ffffff;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.48);
@@ -488,6 +511,7 @@ html[data-accent-theme="monochrome"] .messenger-avatar--violet {
   position: absolute;
   inset-inline-end: 0;
   bottom: 1px;
+  z-index: 3;
   width: 11px;
   height: 11px;
   border: 2px solid var(--tm-surface-solid);
