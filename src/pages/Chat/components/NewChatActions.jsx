@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useState } from "react";
-import AddPhotoAlternateRoundedIcon from "@mui/icons-material/AddPhotoAlternateRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
@@ -7,7 +6,6 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import {
   Alert,
   Avatar,
-  Box,
   Button,
   Checkbox,
   Dialog,
@@ -28,6 +26,9 @@ import { FiPlus } from "react-icons/fi";
 import { HandleReduce } from "../../../utils/HandleReducer";
 import { getLocale } from "../../../i18n/runtime";
 import { primaryButtonSx, textFieldSx } from "./NewChatActions.styles";
+import GroupImageDropzone, {
+  GROUP_IMAGE_MIME_TYPES,
+} from "./NewChatActions/GroupImageDropzone";
 const initialState = {
   step: 1,
   name: "",
@@ -119,11 +120,10 @@ function CreateGroupDialog({ busy, contacts, open, onClose, onCreate, onCreated 
     onClose();
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleImageSelect = (file) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      handleReducer("error", "لطفاً یک فایل تصویری انتخاب کنید.");
+    if (!GROUP_IMAGE_MIME_TYPES.includes(file.type)) {
+      handleReducer("error", "فرمت تصویر باید JPEG، PNG، WebP یا GIF باشد.");
       return;
     }
     handleReducer(
@@ -225,31 +225,10 @@ function CreateGroupDialog({ busy, contacts, open, onClose, onCreate, onCreated 
       <DialogContent sx={{ p: "14px 20px 22px !important" }}>
         {state.step === 1 ? (
           <Stack sx={{ alignItems: "center", gap: 2.25 }}>
-            <Box component="label" sx={{ position: "relative", cursor: "pointer" }}>
-              <Avatar
-                src={state.imagePreview || undefined}
-                sx={{
-                  width: 96,
-                  height: 96,
-                  border: "2px dashed var(--tm-accent-border)",
-                  bgcolor: "var(--tm-accent-tint)",
-                  color: "var(--tm-accent)",
-                  boxShadow: "0 12px 28px rgba(0, 0, 0, 0.3)",
-                }}
-              >
-                <AddPhotoAlternateRoundedIcon sx={{ fontSize: 34 }} />
-              </Avatar>
-              <Box
-                component="input"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                onChange={handleImageChange}
-                sx={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
-              />
-            </Box>
-            <Typography sx={{ color: "var(--tm-text-muted)", fontSize: "0.76rem" }}>
-              تصویر گروه اختیاری است
-            </Typography>
+            <GroupImageDropzone
+              imagePreview={state.imagePreview}
+              onFileSelect={handleImageSelect}
+            />
             <TextField
               autoFocus
               value={state.name}
@@ -297,13 +276,29 @@ function CreateGroupDialog({ busy, contacts, open, onClose, onCreate, onCreated 
                   onClick={() => toggleContact(contact.id)}
                   sx={{ gap: 1, borderBottom: "1px solid var(--messenger-line-soft)", "&:last-child": { borderBottom: 0 } }}
                 >
-                  <Avatar src={contact.avatarUrl || undefined} sx={{ width: 40, height: 40, bgcolor: "var(--tm-primary-soft)" }}>
+                  <Avatar
+                    src={contact.avatarUrl || undefined}
+                    sx={{ width: 40, height: 40, bgcolor: "var(--tm-primary-soft)", color: "#fff" }}
+                  >
                     {contact.avatar}
                   </Avatar>
                   <ListItemText
                     primary={contact.name}
                     secondary={contact.phone}
-                    sx={{ textAlign: "start", "& .MuiListItemText-primary": { fontWeight: 800 }, "& .MuiListItemText-secondary": { color: "var(--tm-text-muted)", direction: "ltr", textAlign: "start" } }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 1,
+                      m: 0,
+                      textAlign: "start",
+                      "& .MuiListItemText-primary": { fontWeight: 800 },
+                      "& .MuiListItemText-secondary": {
+                        color: "var(--tm-text-muted)",
+                        direction: "ltr",
+                        textAlign: "start",
+                      },
+                    }}
                   />
                   <Checkbox
                     checked={state.selectedIds.includes(contact.id)}
