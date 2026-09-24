@@ -111,12 +111,14 @@ export default function DashboardPage() {
               <YAxis stroke="#cbbde6" />
               <Tooltip
                 cursor={{ fill: "rgba(161,107,255,0.12)" }}
+                formatter={(value) => [number.format(value), translate("ساعت")]}
                 contentStyle={{
                   background: "#18122a",
                   border: "1px solid rgba(153,126,255,0.35)",
                   borderRadius: 8,
                   color: "#fff",
                 }}
+                itemStyle={{ color: "#fff" }}
               />
               <Bar dataKey="hours" fill="#a16bff" radius={[8, 8, 0, 0]} />
             </BarChart>
