@@ -66,14 +66,20 @@ html[dir="ltr"] .messenger-page {
   position: relative;
   grid-area: conversations;
   align-self: stretch;
-  justify-self: end;
+  justify-self: start;
   z-index: 15;
   width: 10px;
   min-height: 0;
-  margin-inline-end: -5px;
+  margin-inline-start: -5px;
   cursor: col-resize;
   touch-action: none;
   outline: none;
+}
+
+html[dir="ltr"] .messenger-resize-handle {
+  justify-self: end;
+  margin-inline-start: 0;
+  margin-inline-end: -5px;
 }
 
 .messenger-resize-handle::after {

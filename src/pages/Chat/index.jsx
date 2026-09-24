@@ -113,8 +113,12 @@ function ChatContent() {
     const page = event.currentTarget.closest(".messenger-page");
     if (!page) return;
     const rect = page.getBoundingClientRect();
-    const isLtr = getComputedStyle(document.documentElement).direction === "ltr";
-    const pointerWidth = isLtr
+    const conversationRect = page
+      .querySelector(".messenger-conversations")
+      ?.getBoundingClientRect();
+    const isPanelOnLeft = !conversationRect
+      || conversationRect.left + conversationRect.width / 2 <= rect.left + rect.width / 2;
+    const pointerWidth = isPanelOnLeft
       ? event.clientX - rect.left
       : rect.right - event.clientX;
     const availableMaximum = Math.max(
@@ -145,15 +149,21 @@ function ChatContent() {
   };
 
   const resizeConversationWithKeyboard = (event) => {
-    const isLtr = getComputedStyle(document.documentElement).direction === "ltr";
+    const page = event.currentTarget.closest(".messenger-page");
+    const pageRect = page?.getBoundingClientRect();
+    const conversationRect = page
+      ?.querySelector(".messenger-conversations")
+      ?.getBoundingClientRect();
+    const isPanelOnLeft = !pageRect || !conversationRect
+      || conversationRect.left + conversationRect.width / 2 <= pageRect.left + pageRect.width / 2;
     let nextWidth = conversationWidth;
     if (event.key === "Home") nextWidth = MIN_CONVERSATION_WIDTH;
     if (event.key === "End") nextWidth = MAX_CONVERSATION_WIDTH;
     if (event.key === "ArrowLeft") {
-      nextWidth = isLtr ? MIN_CONVERSATION_WIDTH : MAX_CONVERSATION_WIDTH;
+      nextWidth = isPanelOnLeft ? MIN_CONVERSATION_WIDTH : MAX_CONVERSATION_WIDTH;
     }
     if (event.key === "ArrowRight") {
-      nextWidth = isLtr ? MAX_CONVERSATION_WIDTH : MIN_CONVERSATION_WIDTH;
+      nextWidth = isPanelOnLeft ? MAX_CONVERSATION_WIDTH : MIN_CONVERSATION_WIDTH;
     }
     if (nextWidth === conversationWidth) return;
     event.preventDefault();
