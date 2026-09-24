@@ -2395,9 +2395,17 @@ html[data-accent-theme="green"] .slot__chip--done {
   width: 100%;
   min-height: 48px;
   border-radius: 12px;
-  color: #f8f3ff;
+  color: var(--tm-on-accent);
   font-size: 0.95rem;
   box-shadow: 0 14px 30px var(--tm-primary-glow);
+}
+
+.auth-card .primary:disabled {
+  opacity: 1;
+  border: 1px solid var(--tm-border-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--tm-text-muted);
+  box-shadow: none;
 }
 
 @media (max-width: 480px) {
