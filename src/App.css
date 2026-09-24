@@ -4630,6 +4630,7 @@ html[data-accent-theme="monochrome"] .dashboard-chart .recharts-default-tooltip 
   position: relative;
   width: 88px;
   height: 88px;
+  padding: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -4639,7 +4640,19 @@ html[data-accent-theme="monochrome"] .dashboard-chart .recharts-default-tooltip 
   background: var(--tm-surface-elevated);
   border: 4px solid var(--tm-primary);
   box-shadow: 0 0 0 8px var(--tm-primary-tint);
-  overflow: visible;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 8px var(--tm-primary-soft), 0 10px 26px var(--tm-primary-glow);
+}
+
+.profile-avatar:focus-visible {
+  outline: 3px solid var(--tm-accent);
+  outline-offset: 7px;
 }
 
 .profile-avatar > img {
@@ -4648,21 +4661,6 @@ html[data-accent-theme="monochrome"] .dashboard-chart .recharts-default-tooltip 
   display: block;
   object-fit: cover;
   border-radius: 50%;
-}
-
-.profile-avatar__camera {
-  position: absolute;
-  inset-inline-start: -2px;
-  bottom: 5px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid var(--tm-surface-2);
-  background: linear-gradient(135deg, var(--tm-primary), var(--tm-primary-strong));
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
 }
 
 .profile-hero__copy {

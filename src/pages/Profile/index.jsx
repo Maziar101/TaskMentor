@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiCamera, FiLogOut } from "react-icons/fi";
+import { FiLogOut } from "react-icons/fi";
 import Loading from "../../components/Loading";
 import { profileApi, reportsApi } from "../../services/api";
 import { HotToast } from "../../utils/HotToast";
@@ -50,21 +50,19 @@ export default function ProfilePage() {
       <section className="profile-hero">
         <div className="profile-hero__top">
           <div className="profile-hero__identity">
-            <div className="profile-avatar" aria-label={displayName}>
+            <button
+              className="profile-avatar"
+              type="button"
+              aria-label="تغییر تصویر پروفایل"
+              title="تغییر تصویر پروفایل"
+              onClick={() => setAvatarPickerOpen(true)}
+            >
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt={`تصویر پروفایل ${displayName}`} />
               ) : (
                 <span>{initials}</span>
               )}
-              <button
-                className="profile-avatar__camera"
-                type="button"
-                aria-label="تغییر تصویر پروفایل"
-                onClick={() => setAvatarPickerOpen(true)}
-              >
-                <FiCamera aria-hidden />
-              </button>
-            </div>
+            </button>
             <div className="profile-hero__copy">
               <div className="profile-hero__name-row">
                 <h1>{displayName}</h1>
