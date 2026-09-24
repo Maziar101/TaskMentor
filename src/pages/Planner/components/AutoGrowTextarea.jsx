@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 function resizeTextarea(textarea) {
   if (!textarea) return;
@@ -12,6 +12,14 @@ export default function AutoGrowTextarea({ value, onChange, onSubmit, placeholde
   useLayoutEffect(() => {
     resizeTextarea(textareaRef.current);
   }, [value]);
+
+  useEffect(() => {
+    const focusTimer = window.setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(focusTimer);
+  }, []);
 
   return (
     <textarea
