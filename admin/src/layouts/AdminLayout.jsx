@@ -5,8 +5,8 @@ import { Outlet } from "react-router-dom";
 import SideBar from "../components/SideBar";
 import { getDirection, translate } from "../i18n/runtime";
 
-const SIDEBAR_WIDTH = 272;
-const COLLAPSED_WIDTH = 84;
+const SIDEBAR_WIDTH = 240;
+const COLLAPSED_WIDTH = 88;
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -56,7 +56,7 @@ export default function AdminLayout() {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": { width: 280, border: 0 },
+          "& .MuiDrawer-paper": { width: 240, border: 0 },
         }}
       >
         <SideBar mobile onClose={() => setMobileOpen(false)} />
