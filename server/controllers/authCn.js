@@ -2,9 +2,13 @@ import Users from "../models/User.js";
 import catchAsync from "../utils/catchAsync.js";
 import HandleError from "../utils/HandleError.js";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
+import AdminHandoff from "../models/AdminHandoff.js";
 
 const MAGIC_CODE = "00000";
+const ADMIN_ROLES = new Set(["admin", "owner"]);
+const ADMIN_HANDOFF_LIFETIME_MS = 60 * 1000;
 
 const signToken = (user) => {
   const jwtSecret = process.env.JWT_SECRET;
@@ -93,6 +97,68 @@ export const verify = catchAsync(async (req, res, next) => {
 });
 
 export const me = catchAsync(async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    data: publicUser(req.user),
+  });
+});
+
+const hashAdminHandoff = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+export const createAdminHandoff = catchAsync(async (req, res) => {
+  const handoffToken = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + ADMIN_HANDOFF_LIFETIME_MS);
+
+  await AdminHandoff.findOneAndUpdate(
+    { userId: req.user._id },
+    {
+      userId: req.user._id,
+      tokenHash: hashAdminHandoff(handoffToken),
+      expiresAt,
+    },
+    { upsert: true, runValidators: true },
+  );
+
+  return res.status(201).json({
+    success: true,
+    handoffToken,
+    expiresAt,
+  });
+});
+
+export const exchangeAdminHandoff = catchAsync(async (req, res, next) => {
+  const handoffToken =
+    typeof req.body.handoffToken === "string"
+      ? req.body.handoffToken.trim()
+      : "";
+
+  if (!handoffToken || !/^[A-Za-z0-9_-]{43}$/.test(handoffToken)) {
+    return next(new HandleError("کد ورود پنل مدیریت نامعتبر است", 401));
+  }
+
+  const handoff = await AdminHandoff.findOneAndDelete({
+    tokenHash: hashAdminHandoff(handoffToken),
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!handoff) {
+    return next(new HandleError("کد ورود پنل مدیریت منقضی یا مصرف شده است", 401));
+  }
+
+  const user = await Users.findById(handoff.userId);
+  if (!user || !ADMIN_ROLES.has(user.role)) {
+    return next(new HandleError("دسترسی به پنل مدیریت مجاز نیست", 403));
+  }
+
+  return res.status(200).json({
+    success: true,
+    token: signToken(user),
+    user: publicUser(user),
+  });
+});
+
+export const adminSession = catchAsync(async (req, res) => {
   return res.status(200).json({
     success: true,
     data: publicUser(req.user),

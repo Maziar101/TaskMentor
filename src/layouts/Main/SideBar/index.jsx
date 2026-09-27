@@ -1,4 +1,4 @@
-import { FiGlobe, FiLogOut, FiMenu, FiUser } from "react-icons/fi";
+import { FiGlobe, FiLogOut, FiMenu, FiShield, FiUser } from "react-icons/fi";
 import { TbSettings } from "react-icons/tb";
 import SideBarItem from "../SideBarItem";
 import { menuItems } from "./menuConfig";
@@ -11,13 +11,27 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../../store/authSlice";
 import { getLanguage, toggleLanguage } from "../../../i18n/runtime";
+import { apiRequest } from "../../../services/api";
+import { HotToast } from "../../../utils/HotToast";
+
+const ADMIN_ROLES = new Set(["admin", "owner"]);
+
+function getAdminPanelUrl(handoffToken) {
+  const configuredUrl = import.meta.env.VITE_ADMIN_PANEL_URL?.trim();
+  const defaultUrl = `${window.location.protocol}//${window.location.hostname}:5174`;
+  const url = new URL(configuredUrl || defaultUrl, window.location.origin);
+  url.hash = new URLSearchParams({ handoff: handoffToken }).toString();
+  return url.toString();
+}
 
 export default function SideBar({ collapsed, onToggle }) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const displayName = user?.username?.trim() || "بدون نام";
   const [settingsAnchor, setSettingsAnchor] = useState(null);
+  const [openingAdminPanel, setOpeningAdminPanel] = useState(false);
   const settingsOpen = Boolean(settingsAnchor);
+  const canOpenAdminPanel = ADMIN_ROLES.has(user?.role);
 
   function closeSettings() {
     setSettingsAnchor(null);
@@ -31,6 +45,19 @@ export default function SideBar({ collapsed, onToggle }) {
   function handleLogout() {
     closeSettings();
     dispatch(logout());
+  }
+
+  async function handleOpenAdminPanel() {
+    if (openingAdminPanel) return;
+
+    setOpeningAdminPanel(true);
+    try {
+      const data = await apiRequest("/api/auth/admin-handoff", { method: "POST" });
+      window.location.assign(getAdminPanelUrl(data.handoffToken));
+    } catch (error) {
+      setOpeningAdminPanel(false);
+      HotToast("error", error.message || "ورود به پنل ادمین انجام نشد");
+    }
   }
 
   return (
@@ -125,18 +152,37 @@ export default function SideBar({ collapsed, onToggle }) {
         {menuItems.map((item) => (
           <SideBarItem key={item.to} {...item} />
         ))}
-        <button
-          type="button"
-          className="nav-link nav-toggle"
-          onClick={onToggle}
-        >
-          <span className="nav-link__icon" aria-hidden>
-            <FiMenu />
-          </span>
-          <span className="nav-link__label">
-            {collapsed ? "باز کردن منو" : "بستن منو"}
-          </span>
-        </button>
+        <div className="sidebar__footer">
+          {canOpenAdminPanel && (
+            <button
+              type="button"
+              className="nav-link"
+              disabled={openingAdminPanel}
+              aria-busy={openingAdminPanel ? "true" : undefined}
+              onClick={handleOpenAdminPanel}
+              title="پنل ادمین"
+            >
+              <span className="nav-link__icon" aria-hidden>
+                <FiShield />
+              </span>
+              <span className="nav-link__label">
+                {openingAdminPanel ? "در حال ورود..." : "پنل ادمین"}
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="nav-link nav-toggle"
+            onClick={onToggle}
+          >
+            <span className="nav-link__icon" aria-hidden>
+              <FiMenu />
+            </span>
+            <span className="nav-link__label">
+              {collapsed ? "باز کردن منو" : "بستن منو"}
+            </span>
+          </button>
+        </div>
       </nav>
     </Stack>
   );
