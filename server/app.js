@@ -21,6 +21,7 @@ import profileRoutes from "./routes/profile.js";
 import notesRoutes from "./modules/notes/notes.routes.js";
 import tagsRoutes from "./modules/tags/tags.routes.js";
 import reportsRoutes from "./routes/reports.js";
+import adminUsersRoutes from "./routes/adminUsers.js";
 
 import chatRoutes from "./modules/chat/chat.routes.js";
 
@@ -60,6 +61,7 @@ app.use("/api/teams/tasks", teamTaskRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/tags", tagsRoutes);
 app.use("/api/chat", chatRoutes);
