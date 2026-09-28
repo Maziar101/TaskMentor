@@ -44,6 +44,11 @@ app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads", "pro
   immutable: true,
   maxAge: "30d",
 }));
+app.use("/profiles", express.static(path.join(__dirname, "..", "public", "profiles"), {
+  fallthrough: false,
+  immutable: true,
+  maxAge: "30d",
+}));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });

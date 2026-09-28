@@ -1,12 +1,8 @@
-import {
-  FiGlobe,
-  FiMenu,
-  FiShield,
-  FiX,
-} from "react-icons/fi";
+import { FiGlobe, FiMenu, FiX } from "react-icons/fi";
 import { TbSettings } from "react-icons/tb";
 import {
   Box,
+  Avatar,
   Divider,
   IconButton,
   List,
@@ -23,11 +19,14 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { MENU_CONFIG } from "./menuConfig";
 import { getDirection, getLanguage, toggleLanguage, translate } from "../../i18n/runtime";
+import { resolveAdminAssetUrl } from "../../auth/adminSession";
 
-export default function SideBar({ collapsed = false, mobile = false, onClose, onToggle }) {
+export default function SideBar({ user, collapsed = false, mobile = false, onClose, onToggle }) {
   const compact = collapsed && !mobile;
   const isRtl = getDirection() === "rtl";
   const tooltipPlacement = isRtl ? "left" : "right";
+  const displayName = user?.username?.trim() || translate("بدون نام");
+  const avatarUrl = resolveAdminAssetUrl(user?.avatarUrl);
   const [settingsAnchor, setSettingsAnchor] = useState(null);
   const settingsOpen = Boolean(settingsAnchor);
 
@@ -72,7 +71,9 @@ export default function SideBar({ collapsed = false, mobile = false, onClose, on
             gap: mobile ? 1 : 1.25,
           }}
         >
-          <Box
+          <Avatar
+            src={avatarUrl || undefined}
+            alt=""
             sx={{
               width: mobile ? 40 : 44,
               height: mobile ? 40 : 44,
@@ -84,17 +85,19 @@ export default function SideBar({ collapsed = false, mobile = false, onClose, on
               bgcolor: "primary.main",
               backgroundImage: "linear-gradient(135deg, #f7d046, #f0a63c)",
               boxShadow: "0 10px 28px rgba(247, 208, 70, 0.2)",
-              fontSize: 23,
+              fontSize: 18,
+              fontWeight: 900,
+              "& .MuiAvatar-img": { objectFit: "cover" },
             }}
           >
-            <FiShield aria-hidden />
-          </Box>
+            {displayName.slice(0, 1)}
+          </Avatar>
           {!compact && (
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{ fontSize: mobile ? 15 : 17, fontWeight: 800, whiteSpace: "nowrap" }}
               >
-                TaskMentor
+                {displayName}
               </Typography>
               <Typography sx={{ mt: 0.25, color: "text.secondary", fontSize: 12 }}>
                 {translate("پنل مدیریت")}

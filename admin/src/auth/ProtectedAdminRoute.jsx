@@ -4,7 +4,7 @@ import { Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/ma
 import { Outlet } from "react-router-dom";
 import { initializeAdminSession } from "./adminSession";
 
-const initialAuthState = { status: "loading", message: "" };
+const initialAuthState = { status: "loading", message: "", user: null };
 
 function getClientPanelUrl() {
   const configuredUrl = import.meta.env.VITE_CLIENT_PANEL_URL?.trim();
@@ -18,14 +18,17 @@ export default function ProtectedAdminRoute() {
     let active = true;
 
     initializeAdminSession()
-      .then(() => {
-        if (active) setAuthState({ status: "authorized", message: "" });
+      .then((session) => {
+        if (active) {
+          setAuthState({ status: "authorized", message: "", user: session.user });
+        }
       })
       .catch((error) => {
         if (active) {
           setAuthState({
             status: "denied",
             message: error.message || "احراز هویت پنل مدیریت انجام نشد",
+            user: null,
           });
         }
       });
@@ -35,7 +38,9 @@ export default function ProtectedAdminRoute() {
     };
   }, []);
 
-  if (authState.status === "authorized") return <Outlet />;
+  if (authState.status === "authorized") {
+    return <Outlet context={{ adminUser: authState.user }} />;
+  }
 
   const loading = authState.status === "loading";
 

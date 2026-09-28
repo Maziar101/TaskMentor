@@ -95,6 +95,14 @@ export function initializeAdminSession() {
   return initializationPromise;
 }
 
+export function resolveAdminAssetUrl(assetUrl) {
+  if (!assetUrl || /^(?:[a-z]+:)?\/\//i.test(assetUrl) || !apiBaseUrl) {
+    return assetUrl;
+  }
+
+  return `${apiBaseUrl}${assetUrl.startsWith("/") ? "" : "/"}${assetUrl}`;
+}
+
 export function adminApiRequest(path, options = {}) {
   const session = getStoredSession();
 

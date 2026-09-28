@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiMenu } from "react-icons/fi";
 import { Box, Drawer, IconButton, Stack, Typography } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useOutletContext } from "react-router-dom";
 import SideBar from "../components/SideBar";
 import { getDirection, translate } from "../i18n/runtime";
 
@@ -9,6 +9,7 @@ const SIDEBAR_WIDTH = 240;
 const COLLAPSED_WIDTH = 88;
 
 export default function AdminLayout() {
+  const { adminUser } = useOutletContext();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const desktopWidth = collapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH;
@@ -45,7 +46,11 @@ export default function AdminLayout() {
           },
         }}
       >
-        <SideBar collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
+        <SideBar
+          user={adminUser}
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((value) => !value)}
+        />
       </Drawer>
 
       <Drawer
@@ -59,7 +64,7 @@ export default function AdminLayout() {
           "& .MuiDrawer-paper": { width: 240, border: 0 },
         }}
       >
-        <SideBar mobile onClose={() => setMobileOpen(false)} />
+        <SideBar user={adminUser} mobile onClose={() => setMobileOpen(false)} />
       </Drawer>
 
       <Box
