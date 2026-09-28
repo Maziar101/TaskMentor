@@ -21,10 +21,10 @@ export default function DashboardPage() {
           display: "grid",
           placeItems: "center",
           textAlign: "center",
-          border: "1px solid rgba(153, 126, 255, 0.24)",
-          bgcolor: "rgba(23, 16, 45, 0.72)",
-          backgroundImage: "linear-gradient(145deg, rgba(161,107,255,0.08), rgba(247,208,70,0.04))",
-          boxShadow: "0 18px 60px rgba(0,0,0,0.22)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          bgcolor: "#0f0f0f",
+          backgroundImage: "none",
+          boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
         }}
       >
         <Stack sx={{ alignItems: "center", gap: 1.5 }}>
@@ -36,8 +36,8 @@ export default function DashboardPage() {
               placeItems: "center",
               borderRadius: 4,
               color: "primary.main",
-              bgcolor: "rgba(247,208,70,0.1)",
-              border: "1px solid rgba(247,208,70,0.22)",
+              bgcolor: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.22)",
               fontSize: 27,
             }}
           >

@@ -23,9 +23,9 @@ export default function LanguageSwitcher({ compact = false }) {
         py: 0.8,
         justifyContent: compact ? "center" : "flex-start",
         gap: 0.5,
-        border: "1px solid rgba(153, 126, 255, 0.45)",
+        border: "1px solid rgba(255,255,255,0.28)",
         borderRadius: 999,
-        bgcolor: "rgba(23, 16, 45, 0.9)",
+        bgcolor: "#0f0f0f",
         color: "text.primary",
         boxShadow: "0 10px 28px rgba(0, 0, 0, 0.3)",
         backdropFilter: "blur(14px)",
@@ -39,7 +39,7 @@ export default function LanguageSwitcher({ compact = false }) {
         },
         "&:hover": {
           borderColor: "primary.main",
-          bgcolor: "rgba(149, 118, 255, 0.18)",
+          bgcolor: "rgba(255,255,255,0.12)",
         },
       })}
     >

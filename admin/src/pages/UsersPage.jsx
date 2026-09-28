@@ -23,15 +23,15 @@ import { formatDate, formatNumber, translate } from "../i18n/runtime";
 const initialState = { users: [], loading: true, error: "" };
 
 const roleMeta = {
-  owner: { label: "مالک", color: "#f7d046", background: "rgba(247, 208, 70, 0.12)" },
-  admin: { label: "ادمین", color: "#c4a8ff", background: "rgba(153, 126, 255, 0.16)" },
-  user: { label: "کاربر", color: "#8ed9bd", background: "rgba(76, 201, 155, 0.12)" },
+  owner: { label: "مالک", color: "#ffffff", background: "rgba(255,255,255,0.14)" },
+  admin: { label: "ادمین", color: "#ffffff", background: "rgba(255,255,255,0.1)" },
+  user: { label: "کاربر", color: "#ffffff", background: "rgba(255,255,255,0.06)" },
 };
 
 const subscriptionMeta = {
-  enterprise: { label: "سازمانی", color: "#f7d046" },
-  pro: { label: "حرفه‌ای", color: "#c4a8ff" },
-  free: { label: "رایگان", color: "#a99fbd" },
+  enterprise: { label: "سازمانی", color: "#ffffff" },
+  pro: { label: "حرفه‌ای", color: "rgba(255,255,255,0.82)" },
+  free: { label: "رایگان", color: "rgba(255,255,255,0.68)" },
 };
 
 function getInitials(username) {
@@ -90,9 +90,9 @@ export default function UsersPage() {
             sx={{
               height: 42,
               px: 0.5,
-              border: "1px solid rgba(247, 208, 70, 0.24)",
+              border: "1px solid rgba(255,255,255,0.24)",
               color: "primary.main",
-              bgcolor: "rgba(247, 208, 70, 0.08)",
+              bgcolor: "rgba(255,255,255,0.08)",
               "& .MuiChip-icon": { color: "inherit" },
               "& .MuiChip-label": { fontWeight: 800 },
             }}
@@ -105,12 +105,12 @@ export default function UsersPage() {
             sx={{
               minHeight: 42,
               borderRadius: "12px",
-              borderColor: "rgba(153, 126, 255, 0.34)",
+              borderColor: "rgba(255,255,255,0.34)",
               color: "text.primary",
               fontWeight: 800,
               "&:hover": {
                 borderColor: "primary.main",
-                bgcolor: "rgba(247, 208, 70, 0.06)",
+                bgcolor: "rgba(255,255,255,0.12)",
               },
             }}
           >
@@ -136,11 +136,10 @@ export default function UsersPage() {
       <Paper
         sx={{
           overflow: "hidden",
-          border: "1px solid rgba(153, 126, 255, 0.24)",
-          bgcolor: "rgba(23, 16, 45, 0.78)",
-          backgroundImage:
-            "linear-gradient(145deg, rgba(161,107,255,0.05), rgba(247,208,70,0.025))",
-          boxShadow: "0 18px 60px rgba(0,0,0,0.22)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          bgcolor: "#0f0f0f",
+          backgroundImage: "none",
+          boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
         }}
       >
         {state.loading ? (
@@ -163,13 +162,13 @@ export default function UsersPage() {
           <TableContainer sx={{ overflowX: "auto" }}>
             <Table sx={{ minWidth: 820 }} aria-label={translate("لیست کاربران")}>
               <TableHead>
-                <TableRow sx={{ bgcolor: "rgba(12, 8, 28, 0.68)" }}>
+                <TableRow sx={{ bgcolor: "#000000" }}>
                   {["کاربر", "شماره موبایل", "نقش", "اشتراک", "تاریخ عضویت"].map((label) => (
                     <TableCell
                       key={label}
                       sx={{
                         py: 2,
-                        borderColor: "rgba(153, 126, 255, 0.16)",
+                        borderColor: "rgba(255,255,255,0.16)",
                         color: "text.secondary",
                         fontSize: 12,
                         fontWeight: 800,
@@ -191,11 +190,11 @@ export default function UsersPage() {
                       key={user._id}
                       sx={{
                         transition: "background-color 160ms ease",
-                        "&:hover": { bgcolor: "rgba(153, 126, 255, 0.07)" },
+                        "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
                         "&:last-child td": { borderBottom: 0 },
                       }}
                     >
-                      <TableCell sx={{ py: 1.5, borderColor: "rgba(153, 126, 255, 0.12)" }}>
+                      <TableCell sx={{ py: 1.5, borderColor: "rgba(255,255,255,0.12)" }}>
                         <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 1.25 }}>
                           <Avatar
                             src={user.avatarUrl || undefined}
@@ -203,7 +202,7 @@ export default function UsersPage() {
                             sx={{
                               width: 42,
                               height: 42,
-                              color: "#1a132f",
+                              color: "#000000",
                               bgcolor: "primary.main",
                               fontSize: 16,
                               fontWeight: 900,
@@ -220,7 +219,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          borderColor: "rgba(153, 126, 255, 0.12)",
+                          borderColor: "rgba(255,255,255,0.12)",
                           color: "text.secondary",
                           fontSize: 13,
                           direction: "ltr",
@@ -230,7 +229,7 @@ export default function UsersPage() {
                       >
                         {user.phone || "—"}
                       </TableCell>
-                      <TableCell sx={{ borderColor: "rgba(153, 126, 255, 0.12)" }}>
+                      <TableCell sx={{ borderColor: "rgba(255,255,255,0.12)" }}>
                         <Chip
                           label={translate(role.label)}
                           size="small"
@@ -245,7 +244,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          borderColor: "rgba(153, 126, 255, 0.12)",
+                          borderColor: "rgba(255,255,255,0.12)",
                           color: subscription.color,
                           fontSize: 13,
                           fontWeight: 800,
@@ -256,7 +255,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          borderColor: "rgba(153, 126, 255, 0.12)",
+                          borderColor: "rgba(255,255,255,0.12)",
                           color: "text.secondary",
                           fontSize: 13,
                           whiteSpace: "nowrap",

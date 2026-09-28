@@ -85,7 +85,7 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
           <Typography
             sx={{
               overflow: "hidden",
-              color: "#f7f2ff",
+              color: "#ffffff",
               fontSize: mobile ? 15 : 17,
               fontWeight: 800,
               textOverflow: "ellipsis",
@@ -114,9 +114,9 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
               color: "#ffffff",
               bgcolor: "rgba(255,255,255,0.06)",
               "&:hover": {
-                color: "#ffdede",
-                bgcolor: "rgba(255,96,96,0.18)",
-                borderColor: "rgba(255,96,96,0.4)",
+                color: "#ffffff",
+                bgcolor: "rgba(255,255,255,0.12)",
+                borderColor: "rgba(255,255,255,0.62)",
               },
             }}
           >
@@ -199,11 +199,11 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
                   gap: compact ? 0 : "10px",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: "12px",
-                  color: "#f1e9ff",
+                  color: "#ffffff",
                   bgcolor: "rgba(255,255,255,0.04)",
                   transition: "background-color 160ms ease, color 160ms ease, border-color 160ms ease",
                   "&:hover": {
-                    color: "#f8f2ff",
+                    color: "#ffffff",
                     bgcolor: "rgba(255,255,255,0.12)",
                     borderColor: "rgba(255,255,255,0.62)",
                   },
@@ -255,10 +255,10 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
                   gap: compact ? 0 : "10px",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: "12px",
-                  color: "#f1e9ff",
+                  color: "#ffffff",
                   bgcolor: "rgba(255,255,255,0.04)",
                   "&:hover": {
-                    color: "#f8f2ff",
+                    color: "#ffffff",
                     bgcolor: "rgba(255,255,255,0.12)",
                     borderColor: "rgba(255,255,255,0.62)",
                   },

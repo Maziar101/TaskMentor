@@ -14,17 +14,41 @@ const theme = createTheme({
   },
   palette: {
     mode: "dark",
-    primary: { main: "#f7d046" },
+    primary: { main: "#ffffff", contrastText: "#000000" },
+    secondary: { main: "#ffffff", contrastText: "#000000" },
+    error: { main: "#ffffff", contrastText: "#000000" },
+    warning: { main: "#ffffff", contrastText: "#000000" },
+    info: { main: "#ffffff", contrastText: "#000000" },
+    success: { main: "#ffffff", contrastText: "#000000" },
     background: {
-      default: "#0c0a18",
-      paper: "#17102d",
+      default: "#000000",
+      paper: "#0f0f0f",
     },
     text: {
-      primary: "#f4edff",
-      secondary: "#cbbde6",
+      primary: "#ffffff",
+      secondary: "rgba(255, 255, 255, 0.68)",
+    },
+    divider: "rgba(255, 255, 255, 0.18)",
+    action: {
+      hover: "rgba(255, 255, 255, 0.12)",
+      selected: "rgba(255, 255, 255, 0.16)",
+      disabled: "rgba(255, 255, 255, 0.3)",
+      disabledBackground: "rgba(255, 255, 255, 0.08)",
     },
   },
   shape: { borderRadius: 14 },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: { backgroundColor: "#000000" },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: { backgroundImage: "none" },
+      },
+    },
+  },
 });
 
 export default function App() {

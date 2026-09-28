@@ -52,8 +52,7 @@ export default function ProtectedAdminRoute() {
         display: "grid",
         placeItems: "center",
         bgcolor: "background.default",
-        backgroundImage:
-          "radial-gradient(circle at 20% 10%, rgba(107,75,255,0.24), transparent 34%)",
+        backgroundImage: "none",
       }}
     >
       <Paper
@@ -62,8 +61,8 @@ export default function ProtectedAdminRoute() {
           maxWidth: 430,
           p: { xs: 3, sm: 4 },
           textAlign: "center",
-          border: "1px solid rgba(153, 126, 255, 0.24)",
-          bgcolor: "rgba(23, 16, 45, 0.9)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          bgcolor: "#0f0f0f",
           boxShadow: "0 24px 70px rgba(0,0,0,0.34)",
         }}
       >

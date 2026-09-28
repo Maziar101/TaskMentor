@@ -21,8 +21,7 @@ export default function AdminLayout() {
       sx={{
         minHeight: "100vh",
         bgcolor: "background.default",
-        backgroundImage:
-          "radial-gradient(circle at 18% 10%, rgba(107,75,255,0.24), transparent 32%), radial-gradient(circle at 85% 0%, rgba(247,208,70,0.12), transparent 25%)",
+        backgroundImage: "none",
       }}
     >
       <Drawer
