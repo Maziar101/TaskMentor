@@ -5,7 +5,7 @@ import { Outlet, useOutletContext } from "react-router-dom";
 import SideBar from "../components/SideBar";
 import { getDirection, translate } from "../i18n/runtime";
 
-const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH = 220;
 const COLLAPSED_WIDTH = 88;
 
 export default function AdminLayout() {
@@ -37,11 +37,11 @@ export default function AdminLayout() {
             width: desktopWidth,
             overflow: "hidden",
             border: 0,
-            borderInlineEnd: "1px solid rgba(153, 126, 255, 0.2)",
+            borderInlineEnd: "1px solid rgba(255,255,255,0.18)",
             boxShadow:
               direction === "rtl"
-                ? "-8px 0 30px rgba(0,0,0,0.26)"
-                : "8px 0 30px rgba(0,0,0,0.26)",
+                ? "-6px 0 22px rgba(0,0,0,0.35)"
+                : "6px 0 22px rgba(0,0,0,0.35)",
             transition: "width 220ms ease",
           },
         }}
@@ -61,7 +61,7 @@ export default function AdminLayout() {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": { width: 240, border: 0 },
+          "& .MuiDrawer-paper": { width: SIDEBAR_WIDTH, border: 0 },
         }}
       >
         <SideBar user={adminUser} mobile onClose={() => setMobileOpen(false)} />
@@ -84,8 +84,8 @@ export default function AdminLayout() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid rgba(153, 126, 255, 0.2)",
-            bgcolor: "rgba(18, 12, 36, 0.86)",
+            borderBottom: "1px solid rgba(255,255,255,0.18)",
+            bgcolor: "rgba(0,0,0,0.9)",
             backdropFilter: "blur(12px)",
           }}
         >
@@ -93,7 +93,7 @@ export default function AdminLayout() {
           <IconButton
             aria-label={translate("باز کردن منو")}
             onClick={() => setMobileOpen(true)}
-            sx={{ color: "text.primary", bgcolor: "rgba(255,255,255,0.06)" }}
+            sx={{ color: "#ffffff", bgcolor: "rgba(255,255,255,0.06)" }}
           >
             <FiMenu />
           </IconButton>

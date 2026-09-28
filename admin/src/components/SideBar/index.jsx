@@ -1,9 +1,8 @@
 import { FiGlobe, FiMenu, FiX } from "react-icons/fi";
 import { TbSettings } from "react-icons/tb";
 import {
-  Box,
   Avatar,
-  Divider,
+  Box,
   IconButton,
   List,
   ListItemButton,
@@ -44,107 +43,100 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
       component="aside"
       sx={{
         minHeight: "100%",
-        px: compact ? 1.25 : mobile ? 1.5 : 2,
-        py: 2.5,
-        bgcolor: "#17102d",
-        backgroundImage: "linear-gradient(180deg, #1b1232 0%, #120c24 100%)",
-        color: "text.primary",
-        gap: 2.5,
+        px: "14px",
+        py: "18px",
+        bgcolor: "#000000",
+        backgroundImage: "linear-gradient(180deg, #0f0f0f 0%, #000000 100%)",
+        color: "#ffffff",
+        gap: "14px",
         overflowX: "hidden",
       }}
     >
       <Stack
         sx={{
-          minHeight: 56,
-          flexDirection: "row",
+          display: compact ? "none" : "grid",
+          gridTemplateColumns: mobile ? "40px minmax(0, 1fr) auto" : "42px minmax(0, 1fr) auto",
           alignItems: "center",
-          justifyContent: compact ? "center" : "space-between",
-          gap: mobile ? 0.5 : 1.25,
+          gap: "8px",
+          p: "8px",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "14px",
+          bgcolor: "rgba(255,255,255,0.06)",
         }}
       >
-        <Stack
+        <Avatar
+          src={avatarUrl || undefined}
+          alt=""
           sx={{
-            minWidth: 0,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: mobile ? 1 : 1.25,
+            width: mobile ? 40 : 42,
+            height: mobile ? 40 : 42,
+            borderRadius: "12px",
+            color: "#000000",
+            bgcolor: "#ffffff",
+            fontSize: 18,
+            fontWeight: 900,
+            "& .MuiAvatar-img": { objectFit: "cover" },
           }}
         >
-          <Avatar
-            src={avatarUrl || undefined}
-            alt=""
+          {displayName.slice(0, 1)}
+        </Avatar>
+
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
             sx={{
-              width: mobile ? 40 : 44,
-              height: mobile ? 40 : 44,
-              flexShrink: 0,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: 3,
-              color: "#1a132f",
-              bgcolor: "primary.main",
-              backgroundImage: "linear-gradient(135deg, #f7d046, #f0a63c)",
-              boxShadow: "0 10px 28px rgba(247, 208, 70, 0.2)",
-              fontSize: 18,
-              fontWeight: 900,
-              "& .MuiAvatar-img": { objectFit: "cover" },
+              overflow: "hidden",
+              color: "#f7f2ff",
+              fontSize: mobile ? 15 : 17,
+              fontWeight: 800,
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
-            {displayName.slice(0, 1)}
-          </Avatar>
-          {!compact && (
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{ fontSize: mobile ? 15 : 17, fontWeight: 800, whiteSpace: "nowrap" }}
-              >
-                {displayName}
-              </Typography>
-              <Typography sx={{ mt: 0.25, color: "text.secondary", fontSize: 12 }}>
-                {translate("پنل مدیریت")}
-              </Typography>
-            </Box>
-          )}
-        </Stack>
+            {displayName}
+          </Typography>
+          <Typography sx={{ mt: "4px", color: "#ffffff", fontSize: "0.85rem" }}>
+            {translate("پنل مدیریت")}
+          </Typography>
+        </Box>
 
-        {!compact && (
-          <Stack sx={{ flexDirection: "row", alignItems: "center", gap: mobile ? 0 : 0.5 }}>
+        <Stack sx={{ flexDirection: "row", alignItems: "center", gap: mobile ? "4px" : 0 }}>
+          <IconButton
+            aria-label={translate("تنظیمات")}
+            aria-controls={settingsOpen ? "admin-settings-menu" : undefined}
+            aria-haspopup="menu"
+            aria-expanded={settingsOpen ? "true" : undefined}
+            onClick={(event) => setSettingsAnchor(event.currentTarget)}
+            sx={{
+              width: mobile ? 34 : 38,
+              height: mobile ? 34 : 38,
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "12px",
+              color: "#ffffff",
+              bgcolor: "rgba(255,255,255,0.06)",
+              "&:hover": {
+                color: "#ffdede",
+                bgcolor: "rgba(255,96,96,0.18)",
+                borderColor: "rgba(255,96,96,0.4)",
+              },
+            }}
+          >
+            <TbSettings aria-hidden />
+          </IconButton>
+          {mobile && (
             <IconButton
-              aria-label={translate("تنظیمات")}
-              aria-controls={settingsOpen ? "admin-settings-menu" : undefined}
-              aria-haspopup="menu"
-              aria-expanded={settingsOpen ? "true" : undefined}
-              onClick={(event) => setSettingsAnchor(event.currentTarget)}
+              aria-label={translate("بستن منو")}
+              onClick={onClose}
               sx={{
-                width: mobile ? 32 : 38,
-                height: mobile ? 32 : 38,
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "12px",
-                color: "text.primary",
-                bgcolor: "rgba(255,255,255,0.06)",
-                "&:hover": {
-                  bgcolor: "rgba(149, 118, 255, 0.18)",
-                  borderColor: "rgba(153, 126, 255, 0.38)",
-                },
+                width: 32,
+                height: 32,
+                color: "rgba(255,255,255,0.68)",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.07)" },
               }}
             >
-              <TbSettings aria-hidden />
+              <FiX />
             </IconButton>
-            {mobile && (
-              <IconButton
-                aria-label={translate("بستن منو")}
-                onClick={onClose}
-                sx={{
-                  width: 32,
-                  height: 32,
-                  color: "text.secondary",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.07)" },
-                }}
-              >
-                <FiX />
-              </IconButton>
-            )}
-          </Stack>
-        )}
+          )}
+        </Stack>
       </Stack>
 
       <Menu
@@ -159,11 +151,11 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
             sx: {
               mt: 1,
               minWidth: 190,
-              border: "1px solid rgba(153, 126, 255, 0.2)",
+              border: "1px solid rgba(255,255,255,0.28)",
               borderRadius: "12px",
-              bgcolor: "#17102d",
+              bgcolor: "#0f0f0f",
               backgroundImage: "none",
-              color: "text.primary",
+              color: "#ffffff",
               boxShadow: "0 18px 44px rgba(0, 0, 0, 0.42)",
               backdropFilter: "blur(18px)",
             },
@@ -175,7 +167,7 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
           onClick={handleLanguageChange}
           sx={{ minHeight: 44, borderRadius: "8px", gap: 1.25 }}
         >
-          <ListItemIcon sx={{ minWidth: 0, color: "primary.main", fontSize: 20 }}>
+          <ListItemIcon sx={{ minWidth: 0, color: "#ffffff", fontSize: 20 }}>
             <FiGlobe aria-hidden />
           </ListItemIcon>
           <ListItemText
@@ -190,8 +182,6 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
         </MenuItem>
       </Menu>
 
-      <Divider sx={{ borderColor: "rgba(153, 126, 255, 0.2)" }} />
-
       <Box component="nav" aria-label={translate("منوی مدیریت")} sx={{ flex: 1, minHeight: 0 }}>
         <List sx={{ height: "100%", p: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
           {MENU_CONFIG.map(({ label, to, icon: Icon }) => (
@@ -201,28 +191,32 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
                 to={to}
                 onClick={mobile ? onClose : undefined}
                 sx={{
-                  minHeight: 50,
+                  minHeight: 48,
                   flexGrow: 0,
                   flexShrink: 0,
-                  px: compact ? 0 : 1.5,
+                  px: compact ? 0 : "12px",
                   justifyContent: compact ? "center" : "flex-start",
                   gap: compact ? 0 : "10px",
-                  border: "1px solid rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: "12px",
-                  color: "text.secondary",
-                  bgcolor: "rgba(255,255,255,0.035)",
+                  color: "#f1e9ff",
+                  bgcolor: "rgba(255,255,255,0.04)",
                   transition: "background-color 160ms ease, color 160ms ease, border-color 160ms ease",
                   "&:hover": {
-                    color: "text.primary",
-                    bgcolor: "rgba(149, 118, 255, 0.15)",
-                    borderColor: "rgba(153, 126, 255, 0.38)",
+                    color: "#f8f2ff",
+                    bgcolor: "rgba(255,255,255,0.12)",
+                    borderColor: "rgba(255,255,255,0.62)",
                   },
                   "&.active": {
-                    color: "#1a132f",
-                    bgcolor: "primary.main",
-                    backgroundImage: "linear-gradient(120deg, #f7d046, #f0a63c)",
+                    color: "#000000",
+                    bgcolor: "#ffffff",
+                    backgroundImage: "none",
                     borderColor: "transparent",
-                    boxShadow: "0 10px 24px rgba(247, 208, 70, 0.16)",
+                    "&:hover": {
+                      color: "#000000",
+                      bgcolor: "#ffffff",
+                      borderColor: "transparent",
+                    },
                   },
                 }}
               >
@@ -252,21 +246,21 @@ export default function SideBar({ user, collapsed = false, mobile = false, onClo
                 onClick={onToggle}
                 aria-label={translate(compact ? "باز کردن منو" : "بستن منو")}
                 sx={{
-                  minHeight: 50,
+                  minHeight: 48,
                   flexGrow: 0,
                   flexShrink: 0,
                   mt: "auto",
-                  px: compact ? 0 : 1.5,
+                  px: compact ? 0 : "12px",
                   justifyContent: compact ? "center" : "flex-start",
                   gap: compact ? 0 : "10px",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: "12px",
-                  color: "text.secondary",
+                  color: "#f1e9ff",
                   bgcolor: "rgba(255,255,255,0.04)",
                   "&:hover": {
-                    color: "text.primary",
-                    bgcolor: "rgba(149, 118, 255, 0.15)",
-                    borderColor: "rgba(153, 126, 255, 0.38)",
+                    color: "#f8f2ff",
+                    bgcolor: "rgba(255,255,255,0.12)",
+                    borderColor: "rgba(255,255,255,0.62)",
                   },
                 }}
               >
