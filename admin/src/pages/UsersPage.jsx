@@ -160,7 +160,7 @@ export default function UsersPage() {
           </Stack>
         ) : (
           <TableContainer sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 820 }} aria-label={translate("لیست کاربران")}>
+            <Table sx={{ minWidth: 820, "& .MuiTableCell-root": { textAlign: "right" } }} aria-label={translate("لیست کاربران")}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#000000" }}>
                   {["کاربر", "شماره موبایل", "نقش", "اشتراک", "تاریخ عضویت"].map((label) => (
@@ -195,7 +195,7 @@ export default function UsersPage() {
                       }}
                     >
                       <TableCell sx={{ py: 1.5, borderColor: "rgba(255,255,255,0.12)" }}>
-                        <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 1.25 }}>
+                        <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 1.25 }}>
                           <Avatar
                             src={user.avatarUrl || undefined}
                             alt={user.username || ""}
@@ -223,7 +223,7 @@ export default function UsersPage() {
                           color: "text.secondary",
                           fontSize: 13,
                           direction: "ltr",
-                          textAlign: "end",
+                          textAlign: "right",
                           whiteSpace: "nowrap",
                         }}
                       >
