@@ -1,55 +1,45 @@
-import { FiActivity, FiGrid } from "react-icons/fi";
-import { Box, Paper, Stack, Typography } from "@mui/material";
-import { translate } from "../i18n/runtime";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, CircularProgress, Stack } from "@mui/material";
+import { adminApiRequest } from "../auth/adminSession";
+import DashboardCharts from "./components/dashboard/DashboardCharts";
+import DashboardStatCards from "./components/dashboard/DashboardStatCards";
+import { getMonthBuckets, getMonthlyGrowth, startOfMonth } from "./components/dashboard/dashboardMetrics";
+
+const initialState = { users: [], loading: true, error: "" };
 
 export default function DashboardPage() {
-  return (
-    <Stack sx={{ gap: 3 }}>
-      <Box>
-        <Typography component="h1" sx={{ fontSize: { xs: 25, sm: 31 }, fontWeight: 900 }}>
-          {translate("داشبورد")}
-        </Typography>
-        <Typography sx={{ mt: 0.75, color: "text.secondary", fontSize: 14 }}>
-          {translate("نمای کلی پنل مدیریت TaskMentor")}
-        </Typography>
-      </Box>
+  const [state, setState] = useState(initialState);
 
-      <Paper
-        sx={{
-          minHeight: 260,
-          p: { xs: 2.5, sm: 4 },
-          display: "grid",
-          placeItems: "center",
-          textAlign: "center",
-          border: "1px solid rgba(255,255,255,0.18)",
-          bgcolor: "#0f0f0f",
-          backgroundImage: "none",
-          boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
-        }}
-      >
-        <Stack sx={{ alignItems: "center", gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 58,
-              height: 58,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: 4,
-              color: "primary.main",
-              bgcolor: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.22)",
-              fontSize: 27,
-            }}
-          >
-            <FiGrid aria-hidden />
-          </Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{translate("داشبورد مدیریت آماده است")}</Typography>
-          <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 0.75, color: "text.secondary" }}>
-            <FiActivity aria-hidden />
-            <Typography sx={{ fontSize: 13 }}>{translate("ویجت‌های مدیریتی در این بخش قرار می‌گیرند.")}</Typography>
-          </Stack>
-        </Stack>
-      </Paper>
+  useEffect(() => {
+    let active = true;
+    adminApiRequest("/api/admin/users")
+      .then((response) => {
+        if (active) setState({ users: response.data || [], loading: false, error: "" });
+      })
+      .catch((error) => {
+        if (active) setState({ users: [], loading: false, error: error.message || "دریافت اطلاعات داشبورد انجام نشد" });
+      });
+    return () => { active = false; };
+  }, []);
+
+  const metrics = useMemo(() => {
+    const total = state.users.length;
+    const paid = state.users.filter((user) => user.subscription === "pro" || user.subscription === "enterprise").length;
+    const free = total - paid;
+    const currentMonth = startOfMonth(new Date());
+    const monthly = state.users.filter((user) => new Date(user.createdAt) >= currentMonth).length;
+    return { total, paid, free, monthly, growth: getMonthlyGrowth(state.users), chart: getMonthBuckets(state.users) };
+  }, [state.users]);
+
+  return (
+    <Stack sx={{ gap: 2.25 }}>
+      <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+        {state.loading && <CircularProgress size={24} sx={{ color: "#a100ff" }} />}
+      </Stack>
+
+      {state.error && <Alert severity="error" sx={{ borderRadius: "10px" }}>{state.error}</Alert>}
+      <DashboardStatCards metrics={metrics} />
+      <DashboardCharts metrics={metrics} />
     </Stack>
   );
 }
