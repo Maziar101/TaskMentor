@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import {
   Avatar,
   Backdrop,
@@ -19,9 +19,31 @@ import {
   RestartAltRounded,
 } from "@mui/icons-material";
 import { profileApi } from "../../services/api";
+import { HandleReduce } from "../../utils/HandleReducer";
+import { avatarTabSx, glassActionButtonSx } from "./AvatarPickerModal.styles";
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const initialAvatarPickerState = {
+  tab: "presets",
+  presets: [],
+  selectedAvatar: "",
+  selectedFile: null,
+  previewUrl: "",
+  loading: false,
+  saving: false,
+  error: "",
+};
+
+function avatarPickerReducer(state, action) {
+  if (action.type === "reset") {
+    return { ...initialAvatarPickerState, ...action.payload };
+  }
+  if (!Object.hasOwn(state, action.type)) return state;
+  return Object.is(state[action.type], action.payload)
+    ? state
+    : { ...state, [action.type]: action.payload };
+}
 
 export default function AvatarPickerModal({
   currentAvatar,
@@ -30,38 +52,43 @@ export default function AvatarPickerModal({
   onSaved,
   open,
 }) {
-  const [tab, setTab] = useState("presets");
-  const [presets, setPresets] = useState([]);
-  const [selectedAvatar, setSelectedAvatar] = useState(currentAvatar || "");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [state, dispatch] = useReducer(avatarPickerReducer, {
+    ...initialAvatarPickerState,
+    selectedAvatar: currentAvatar || "",
+  });
+  const handleReducer = useMemo(() => HandleReduce(dispatch), []);
+  const {
+    tab,
+    presets,
+    selectedAvatar,
+    selectedFile,
+    previewUrl,
+    loading,
+    saving,
+    error,
+  } = state;
 
   useEffect(() => {
     if (!open) return undefined;
     let active = true;
-    setTab("presets");
-    setSelectedAvatar(currentAvatar || "");
-    setSelectedFile(null);
-    setPreviewUrl("");
-    setError("");
-    setLoading(true);
+    dispatch({
+      type: "reset",
+      payload: { selectedAvatar: currentAvatar || "", loading: true },
+    });
     profileApi.getAvatars()
       .then((response) => {
-        if (active) setPresets(response.data || []);
+        if (active) handleReducer("presets", response.data || []);
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message || "دریافت آواتارها ناموفق بود");
+        if (active) handleReducer("error", requestError.message || "دریافت آواتارها ناموفق بود");
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) handleReducer("loading", false);
       });
     return () => {
       active = false;
     };
-  }, [currentAvatar, open]);
+  }, [currentAvatar, handleReducer, open]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -76,39 +103,38 @@ export default function AvatarPickerModal({
     event.target.value = "";
     if (!file) return;
     if (!ACCEPTED_TYPES.has(file.type)) {
-      setError("فرمت تصویر باید JPG، PNG یا WebP باشد.");
+      handleReducer("error", "فرمت تصویر باید JPG، PNG یا WebP باشد.");
       return;
     }
     if (file.size > MAX_AVATAR_SIZE) {
-      setError("حجم تصویر نباید بیشتر از ۵ مگابایت باشد.");
+      handleReducer("error", "حجم تصویر نباید بیشتر از ۵ مگابایت باشد.");
       return;
     }
-    setError("");
-    setSelectedFile(file);
-    setSelectedAvatar("");
-    setPreviewUrl(URL.createObjectURL(file));
+    handleReducer(
+      ["error", "selectedFile", "selectedAvatar", "previewUrl"],
+      ["", file, "", URL.createObjectURL(file)],
+    );
   };
 
   const choosePreset = (url) => {
-    setSelectedFile(null);
-    setPreviewUrl("");
-    setSelectedAvatar(url);
-    setError("");
+    handleReducer(
+      ["selectedFile", "previewUrl", "selectedAvatar", "error"],
+      [null, "", url, ""],
+    );
   };
 
   const saveAvatar = async () => {
     if (!hasChanges || saving) return;
-    setSaving(true);
-    setError("");
+    handleReducer(["saving", "error"], [true, ""]);
     try {
       const response = selectedFile
         ? await profileApi.uploadAvatar(selectedFile)
         : await profileApi.update({ avatarUrl: selectedAvatar });
       onSaved(response.data);
     } catch (requestError) {
-      setError(requestError.message || "ذخیره تصویر پروفایل ناموفق بود");
+      handleReducer("error", requestError.message || "ذخیره تصویر پروفایل ناموفق بود");
     } finally {
-      setSaving(false);
+      handleReducer("saving", false);
     }
   };
 
@@ -205,18 +231,18 @@ export default function AvatarPickerModal({
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, p: 0.5, borderRadius: "14px", border: "1px solid var(--tm-border-subtle)", bgcolor: "rgba(0, 0, 0, 0.18)" }}>
             <Button
               type="button"
-              onClick={() => setTab("presets")}
+              onClick={() => handleReducer("tab", "presets")}
               aria-pressed={tab === "presets"}
-              sx={{ minHeight: 44, gap: 1, color: tab === "presets" ? "#fff" : "var(--tm-text-muted)", bgcolor: tab === "presets" ? "var(--tm-primary)" : "transparent", backgroundImage: tab === "presets" ? "linear-gradient(135deg, var(--tm-primary), var(--tm-primary-strong))" : "none", boxShadow: tab === "presets" ? "0 10px 24px var(--tm-primary-glow)" : "none", "&:hover": { bgcolor: tab === "presets" ? "var(--tm-primary)" : "var(--tm-primary-soft)" } }}
+              sx={avatarTabSx(tab === "presets")}
             >
               <PaletteRounded sx={{ fontSize: 20 }} />
               آواتارهای آماده
             </Button>
             <Button
               type="button"
-              onClick={() => setTab("upload")}
+              onClick={() => handleReducer("tab", "upload")}
               aria-pressed={tab === "upload"}
-              sx={{ minHeight: 44, gap: 1, color: tab === "upload" ? "#fff" : "var(--tm-text-muted)", bgcolor: tab === "upload" ? "var(--tm-primary)" : "transparent", backgroundImage: tab === "upload" ? "linear-gradient(135deg, var(--tm-primary), var(--tm-primary-strong))" : "none", boxShadow: tab === "upload" ? "0 10px 24px var(--tm-primary-glow)" : "none", "&:hover": { bgcolor: tab === "upload" ? "var(--tm-primary)" : "var(--tm-primary-soft)" } }}
+              sx={avatarTabSx(tab === "upload")}
             >
               <CloudUploadRounded sx={{ fontSize: 20 }} />
               آپلود تصویر
@@ -258,7 +284,7 @@ export default function AvatarPickerModal({
                 <CloudUploadRounded sx={{ fontSize: 46, color: "var(--tm-text-accent)" }} />
                 <Typography sx={{ color: "var(--tm-text)", fontWeight: 800 }}>تصویر دلخواهتان را انتخاب کنید</Typography>
                 <Typography sx={{ color: "var(--tm-text-muted)", fontSize: "0.78rem" }}>JPG، PNG یا WebP تا حداکثر ۵ مگابایت</Typography>
-                <Button component="label" sx={{ mt: 0.5, minHeight: 42, px: 3, gap: 1, color: "#fff", bgcolor: "var(--tm-primary)", backgroundImage: "linear-gradient(135deg, var(--tm-primary), var(--tm-primary-strong))", "&:hover": { bgcolor: "var(--tm-primary-strong)" } }}>
+                <Button component="label" sx={{ ...glassActionButtonSx, mt: 0.5, minHeight: 42, px: 3, gap: 1 }}>
                   <CloudUploadRounded sx={{ fontSize: 20 }} />
                   انتخاب فایل
                   <Box component="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFile} sx={{ display: "none" }} />
@@ -284,7 +310,7 @@ export default function AvatarPickerModal({
           </Button>
 
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.25, mt: 1.5 }}>
-            <Button type="button" onClick={saveAvatar} disabled={!hasChanges || saving} sx={{ minHeight: 48, gap: 1, color: "#fff", bgcolor: "var(--tm-primary)", backgroundImage: "linear-gradient(135deg, var(--tm-primary), var(--tm-primary-strong))", boxShadow: "0 14px 28px var(--tm-primary-glow)", "&:hover": { bgcolor: "var(--tm-primary-strong)" }, "&.Mui-disabled": { color: "rgba(255,255,255,.5)", bgcolor: "rgba(255,255,255,.08)", backgroundImage: "none" } }}>
+            <Button type="button" onClick={saveAvatar} disabled={!hasChanges || saving} sx={{ ...glassActionButtonSx, minHeight: 48, gap: 1 }}>
               {saving ? <CircularProgress size={21} sx={{ color: "inherit" }} /> : <ImageRounded sx={{ fontSize: 20 }} />}
               {saving ? "در حال ذخیره…" : "ذخیره تصویر"}
             </Button>
