@@ -27,6 +27,10 @@ const userSchema = new Schema(
       enum: ["owner", "admin", "user"],
       default: "user",
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     permissions: {
       type: Object,
       default: {

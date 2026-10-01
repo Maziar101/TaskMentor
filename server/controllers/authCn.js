@@ -26,6 +26,7 @@ const publicUser = (user) => ({
   avatarUrl: user.avatarUrl || "",
   phone: user.phone,
   role: user.role,
+  isActive: user.isActive !== false,
 });
 
 export const login = catchAsync(async (req, res, next) => {
@@ -40,6 +41,9 @@ export const login = catchAsync(async (req, res, next) => {
   }
 
   const user = await Users.findOne({ phone }).select("+password");
+  if (user?.isActive === false) {
+    return next(new HandleError("حساب کاربری شما غیرفعال شده است", 403));
+  }
   return res.status(200).json({
     success: true,
     message: "کد تایید ارسال شد",
@@ -68,6 +72,9 @@ export const verify = catchAsync(async (req, res, next) => {
   }
 
   let user = await Users.findOne({ phone }).select("+password");
+  if (user?.isActive === false) {
+    return next(new HandleError("حساب کاربری شما غیرفعال شده است", 403));
+  }
   if (!user) {
     if (!name) {
       return next(new HandleError("برای ثبت‌نام نام خود را وارد کنید", 400));
@@ -147,7 +154,7 @@ export const exchangeAdminHandoff = catchAsync(async (req, res, next) => {
   }
 
   const user = await Users.findById(handoff.userId);
-  if (!user || !ADMIN_ROLES.has(user.role)) {
+  if (!user || user.isActive === false || !ADMIN_ROLES.has(user.role)) {
     return next(new HandleError("دسترسی به پنل مدیریت مجاز نیست", 403));
   }
 

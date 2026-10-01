@@ -18,6 +18,10 @@ export const protect = async (req, _res, next) => {
       return next(new HandleError("کاربر پیدا نشد. دوباره وارد شوید", 401));
     }
 
+    if (user.isActive === false) {
+      return next(new HandleError("حساب کاربری شما غیرفعال شده است", 403));
+    }
+
     req.user = user;
     return next();
   } catch {
