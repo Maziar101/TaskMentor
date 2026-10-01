@@ -99,7 +99,7 @@ export default function AdminLayout() {
         </Stack>
 
         <Box sx={{ width: "100%", maxWidth: 1440, mx: "auto", p: { xs: 2, sm: 3, lg: 4 } }}>
-          <Outlet />
+          <Outlet context={{ adminUser }} />
         </Box>
       </Box>
     </Box>
