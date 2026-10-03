@@ -15,6 +15,7 @@ import ImagePreviewModal from "./ImagePreviewModal";
 import PinnedMessagesBar from "./PinnedMessagesBar";
 import PinnedMessagesView from "./PinnedMessagesView";
 import ContactProfileDialog from "./ContactProfileDialog";
+import GroupInfoDialog from "./GroupInfoDialog";
 import MessageWithDate from "./MessageWithDate";
 import useChatWindowState from "../hooks/useChatWindowState";
 import { getLocale } from "../../../i18n/runtime";
@@ -288,13 +289,22 @@ export default function ChatWindow({
       {previewImage && (
         <ImagePreviewModal image={previewImage} onClose={closeImagePreview} />
       )}
-      <ContactProfileDialog
-        open={profileOpen}
-        conversation={conversation}
-        busy={saving}
-        onBlock={onBlockUser}
-        onClose={() => update("profileOpen", false)}
-      />
+      {conversation.isGroup ? (
+        <GroupInfoDialog
+          open={profileOpen}
+          conversation={conversation}
+          messages={messages}
+          onClose={() => update("profileOpen", false)}
+        />
+      ) : (
+        <ContactProfileDialog
+          open={profileOpen}
+          conversation={conversation}
+          busy={saving}
+          onBlock={onBlockUser}
+          onClose={() => update("profileOpen", false)}
+        />
+      )}
       {pinnedListOpen && (
         <PinnedMessagesView
           busy={saving}

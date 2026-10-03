@@ -223,6 +223,42 @@ router.post("/groups", uploadOptionalImage, catchAsync(async (req, res) => {
   });
 }));
 
+router.get("/groups/:conversationId", catchAsync(async (req, res) => {
+  const group = await ChatGroup.findOne({
+    key: req.params.conversationId,
+    memberIds: req.user._id,
+  }).lean();
+  if (!group) throw new HandleError("گروه پیدا نشد", 404);
+
+  const users = await Users.find({ _id: { $in: group.memberIds } })
+    .select("username avatarUrl")
+    .lean();
+  const usersById = new Map(users.map((user) => [user._id.toString(), user]));
+  const viewerId = req.user._id.toString();
+  const ownerId = group.ownerId.toString();
+
+  res.json({
+    group: {
+      id: group.key,
+      name: group.name,
+      avatarUrl: group.avatarUrl || "",
+      memberCount: group.memberIds.length,
+      isOwner: ownerId === viewerId,
+      members: group.memberIds.map((memberId) => {
+        const id = memberId.toString();
+        const user = usersById.get(id);
+        return user ? {
+          id,
+          name: user.username,
+          avatarUrl: user.avatarUrl || "",
+          isOwner: id === ownerId,
+          isCurrentUser: id === viewerId,
+        } : null;
+      }).filter(Boolean),
+    },
+  });
+}));
+
 router.get("/unread-summary", catchAsync(async (req, res) => {
   const conversations = await ChatConversation.find({
     userId: req.user._id,

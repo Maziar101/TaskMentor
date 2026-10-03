@@ -17,7 +17,10 @@ export default function ChatWindowHeader({
   searchOpen,
   saving,
 }) {
-  const profileDisabled = conversation.id === "saved" || conversation.isGroup;
+  const profileDisabled = conversation.id === "saved";
+  const profileLabel = conversation.isGroup
+    ? `نمایش اطلاعات گروه ${conversation.name}`
+    : `نمایش پروفایل ${conversation.name}`;
 
   return (
     <header className="messenger-chat__header">
@@ -26,7 +29,7 @@ export default function ChatWindowHeader({
         className="messenger-chat__identity"
         disabled={profileDisabled}
         onClick={onOpenProfile}
-        aria-label={profileDisabled ? undefined : `نمایش پروفایل ${conversation.name}`}
+        aria-label={profileDisabled ? undefined : profileLabel}
         aria-haspopup={profileDisabled ? undefined : "dialog"}
       >
         <ChatAvatar conversation={conversation} size="large" />

@@ -181,6 +181,20 @@ test("chat persists in MongoDB, isolates users, and deduplicates retries", async
     assert.equal((await fetch(new URL(createdGroup.conversation.avatarUrl, base))).status, 200);
     const groupConversationId = createdGroup.conversation.id;
     assert.ok(groupConversationId.startsWith("group-"));
+    const groupInfo = await request(first, `/groups/${groupConversationId}`);
+    assert.equal(groupInfo.status, 200);
+    assert.equal(groupInfo.data.group.name, "گروه پروژه");
+    assert.equal(groupInfo.data.group.memberCount, 2);
+    assert.equal(groupInfo.data.group.isOwner, true);
+    assert.deepEqual(groupInfo.data.group.members.map((member) => ({
+      name: member.name,
+      isOwner: member.isOwner,
+      isCurrentUser: member.isCurrentUser,
+    })), [
+      { name: first.username, isOwner: true, isCurrentUser: true },
+      { name: second.username, isOwner: false, isCurrentUser: false },
+    ]);
+    assert.equal((await request(third, `/groups/${groupConversationId}`)).status, 404);
     assert.equal((await request(second)).data.conversations.some((item) =>
       item.id === groupConversationId && item.name === "گروه پروژه" && item.memberCount === 2), true);
     assert.equal((await request(third)).data.conversations.some((item) => item.id === groupConversationId), false);
