@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { app } from "../app.js";
 import Users from "../models/User.js";
+import { ChatGroup } from "../modules/chat/chat.model.js";
 
 test("admin user management enforces edits, status, deletion, and role safeguards", async () => {
   const dbName = `taskmentor_admin_users_test_${randomUUID().replaceAll("-", "")}`;
@@ -22,6 +23,12 @@ test("admin user management enforces edits, status, deletion, and role safeguard
     ]);
 
     const tokenFor = (account) => jwt.sign({ id: account.id }, process.env.JWT_SECRET);
+    const group = await ChatGroup.create({
+      key: `group-${randomUUID()}`,
+      ownerId: owner._id,
+      name: "گروه تست داشبورد",
+      memberIds: [owner._id, user._id],
+    });
     listener = app.listen(0, "127.0.0.1");
     await new Promise((resolve) => listener.once("listening", resolve));
     const origin = `http://127.0.0.1:${listener.address().port}`;
@@ -41,6 +48,12 @@ test("admin user management enforces edits, status, deletion, and role safeguard
     assert.equal(listed.status, 200);
     assert.equal(listed.data.data.length, 4);
     assert.ok(listed.data.data.every((account) => typeof account.isActive === "boolean"));
+
+    const dashboard = await request(admin, "/api/admin/dashboard");
+    assert.equal(dashboard.status, 200);
+    assert.equal(dashboard.data.data.users.length, 4);
+    assert.deepEqual(dashboard.data.data.groups.map((item) => item._id), [group.id]);
+    assert.equal((await request(user, "/api/admin/dashboard")).status, 403);
 
     const adminRoleChange = await request(admin, `/api/admin/users/${user.id}`, {
       body: { username: user.username, phone: user.phone, role: "admin", subscription: "free" },
