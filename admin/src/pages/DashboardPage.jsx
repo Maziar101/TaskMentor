@@ -9,22 +9,28 @@ import {
   startOfMonth,
 } from "./components/dashboard/dashboardMetrics";
 
-const initialState = { users: [], loading: true, error: "" };
+const initialState = { users: [], groups: [], loading: true, error: "" };
 
 export default function DashboardPage() {
   const [state, setState] = useState(initialState);
 
   useEffect(() => {
     let active = true;
-    adminApiRequest("/api/admin/users")
+    adminApiRequest("/api/admin/dashboard")
       .then((response) => {
         if (active)
-          setState({ users: response.data || [], loading: false, error: "" });
+          setState({
+            users: response.data?.users || [],
+            groups: response.data?.groups || [],
+            loading: false,
+            error: "",
+          });
       })
       .catch((error) => {
         if (active)
           setState({
             users: [],
+            groups: [],
             loading: false,
             error: error.message || "دریافت اطلاعات داشبورد انجام نشد",
           });
@@ -51,9 +57,18 @@ export default function DashboardPage() {
       free,
       monthly,
       growth: getMonthlyGrowth(state.users),
-      chart: getMonthBuckets(state.users),
+      charts: {
+        users: {
+          6: getMonthBuckets(state.users, 6),
+          12: getMonthBuckets(state.users, 12),
+        },
+        groups: {
+          6: getMonthBuckets(state.groups, 6),
+          12: getMonthBuckets(state.groups, 12),
+        },
+      },
     };
-  }, [state.users]);
+  }, [state.groups, state.users]);
 
   return (
     <Stack sx={{ gap: 2.25 }}>
