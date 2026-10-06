@@ -31,12 +31,11 @@ const dialogPaperSx = {
   maxHeight: "min(860px, calc(100dvh - 24px))",
   m: 1.5,
   direction: "rtl",
-  overflow: "visible",
+  overflow: "hidden",
   border: "1px solid var(--tm-border-strong)",
   borderRadius: "8px",
-  bgcolor: "var(--tm-surface-solid)",
-  backgroundImage:
-    "linear-gradient(145deg, rgba(26,26,26,0.98), rgba(10,10,10,0.99))",
+  bgcolor: "var(--tm-page-base)",
+  backgroundImage: "none",
   color: "var(--tm-text)",
   boxShadow: "0 30px 90px rgba(0, 0, 0, 0.68)",
 };
@@ -139,8 +138,7 @@ export default function GroupInfoDialog({
       <DialogContent
         sx={{
           p: { xs: 1.5, sm: "30px 10px" },
-          width: "calc(100% + 4px)",
-          mr: "-4px",
+          width: "100%",
           direction: "ltr",
           overflowY: "auto",
           "&::-webkit-scrollbar": { width: "4px" },
