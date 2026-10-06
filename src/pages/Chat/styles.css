@@ -631,6 +631,14 @@ html[data-accent-theme="monochrome"] .messenger-avatar--violet {
   backdrop-filter: blur(14px);
 }
 
+.messenger-chat__header.is-profile-clickable {
+  cursor: pointer;
+}
+
+.messenger-chat__header.is-profile-clickable .messenger-chat__actions {
+  cursor: default;
+}
+
 .messenger-pinned-messages {
   min-width: 0;
   min-height: 58px;

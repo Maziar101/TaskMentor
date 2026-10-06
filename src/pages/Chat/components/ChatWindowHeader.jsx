@@ -22,13 +22,20 @@ export default function ChatWindowHeader({
     ? `نمایش اطلاعات گروه ${conversation.name}`
     : `نمایش پروفایل ${conversation.name}`;
 
+  const handleHeaderClick = (event) => {
+    if (profileDisabled || event.target.closest(".messenger-chat__actions")) return;
+    onOpenProfile();
+  };
+
   return (
-    <header className="messenger-chat__header">
+    <header
+      className={`messenger-chat__header${profileDisabled ? "" : " is-profile-clickable"}`}
+      onClick={handleHeaderClick}
+    >
       <button
         type="button"
         className="messenger-chat__identity"
         disabled={profileDisabled}
-        onClick={onOpenProfile}
         aria-label={profileDisabled ? undefined : profileLabel}
         aria-haspopup={profileDisabled ? undefined : "dialog"}
       >
